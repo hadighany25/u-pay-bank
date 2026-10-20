@@ -1,20 +1,26 @@
-// ========================================================================
-// ឯកសារ: admin-logs.js (100% Pro Redesign - Enterprise Security & Audit Center)
+// ============================================================================
+// ឯកសារ: js/admin-logs.js (100% Pro Redesign - Enterprise Security & Audit Center)
 // អត្ថន័យ: តាមដានសកម្មភាពបុគ្គលិក (Audit Logs), ញែកប្រភេទហានិភ័យ, Export CSV និង Pagination
-// ========================================================================
+// ស្តង់ដារថ្មី: ចាប់គោលដៅអតិថិជនតាម MongoDB `_id` សុទ្ធសាធ + បង្ហាញឈ្មោះពេញ (fullName)
+// ============================================================================
 
+// ============================================================================
+// 🛡️ ជំពូកទី ១៖ អថេរសកល, ម៉ាស៊ីនចាត់ថ្នាក់ហានិភ័យ និងការស្វែងរកតាម `_id` (STATE & CLASSIFIER)
+// ============================================================================
 let allAuditLogs = [];
 let filteredAuditLogs = [];
 let currentLogPage = 1;
-const LOGS_PER_PAGE = 6; // បង្ហាញ ១០ កំណត់ត្រាក្នុង ១ ទំព័រឱ្យមានរបៀបរៀបរយស្អាត
+const LOGS_PER_PAGE = 6; // បង្ហាញ ៦ កំណត់ត្រាក្នុង ១ ទំព័រ
 let alogsCurrentCategory = "ALL"; // 'ALL', 'TODAY', 'FINANCE', 'USER_KYC', 'CRITICAL', 'SYSTEM'
 
-// 🔍 ១. ចំណាត់ថ្នាក់ប្រភេទសកម្មភាព និងពណ៌ផ្លាក (Action Classifier)
+/**
+ * 🔹 ១.១ ចំណាត់ថ្នាក់ប្រភេទសកម្មភាព កម្រិតហានិភ័យ និងពណ៌ផ្លាក (Action Classifier)
+ */
 function classifyAuditAction(actionStr = "", detailsStr = "") {
   const act = String(actionStr || "").toLowerCase();
   const det = String(detailsStr || "").toLowerCase();
 
-  // 🔴 សកម្មភាពហានិភ័យខ្ពស់ (Critical / Delete / Freeze / Reject / Revoke / Force Logout)
+  // ១.១.១ សកម្មភាពហានិភ័យខ្ពស់ (Critical / Delete / Freeze / Reject / Revoke / Force Logout / Refund)
   if (
     act.includes("delete") ||
     act.includes("reject") ||
@@ -23,10 +29,11 @@ function classifyAuditAction(actionStr = "", detailsStr = "") {
     act.includes("force logout") ||
     act.includes("unbind") ||
     act.includes("refund") ||
-    det.includes("frozen")
+    det.includes("frozen") ||
+    det.includes("purged")
   ) {
     let icon = "fa-triangle-exclamation";
-    if (act.includes("delete")) icon = "fa-trash-can";
+    if (act.includes("delete") || det.includes("purged")) icon = "fa-trash-can";
     else if (act.includes("freeze") || det.includes("frozen"))
       icon = "fa-snowflake";
     else if (act.includes("reject") || act.includes("revoke")) icon = "fa-ban";
@@ -41,7 +48,7 @@ function classifyAuditAction(actionStr = "", detailsStr = "") {
     };
   }
 
-  // 🔵 សកម្មភាពហិរញ្ញវត្ថុ កាត និងបញ្ជរគិតប្រាក់ (Finance, Cards, Cashier, Merchant)
+  // ១.១.២ សកម្មភាពហិរញ្ញវត្ថុ កាត និងបញ្ជរគិតប្រាក់ (Finance, Cards, Cashier, Merchant)
   if (
     act.includes("money") ||
     act.includes("balance") ||
@@ -67,7 +74,7 @@ function classifyAuditAction(actionStr = "", detailsStr = "") {
     };
   }
 
-  // 🟢 សកម្មភាពបង្កើតថ្មី ឬអនុម័ត (Create / Approve / Upload KYC)
+  // ១.១.៣ សកម្មភាពបង្កើតថ្មី ឬអនុម័ត (Create / Approve / Upload KYC)
   if (
     act.includes("approve") ||
     act.includes("create") ||
@@ -83,7 +90,7 @@ function classifyAuditAction(actionStr = "", detailsStr = "") {
     };
   }
 
-  // 🟠 សកម្មភាពកែប្រែអតិថិជន ឬ KYC (Edit User / Reset / Limit / Withdraw)
+  // ១.១.៤ សកម្មភាពកែប្រែអតិថិជន ឬ KYC (Edit User / Reset / Limit / Withdraw)
   if (
     act.includes("user") ||
     act.includes("kyc") ||
@@ -103,7 +110,7 @@ function classifyAuditAction(actionStr = "", detailsStr = "") {
     };
   }
 
-  // 🟣 សកម្មភាពប្រព័ន្ធ បុគ្គលិក Admin និងសារជូនដំណឹង (System / Admin / Broadcast / Ticket)
+  // ១.១.៥ សកម្មភាពប្រព័ន្ធ បុគ្គលិក Admin និងសារជូនដំណឹង (System / Admin / Broadcast / Ticket)
   return {
     category: "SYSTEM",
     badgeClass: "alogs-badge-system",
@@ -113,7 +120,9 @@ function classifyAuditAction(actionStr = "", detailsStr = "") {
   };
 }
 
-// 🔍 ២. ឆែកថាតើកាលបរិច្ឆេទ Log ស្ថិតក្នុងថ្ងៃនេះឬអត់
+/**
+ * 🔹 ១.២ ឆែកថាតើកាលបរិច្ឆេទ Log ស្ថិតក្នុងថ្ងៃនេះឬអត់
+ */
 function isLogFromToday(dateStr = "") {
   if (!dateStr) return false;
   try {
@@ -123,7 +132,6 @@ function isLogFromToday(dateStr = "") {
     const y = today.getFullYear();
 
     const str = String(dateStr);
-    // គាំទ្រទម្រង់ M/D/YYYY (en-US) និង YYYY-MM-DD
     const usFormat = `${m}/${d}/${y}`;
     const isoFormat = `${y}-${String(m).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
     return str.includes(usFormat) || str.includes(isoFormat);
@@ -132,10 +140,38 @@ function isLogFromToday(dateStr = "") {
   }
 }
 
-// ========================================================================
-// 🔄 SECTION 2: LOAD DATA & KPI CALCULATION
-// ========================================================================
+/**
+ * 🔹 ១.៣ ស្វែងរកអតិថិជនគោលដៅ (Target User) តាមរយៈ MongoDB `_id` ដើម្បីបង្ហាញឈ្មោះពេញ (`fullName`)
+ */
+function resolveAuditTargetUser(targetStr = "") {
+  const clean = String(targetStr || "")
+    .replace(/^@/, "")
+    .trim();
+  if (!clean || clean === "-" || clean === "System") return null;
 
+  const list = Array.isArray(window.globalUsersData)
+    ? window.globalUsersData
+    : [];
+
+  // អាទិភាពទី ១៖ ចាប់តាម MongoDB `_id`
+  let found = list.find((u) => String(u._id || u.id) === clean);
+  if (found) return found;
+
+  // Fallback សម្រាប់ទិន្នន័យ Log ចាស់ៗដែលធ្លាប់កត់ត្រាជា username
+  return (
+    list.find(
+      (u) => String(u.username || "").toLowerCase() === clean.toLowerCase(),
+    ) || null
+  );
+}
+
+// ============================================================================
+// 🔄 ជំពូកទី ២៖ ការទាញយកទិន្នន័យកំណត់ហេតុ និងគណនាស្ថិតិ KPI (LOAD DATA & KPI STATS)
+// ============================================================================
+
+/**
+ * 🔹 ២.១ ទាញយកកំណត់ត្រាសកម្មភាពទាំងអស់ពី Server (`/api/admin/logs`)
+ */
 async function loadAdminLogs(showToast = false) {
   if (typeof adminRole !== "undefined" && adminRole !== "super_admin") return;
 
@@ -173,6 +209,9 @@ async function loadAdminLogs(showToast = false) {
   }
 }
 
+/**
+ * 🔹 ២.២ គណនា និងបង្ហាញតួលេខ KPI ទាំង ៥ ខាងលើតារាង
+ */
 function updateAuditLogKpis() {
   let todayCount = 0;
   let financeCount = 0;
@@ -210,10 +249,13 @@ function updateAuditLogKpis() {
   setTxt("alogs-stat-critical", criticalCount);
 }
 
-// ========================================================================
-// 🔍 SECTION 3: MULTI-CRITERIA FILTERING
-// ========================================================================
+// ============================================================================
+// 🔍 ជំពូកទី ៣៖ ការចម្រាញ់កំណត់ហេតុតាមលក្ខខណ្ឌច្រើនជាន់ (MULTI-CRITERIA FILTERING)
+// ============================================================================
 
+/**
+ * 🔹 ៣.១ ប្តូរប្រភេទតម្រងតាមប៊ូតុង Category Pills និងកាត KPI
+ */
 window.alogsSetCategoryFilter = function (catKey) {
   alogsCurrentCategory = catKey;
   currentLogPage = 1;
@@ -231,6 +273,9 @@ window.alogsSetCategoryFilter = function (catKey) {
   applyLogFilters();
 };
 
+/**
+ * 🔹 ៣.២ សម្អាតប្រអប់ស្វែងរកទាំងអស់ឱ្យត្រឡប់មកលំនាំដើមវិញ
+ */
 window.resetAuditLogFilters = function () {
   const dEl = document.getElementById("filterLogDate");
   const aEl = document.getElementById("filterLogAdmin");
@@ -241,6 +286,9 @@ window.resetAuditLogFilters = function () {
   alogsSetCategoryFilter("ALL");
 };
 
+/**
+ * 🔹 ៣.៣ អនុវត្តការចម្រាញ់តាមប្រភេទ, កាលបរិច្ឆេទ, ឈ្មោះបុគ្គលិក Admin និងពាក្យគន្លឹះ
+ */
 function applyLogFilters() {
   const filterDate = document.getElementById("filterLogDate")?.value || "";
   const filterAdmin = (document.getElementById("filterLogAdmin")?.value || "")
@@ -252,7 +300,6 @@ function applyLogFilters() {
     .trim();
 
   filteredAuditLogs = allAuditLogs.filter((log) => {
-    // ១. ឆែកតាម Category Pill / KPI
     const info = classifyAuditAction(log.action, log.details);
     const actLower = String(log.action || "").toLowerCase();
 
@@ -281,7 +328,6 @@ function applyLogFilters() {
       return false;
     }
 
-    // ២. ឆែកតាមកាលបរិច្ឆេទ (Date Input YYYY-MM-DD)
     if (filterDate) {
       const [year, month, day] = filterDate.split("-");
       const usNoZero = `${Number(month)}/${Number(day)}/${year}`;
@@ -297,16 +343,16 @@ function applyLogFilters() {
       if (!matchDate) return false;
     }
 
-    // ៣. ឆែកតាមឈ្មោះ Admin
     if (filterAdmin) {
       const adminName = String(log.admin || "").toLowerCase();
       if (!adminName.includes(filterAdmin)) return false;
     }
 
-    // ៤. ឆែកតាមពាក្យស្វែងរកទូទៅ (Action, Target, Details)
     if (filterQuery) {
+      const targetUser = resolveAuditTargetUser(log.target);
+      const targetFullName = targetUser ? targetUser.fullName || "" : "";
       const combined =
-        `${log.action || ""} ${log.target || ""} ${log.details || ""} ${log.admin || ""}`.toLowerCase();
+        `${log.action || ""} ${log.target || ""} ${targetFullName} ${log.details || ""} ${log.admin || ""}`.toLowerCase();
       if (!combined.includes(filterQuery)) return false;
     }
 
@@ -322,10 +368,13 @@ function applyLogFilters() {
   renderAuditLogs();
 }
 
-// ========================================================================
-// 📊 SECTION 4: TABLE RENDERING & PAGINATION
-// ========================================================================
+// ============================================================================
+// 📊 ជំពូកទី ៤៖ ការគូរតារាងកំណត់ហេតុតាម `_id` និងការបែងចែកទំព័រ (TABLE & PAGINATION BY `_id`)
+// ============================================================================
 
+/**
+ * 🔹 ៤.១ គូរតារាងកំណត់ហេតុដោយបង្ហាញឈ្មោះពេញរបស់ Admin និងភ្ជាប់ប៊ូតុង 360° តាម `_id`
+ */
 function renderAuditLogs() {
   const tbody = document.getElementById("logsTableBody");
   if (!tbody) return;
@@ -362,34 +411,36 @@ function renderAuditLogs() {
       const actualIdx = startIndex + idx;
       const info = classifyAuditAction(l.action, l.details);
 
-      // បំបែកថ្ងៃ និងម៉ោងឱ្យមើលទៅស្អាត
       const rawDate = String(l.date || "N/A");
       const dateParts = rawDate.split(",");
       const dateMain = dateParts[0] || rawDate;
       const timeMain = dateParts.slice(1).join(",").trim();
 
-      // ឆែកថាតើ Target ជាអតិថិជនក្នុងប្រព័ន្ធឬអត់ ដើម្បីដាក់ប៊ូតុង 360°
+      // 🎯 ស្វែងរកអតិថិជនគោលដៅតាមរយៈ MongoDB `_id`
       const targetStr = String(l.target || "-").trim();
-      const isKnownUser =
-        typeof globalUsersData !== "undefined" &&
-        Array.isArray(globalUsersData) &&
-        globalUsersData.some((u) => u.username === targetStr);
+      const matchedUser = resolveAuditTargetUser(targetStr);
 
-      const targetHtml = isKnownUser
-        ? `<div style="display:inline-flex; align-items:center; gap:6px;">
-             <span style="font-family:'JetBrains Mono',monospace; font-weight:800; color:var(--text-main);">@${targetStr}</span>
-             <button type="button" onclick="alogsJumpToCustomer360('${targetStr}')" title="បើកមើលក្នុង Customer 360°" style="background:var(--bg-body); border:1px solid var(--border); color:#3b82f6; border-radius:6px; padding:2px 6px; font-size:0.68rem; font-weight:800; cursor:pointer;">
-               360° <i class="fa-solid fa-arrow-up-right-from-square" style="font-size:0.58rem;"></i>
-             </button>
-           </div>`
-        : `<span style="font-family:'JetBrains Mono',monospace; font-weight:700; color:var(--text-main); font-size:0.88rem;">${targetStr}</span>`;
+      let targetHtml = `<span style="font-family:'JetBrains Mono',monospace; font-weight:700; color:var(--text-main); font-size:0.86rem;">${targetStr}</span>`;
+      if (matchedUser) {
+        const canonicalId = String(matchedUser._id || matchedUser.id);
+        const custFullName = matchedUser.fullName || matchedUser.username;
+        targetHtml = `
+          <div style="display:inline-flex; align-items:center; gap:6px; flex-wrap:wrap;">
+            <span style="font-weight:800; color:var(--text-main); font-size:0.88rem;">${custFullName}</span>
+            <button type="button" onclick="alogsJumpToCustomer360('${canonicalId}')" title="បើកមើលក្នុង Customer 360° តាម _id" style="background:var(--bg-body); border:1px solid var(--border); color:#3b82f6; border-radius:6px; padding:2px 6px; font-size:0.68rem; font-weight:800; cursor:pointer;">
+              360° <i class="fa-solid fa-arrow-up-right-from-square" style="font-size:0.58rem;"></i>
+            </button>
+          </div>
+        `;
+      }
 
-      const adminUsername = String(l.admin || "System").replace(/^@/, "");
-      const adminInitial = adminUsername.charAt(0).toUpperCase() || "A";
+      const adminDisplayName = String(
+        l.admin || "ប្រព័ន្ធស្វ័យប្រវត្តិ",
+      ).replace(/^@/, "");
+      const adminInitial = adminDisplayName.charAt(0).toUpperCase() || "A";
 
       return `
         <tr style="border-bottom: 1px solid var(--border, #e2e8f0); transition: 0.15s;" onmouseover="this.style.background='rgba(15, 23, 42, 0.015)'" onmouseout="this.style.background='transparent'">
-          <!-- ១. កាលបរិច្ឆេទ & ម៉ោង -->
           <td style="padding: 13px 12px;">
             <div style="font-weight: 800; font-size: 0.84rem; color: var(--text-main);">
               <i class="fa-regular fa-calendar" style="color: #0d9488; margin-right: 4px;"></i> ${dateMain}
@@ -403,20 +454,18 @@ function renderAuditLogs() {
             }
           </td>
 
-          <!-- ២. គណនី Admin -->
           <td style="padding: 13px 12px;">
             <div style="display: flex; align-items: center; gap: 9px;">
               <div style="width: 32px; height: 32px; border-radius: 9px; background: linear-gradient(135deg, #004d40, #0d9488); color: #ffffff; display: flex; align-items: center; justify-content: center; font-weight: 900; font-size: 0.82rem; flex-shrink: 0;">
                 ${adminInitial}
               </div>
               <div>
-                <div style="font-weight: 800; font-size: 0.88rem; color: var(--text-main);">@${adminUsername}</div>
-                <div style="font-size: 0.68rem; color: var(--text-muted); font-weight: 700;">Administrator</div>
+                <div style="font-weight: 800; font-size: 0.88rem; color: var(--text-main);">${adminDisplayName}</div>
+                <div style="font-size: 0.68rem; color: var(--text-muted); font-weight: 700;">មន្ត្រីប្រតិបត្តិ (Admin)</div>
               </div>
             </div>
           </td>
 
-          <!-- ៣. ប្រភេទសកម្មភាព -->
           <td style="padding: 13px 12px;">
             <span class="alogs-action-badge ${info.badgeClass}">
               <i class="fa-solid ${info.icon}"></i>
@@ -424,19 +473,16 @@ function renderAuditLogs() {
             </span>
           </td>
 
-          <!-- ៤. គោលដៅ (Target) -->
           <td style="padding: 13px 12px;">
             ${targetHtml}
           </td>
 
-          <!-- ៥. ព័ត៌មានលម្អិត -->
           <td style="padding: 13px 12px; color: var(--text-muted); font-size: 0.86rem; max-width: 360px;">
             <div style="overflow: hidden; text-overflow: ellipsis; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; line-height: 1.45; color: var(--text-main);">
               ${l.details || "-"}
             </div>
           </td>
 
-          <!-- ៦. ប៊ូតុងពិនិត្យលម្អិត -->
           <td style="padding: 13px 12px; text-align: right; white-space: nowrap;">
             <button type="button" class="alogs-btn-view" onclick="openAuditLogDetailModal(${actualIdx})">
               <i class="fa-solid fa-eye"></i> លម្អិត
@@ -447,7 +493,6 @@ function renderAuditLogs() {
     })
     .join("");
 
-  // អាប់ដេត Pagination Footer ("ថយក្រោយ | ទំព័រ 1 នៃ X | បន្ទាប់")
   const pageInfo = document.getElementById("logPageInfo");
   if (pageInfo) {
     pageInfo.innerText = `ទំព័រ ${currentLogPage} នៃ ${totalPages} (សរុប ${filteredAuditLogs.length} កំណត់ត្រា)`;
@@ -473,15 +518,26 @@ function changeLogPage(step) {
   renderAuditLogs();
 }
 
-// ========================================================================
-// 🔎 SECTION 5: LOG INSPECTOR MODAL, 360° JUMP & CSV EXPORT
-// ========================================================================
+// ============================================================================
+// 🔎 ជំពូកទី ៥៖ ផ្ទាំងពិនិត្យលម្អិត, ការលោតទៅ C360° តាម `_id` និងការទាញយក CSV (INSPECTOR & EXPORT)
+// ============================================================================
 
+/**
+ * 🔹 ៥.១ បើកផ្ទាំងពិនិត្យព័ត៌មានលម្អិតនៃកំណត់ត្រាសកម្មភាពនីមួយៗ
+ */
 window.openAuditLogDetailModal = function (index) {
   const log = filteredAuditLogs[index];
   if (!log) return;
 
   const info = classifyAuditAction(log.action, log.details);
+  const matchedUser = resolveAuditTargetUser(log.target);
+  const targetDisplay = matchedUser
+    ? `${matchedUser.fullName || matchedUser.username} (_id: ${String(matchedUser._id).slice(-8)})`
+    : log.target || "-";
+  const adminDisplayName = String(log.admin || "ប្រព័ន្ធស្វ័យប្រវត្តិ").replace(
+    /^@/,
+    "",
+  );
 
   Swal.fire({
     title: `<span style="font-family:'Kantumruy Pro',sans-serif; font-size:1.2rem; font-weight:800;"><i class="fa-solid fa-shield-halved" style="color:${info.severityColor};"></i> ព័ត៌មានលម្អិតនៃកំណត់ត្រា (Audit Log Inspector)</span>`,
@@ -498,8 +554,8 @@ window.openAuditLogDetailModal = function (index) {
         </div>
 
         <div style="display:flex; justify-content:space-between; padding:10px 14px; background:var(--bg-body,#f8fafc); border:1px solid var(--border,#e2e8f0); border-radius:10px;">
-          <span style="color:var(--text-muted); font-weight:700;">ប្រតិបត្តិករ (Admin)៖</span>
-          <span style="font-weight:800; color:#0d9488;">@${log.admin || "Unknown"}</span>
+          <span style="color:var(--text-muted); font-weight:700;">មន្ត្រីប្រតិបត្តិ (Admin)៖</span>
+          <span style="font-weight:800; color:#0d9488;">${adminDisplayName}</span>
         </div>
 
         <div style="display:flex; justify-content:space-between; padding:10px 14px; background:var(--bg-body,#f8fafc); border:1px solid var(--border,#e2e8f0); border-radius:10px;">
@@ -509,7 +565,7 @@ window.openAuditLogDetailModal = function (index) {
 
         <div style="display:flex; justify-content:space-between; padding:10px 14px; background:var(--bg-body,#f8fafc); border:1px solid var(--border,#e2e8f0); border-radius:10px;">
           <span style="color:var(--text-muted); font-weight:700;">គោលដៅ (Target)៖</span>
-          <span style="font-weight:800; font-family:monospace;">${log.target || "-"}</span>
+          <span style="font-weight:800;">${targetDisplay}</span>
         </div>
 
         <div style="padding:12px 14px; background:var(--bg-body,#f8fafc); border:1px solid var(--border,#e2e8f0); border-radius:10px;">
@@ -525,18 +581,27 @@ window.openAuditLogDetailModal = function (index) {
   });
 };
 
-window.alogsJumpToCustomer360 = function (username) {
+/**
+ * 🔹 ៥.២ លោតទៅកាន់ទំព័រ Customer 360° តាមរយៈ MongoDB `_id` របស់អតិថិជនផ្ទាល់!
+ */
+window.alogsJumpToCustomer360 = function (targetId) {
+  if (typeof goToCustomer360 === "function") {
+    goToCustomer360(targetId);
+    return;
+  }
   const searchInput = document.getElementById("searchC360");
   if (searchInput) {
-    searchInput.value = username;
-    const c360Nav = document.querySelector(`[onclick*="sec-c360"]`);
-    if (c360Nav) c360Nav.click();
+    searchInput.value = targetId;
+    if (typeof showSection === "function") showSection("customer-360");
     if (typeof searchCustomer360 === "function") {
       searchCustomer360();
     }
   }
 };
 
+/**
+ * 🔹 ៥.៣ ទាញយករបាយការណ៍កំណត់ហេតុសកម្មភាពជាឯកសារ CSV
+ */
 window.exportAuditLogsCSV = function () {
   if (!filteredAuditLogs || filteredAuditLogs.length === 0) {
     return Swal.fire({
@@ -547,10 +612,12 @@ window.exportAuditLogsCSV = function () {
     });
   }
 
-  const headers = ["Date", "Admin", "Action", "Target", "Details"];
+  const headers = ["Date", "Admin", "Action", "Target_ID", "Details"];
   const rows = filteredAuditLogs.map((l) => [
     `"${String(l.date || "").replace(/"/g, '""')}"`,
-    `"${String(l.admin || "").replace(/"/g, '""')}"`,
+    `"${String(l.admin || "")
+      .replace(/^@/, "")
+      .replace(/"/g, '""')}"`,
     `"${String(l.action || "").replace(/"/g, '""')}"`,
     `"${String(l.target || "").replace(/"/g, '""')}"`,
     `"${String(l.details || "").replace(/"/g, '""')}"`,
@@ -570,7 +637,9 @@ window.exportAuditLogsCSV = function () {
   URL.revokeObjectURL(url);
 };
 
-// Auto-Load ពេលចុចចូលផ្ទាំង Audit Logs
+/**
+ * 🔹 ៥.៤ ចាប់ផ្តើមទាញទិន្នន័យកំណត់ហេតុដោយស្វ័យប្រវត្តិពេលចុចចូលម៉ឺនុយ Audit Logs
+ */
 document.addEventListener("DOMContentLoaded", () => {
   document.body.addEventListener("click", (e) => {
     const navItem = e.target.closest(

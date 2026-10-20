@@ -1,17 +1,34 @@
-// admin-customer360.js
-// ========================================================================
-// 🛡️ CUSTOMER 360° VIEW LOGIC (ALL-IN-ONE SYSTEM)
-// រក្សាទុកកូដចាស់ទាំងអស់ និងបន្ថែមមុខងារបញ្ជាទិន្នន័យ (Actions)
-// ========================================================================
+// ============================================================================
+// ឯកសារ: js/admin-customer360.js (100% Pro All-In-One Customer 360° Command Center)
+// អត្ថន័យ: គ្រប់គ្រងទិន្នន័យអតិថិជនគ្រប់ជ្រុងជ្រោយទាំង ១០ ផ្ទាំង (Tabs 1 to 10)
+// ស្តង់ដារថ្មី: ចាប់ទិន្នន័យអតិថិជនតាម MongoDB `_id` សុទ្ធសាធ + បង្ហាញឈ្មោះពេញ (fullName)
+// ============================================================================
 
+// ============================================================================
+// 🔍 ជំពូកទី ១៖ អថេរសកល, ម៉ាស៊ីនស្វែងរកអតិថិជនតាម `_id` និងការធ្វើបច្ចុប្បន្នភាព (SEARCH & REFRESH ENGINE)
+// ============================================================================
 let currentC360User = null;
-let currentC360ActiveTab = "info"; // 🟢 ចងចាំ Tab ដែលកំពុងបើក
+let currentC360ActiveTab = "info"; // ចងចាំ Tab ដែលកំពុងបើក
 
-// =======================================================
-// ១. មុខងារស្វែងរកអតិថិជន (Live Search & Get Fresh Data)
-// =======================================================
-async function searchCustomer360() {
-  const term = document.getElementById("searchC360").value.trim();
+/**
+ * 🔹 ១.១ អនុគមន៍ជំនួយទាញយក MongoDB `_id` ពិតប្រាកដរបស់អតិថិជនដែលកំពុងមើល
+ */
+function c360GetCanonicalId(userObj = currentC360User) {
+  if (!userObj) return "";
+  return String(userObj._id || userObj.id || "");
+}
+
+/**
+ * 🔹 ១.២ មុខងារស្វែងរកអតិថិជនតាមរយៈ MongoDB `_id`, លេខគណនី, ឈ្មោះពេញ, លេខទូរស័ព្ទ ឬ Username
+ */
+async function searchCustomer360(overrideTerm = null) {
+  const inputEl =
+    document.getElementById("searchC360") ||
+    document.getElementById("c360SearchInput");
+  if (overrideTerm && inputEl) {
+    inputEl.value = overrideTerm;
+  }
+  const term = String(overrideTerm || inputEl?.value || "").trim();
   if (!term) return;
 
   Swal.fire({
@@ -23,49 +40,63 @@ async function searchCustomer360() {
   });
 
   try {
+    let foundId = null;
     let foundUsername = null;
     let finalUser = null;
 
-    // ១.១ ស្វែងរកក្នុង Local Data មុន
+    // ១.២.១ ស្វែងរកក្នុង Local Data មុន (អាទិភាពទី ១៖ ចាប់តាម MongoDB `_id`)
     if (
-      typeof window.standardDataSearch === "function" &&
-      typeof globalUsersData !== "undefined"
+      typeof globalUsersData !== "undefined" &&
+      Array.isArray(globalUsersData)
     ) {
-      const results = window.standardDataSearch(globalUsersData, term, [
-        "username",
-        "fullName",
-        "phone",
-        "phoneNumber",
-        "email",
-        "idNumber",
-        "userId",
-        "mainAccounts.USD.accountNumber",
-        "mainAccounts.KHR.accountNumber",
-        "subAccounts.accountNumber",
-      ]);
-      if (results && results.length > 0) {
-        foundUsername = results[0].username;
+      const exactById = globalUsersData.find(
+        (u) => String(u._id || u.id) === term,
+      );
+      if (exactById) {
+        foundId = String(exactById._id || exactById.id);
+        foundUsername = exactById.username;
+      } else if (typeof window.standardDataSearch === "function") {
+        const results = window.standardDataSearch(globalUsersData, term, [
+          "_id",
+          "fullName",
+          "username",
+          "phone",
+          "phoneNumber",
+          "email",
+          "idNumber",
+          "userId",
+          "mainAccounts.USD.accountNumber",
+          "mainAccounts.KHR.accountNumber",
+          "subAccounts.accountNumber",
+        ]);
+        if (results && results.length > 0) {
+          foundId = String(results[0]._id || results[0].id || "");
+          foundUsername = results[0].username;
+        }
       }
     }
 
-    // ១.២ បើរកឃើញ Username ក្នុង Local យើងបាញ់ API យក Full Profile ថ្មីៗពី Server
-    if (foundUsername) {
+    // ១.២.២ បើរកឃើញក្នុង Local ឬពាក្យស្វែងរកជា MongoDB ObjectId (24 ខ្ទង់) បាញ់ទៅ `/api/admin/get-user` តាម `_id`
+    if (foundId || foundUsername || /^[a-f\d]{24}$/i.test(term)) {
       const res = await fetch("/api/admin/get-user", {
         method: "POST",
         headers: getAuthHeaders(),
-        body: JSON.stringify({ username: foundUsername }),
+        body: JSON.stringify({
+          _id: foundId || (/^[a-f\d]{24}$/i.test(term) ? term : undefined),
+          id: foundId || (/^[a-f\d]{24}$/i.test(term) ? term : undefined),
+          username: foundUsername || term,
+        }),
       });
 
-      // 🟢 ការពារ JSON Parse Error
-      if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
-      const data = await res.json();
-
-      if (data.success && data.user) {
-        finalUser = data.user;
+      if (res.ok) {
+        const data = await res.json();
+        if (data.success && data.user) {
+          finalUser = data.user;
+        }
       }
     }
 
-    // ១.៣ Fallback: ស្វែងរកពី Server ផ្ទាល់
+    // ១.២.៣ Fallback: ស្វែងរកពី Server ផ្ទាល់តាមរយៈ `/api/admin/search-user`
     if (!finalUser) {
       const res = await fetch("/api/admin/search-user", {
         method: "POST",
@@ -73,7 +104,6 @@ async function searchCustomer360() {
         body: JSON.stringify({ searchTerm: term }),
       });
 
-      // 🟢 ការពារ JSON Parse Error
       if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
       const data = await res.json();
 
@@ -85,18 +115,40 @@ async function searchCustomer360() {
     Swal.close();
 
     if (finalUser) {
-      currentC360User = finalUser;
+      // ១.២.៤ ទាញយកកាតបន្ថែមពី `/api/admin/all-cards` ដោយចាប់តាម `ownerId` (`_id`)
+      try {
+        const cardsRes = await fetch(`/api/admin/all-cards`, {
+          headers: getAuthHeaders(),
+        });
+        const cardsData = await cardsRes.json();
+        if (cardsData.success && Array.isArray(cardsData.cards)) {
+          const targetUid = String(finalUser._id || finalUser.id);
+          finalUser.virtualCards = cardsData.cards.filter(
+            (c) =>
+              (c.ownerId && String(c.ownerId) === targetUid) ||
+              c.username === finalUser.username,
+          );
+        }
+      } catch (cardErr) {}
 
-      // Update ទិន្នន័យចូល Global Array
-      if (typeof globalUsersData !== "undefined") {
+      currentC360User = finalUser;
+      window.currentC360User = finalUser;
+
+      // អាប់ដេតទិន្នន័យចូល Global Array តាមរយៈ `_id`
+      if (
+        typeof globalUsersData !== "undefined" &&
+        Array.isArray(globalUsersData)
+      ) {
+        const canonicalId = String(finalUser._id || finalUser.id);
         const index = globalUsersData.findIndex(
-          (u) => u.username === finalUser.username,
+          (u) =>
+            String(u._id || u.id) === canonicalId ||
+            u.username === finalUser.username,
         );
         if (index !== -1) globalUsersData[index] = finalUser;
         else globalUsersData.push(finalUser);
       }
 
-      // បង្ហាញទិន្នន័យលើអេក្រង់
       renderCustomerProfile(finalUser);
     } else {
       Swal.fire({
@@ -107,22 +159,99 @@ async function searchCustomer360() {
       });
     }
   } catch (error) {
-    // 🟢 បង្ហាញ Error លម្អិតដើម្បីងាយស្រួលរកកំហុស
     console.error("Search Error:", error);
     Swal.fire({
       icon: "error",
       title: "បរាជ័យ (API Error)",
-      text: "មានបញ្ហាក្នុងការភ្ជាប់ទៅកាន់ Server API (សូមឆែក Console)",
+      text: "មានបញ្ហាក្នុងការភ្ជាប់ទៅកាន់ Server API",
       customClass: { popup: "premium-swal kh-text" },
     });
   }
 }
 
-// =======================================================
-// ២. មុខងារបង្ហាញទិន្នន័យ Header និង Quick Actions (ទម្រង់ Menu ឈរ)
-// =======================================================
+/**
+ * 🔹 ១.៣ មុខងារធ្វើបច្ចុប្បន្នភាពទិន្នន័យអតិថិជនដែលកំពុងមើលតាមរយៈ MongoDB `_id` (Fast Refresh)
+ */
+async function c360RefreshData() {
+  if (!currentC360User) return;
+
+  const icon = document.getElementById("c360-refresh-icon");
+  if (icon) icon.classList.add("fa-spin");
+
+  const canonicalId = c360GetCanonicalId(currentC360User);
+
+  try {
+    const res = await fetch("/api/admin/get-user", {
+      method: "POST",
+      headers: getAuthHeaders(),
+      body: JSON.stringify({
+        _id: canonicalId,
+        id: canonicalId,
+        username: currentC360User.username,
+      }),
+    });
+
+    if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
+    const data = await res.json();
+
+    if (data.success && data.user) {
+      // 🎯 ទាញយកកាតបន្ថែមពី Model Card ដោយចាប់តាម `ownerId` (`_id`) ជាអាទិភាពទី ១!
+      const cardsRes = await fetch(`/api/admin/all-cards`, {
+        headers: getAuthHeaders(),
+      });
+      const cardsData = await cardsRes.json();
+      if (cardsData.success && Array.isArray(cardsData.cards)) {
+        const freshUid = String(data.user._id || data.user.id);
+        data.user.virtualCards = cardsData.cards.filter(
+          (c) =>
+            (c.ownerId && String(c.ownerId) === freshUid) ||
+            c.username === data.user.username,
+        );
+      }
+
+      currentC360User = data.user;
+      window.currentC360User = data.user;
+      renderCustomerProfile(data.user);
+
+      if (
+        typeof globalUsersData !== "undefined" &&
+        Array.isArray(globalUsersData)
+      ) {
+        const freshUid = String(data.user._id || data.user.id);
+        const index = globalUsersData.findIndex(
+          (u) =>
+            String(u._id || u.id) === freshUid ||
+            u.username === data.user.username,
+        );
+        if (index !== -1) globalUsersData[index] = data.user;
+      }
+
+      Swal.fire({
+        toast: true,
+        position: "top-end",
+        icon: "success",
+        title: "ទិន្នន័យបានធ្វើបច្ចុប្បន្នភាព",
+        showConfirmButton: false,
+        timer: 1500,
+      });
+    }
+  } catch (e) {
+    console.error("Refresh Error:", e);
+  } finally {
+    if (icon) icon.classList.remove("fa-spin");
+  }
+}
+
+// ============================================================================
+// 🖥️ ជំពូកទី ២៖ ការគូរផ្ទាំងប្រវត្តិរូបរួម, របារម៉ឺនុយឈរទាំង ១០ និងសកម្មភាពរហ័ស (SIDEBAR & TABS ROUTER)
+// ============================================================================
+
+/**
+ * 🔹 ២.១ គូរ Layout គោលរបស់ Customer 360° (Sidebar ខាងឆ្វេង + Content Area ខាងស្តាំ)
+ */
 function renderCustomerProfile(user) {
   currentC360User = user;
+  window.currentC360User = user;
 
   const emptyState = document.getElementById("c360-empty-state");
   if (emptyState) emptyState.style.display = "none";
@@ -130,30 +259,20 @@ function renderCustomerProfile(user) {
   const profileView = document.getElementById("c360-profile-view");
   if (profileView) profileView.style.display = "block";
 
-  // កំណត់ពណ៌ និងស្ថានភាព
-  const isFrozen = user.isFrozen;
-  const statusColor = isFrozen ? "#ef4444" : "#10b981";
-  const statusText = isFrozen ? "Frozen" : "Active";
-  const statusIcon = isFrozen ? "fa-lock" : "fa-circle-check";
+  const canonicalId = c360GetCanonicalId(user);
+  const isFrozen = Boolean(user.isFrozen);
 
-  let statusBadge = isFrozen
-    ? `<span style="position: absolute; top: 0; right: -25px; background: rgba(239, 68, 68, 0.15); color: #ef4444; padding: 3px 8px; border-radius: 12px; font-size: 0.7rem; font-weight: bold; display: flex; align-items: center; gap: 4px;"><i class="fa-solid fa-lock"></i> Frozen</span>`
-    : `<span style="position: absolute; top: 0; right: -25px; background: rgba(16, 185, 129, 0.15); color: #10b981; padding: 3px 8px; border-radius: 12px; font-size: 0.7rem; font-weight: bold; display: flex; align-items: center; gap: 4px;"><i class="fa-solid fa-circle-check"></i> Active</span>`;
-
-  // កំណត់ KYC Verified Icon
   const isKycVerified =
     user.kycStatus === "verified" || user.kycStatus === "approved";
   const kycIcon = isKycVerified
     ? `<i class="fa-solid fa-circle-check" style="color: #3b82f6; font-size: 1.1rem; margin-left: 5px;" title="KYC Verified"></i>`
     : `<i class="fa-solid fa-circle-check" style="color: #cbd5e1; font-size: 1.1rem; margin-left: 5px;" title="KYC Unverified"></i>`;
 
-  // 🟢 កំណត់ពណ៌ប៊ូតុង Actions ផ្នែកខាងឆ្វេងឱ្យប្រែប្រួលតាមស្ថានភាព
   const actionFreezeBg = isFrozen
     ? "rgba(16, 185, 129, 0.1)"
     : "rgba(239, 68, 68, 0.1)";
   const actionFreezeColor = isFrozen ? "#10b981" : "#ef4444";
 
-  // គូរ Layout ថ្មីដែលមាន Sidebar ឈរ (Vertical) និង ផ្នែក Content ខាងស្តាំ
   profileView.innerHTML = `
     <style>
       .c360-layout { display: flex; gap: 20px; align-items: flex-start; }
@@ -169,19 +288,21 @@ function renderCustomerProfile(user) {
     <div class="c360-layout">
         <!-- 🔹 ផ្នែកខាងឆ្វេង (Sidebar) -->
         <div class="c360-sidebar">
-            <!-- Profile Image & Name -->
-            <div style="text-align: center; margin-bottom: 20px;">
+           <!-- Profile Image & Full Name -->
+            <div style="text-align: center; margin-bottom: 12px;">
                 <div style="position: relative; display: inline-block;">
-                    <img src="${user.profileImage || "../images/default-avatar.png"}" style="width: 80px; height: 80px; border-radius: 50%; object-fit: cover; border: 2px solid var(--border); cursor: pointer;" onclick="c360ChangeProfileImage()" title="ចុចដើម្បីប្តូររូប" onerror="this.src='../images/default-avatar.png'">
+                    <img src="${user.profileImage || "../images/default-avatar.png"}" style="width: 72px; height: 72px; border-radius: 50%; object-fit: cover; border: 2px solid var(--border); cursor: pointer;" onclick="c360ChangeProfileImage()" title="ចុចដើម្បីប្តូររូបថតអតិថិជន" onerror="this.src='../images/default-avatar.png'">
                 </div>
-                <h3 style="margin: 10px 0 5px; color: var(--text-main); font-size: 1.1rem; text-transform: uppercase; display: flex; justify-content: center; align-items: center;">
+                <h3 style="margin: 8px 0 3px; color: var(--text-main); font-size: 1rem; text-transform: uppercase; display: flex; justify-content: center; align-items: center;">
                     ${user.fullName || user.username} ${kycIcon}
                 </h3>
-                <p style="margin: 0; color: var(--text-muted); font-size: 0.85rem;">ID : ${user.userId || "N/A"}</p>
+                <p style="margin: 0; color: var(--text-muted); font-size: 0.75rem; font-family: 'JetBrains Mono', monospace;" title="User ID: ${user.userId || canonicalId}">
+                    ID : ${user.userId || canonicalId.slice(-8).toUpperCase()}
+                </p>
             </div>
 
-            <!-- Vertical Tabs -->
-            <div class="c360-v-tabs">
+            <!-- Vertical Tabs ទាំង ១០ (កាត់បន្ថយ margin-top ឱ្យជិតគ្នា) -->
+            <div class="c360-v-tabs" style="margin-top: 10px;">
                 <div class="c360-v-tab active" id="tab-btn-info" onclick="switchC360Tab('info', this)"><i class="fa-solid fa-user"></i> ព័ត៌មាន (Info)</div>
                 <div class="c360-v-tab" id="tab-btn-finance" onclick="switchC360Tab('finance', this)"><i class="fa-solid fa-wallet"></i> កាបូបលុយ (Wallets)</div>
                 <div class="c360-v-tab" id="tab-btn-cards" onclick="switchC360Tab('cards', this)"><i class="fa-solid fa-credit-card"></i> កាត (Cards)</div>
@@ -206,14 +327,13 @@ function renderCustomerProfile(user) {
                     <i class="fa-solid fa-comment-dots"></i> ផ្ញើសារ (Direct Message)
                 </button>
                 
-                <!-- 🟢 ប៊ូតុងនេះឥឡូវឆ្លាតវៃហើយ (ប្តូរពណ៌អូតូ) -->
-                <button class="c360-action-btn" style="background: ${actionFreezeBg}; color: ${actionFreezeColor};" onclick="c360ToggleFreeze()">
+                <button class="c360-action-btn" style="background: ${actionFreezeBg}; color: ${actionFreezeColor};" onclick="c360ToggleFreeze(${!isFrozen})">
                     <i class="fa-solid ${isFrozen ? "fa-unlock" : "fa-lock"}"></i> ${isFrozen ? "បើកគណនី (Unfreeze)" : "ផ្អាកគណនី (Freeze)"}
                 </button>
             </div>
         </div>
 
-        <!-- 🔹 ផ្នែកខាងស្តាំ (Content Area រក្សាទិន្នន័យដូចដើមទាំងអស់) -->
+        <!-- 🔹 ផ្នែកខាងស្តាំ (Content Area សម្រាប់ Tabs ទាំង ១០) -->
         <div class="c360-content">
             <div class="dash-card" style="padding: 25px;">
                 <div id="c360-tab-info" class="c360-tab-content" style="display: block;"></div>
@@ -231,7 +351,7 @@ function renderCustomerProfile(user) {
     </div>
   `;
 
-  // ហៅមុខងារគូរ Tab ទាំងអស់ឡើងវិញ
+  // ហៅមុខងារគូរ Tab ទាំង ១០ ឡើងវិញ
   renderInfoTab(user);
   renderWalletsTab(user);
   renderCardsTab(user);
@@ -240,104 +360,138 @@ function renderCustomerProfile(user) {
   renderSecurityTab(user);
   renderMerchantTab(user);
   renderLogsTab(user);
-  switchC360Tab(currentC360ActiveTab);
   renderPhysicalCardsTab(user);
   renderTicketsTab(user);
+  switchC360Tab(currentC360ActiveTab);
 }
 
+/**
+ * 🔹 ២.២ ប្តូរផ្ទាំង Tab នៅក្នុង Customer 360°
+ */
 function switchC360Tab(tabName, element = null) {
-  currentC360ActiveTab = tabName; // 🟢 ចងចាំ Tab ដែល User កំពុងចុចមើល
+  currentC360ActiveTab = tabName;
 
-  // លាក់ Content ចាស់ៗទាំងអស់
   document
     .querySelectorAll(".c360-tab-content")
     .forEach((c) => (c.style.display = "none"));
 
-  // ដកពណ៌បៃតង (Active) ពី Tab ទាំងអស់នៅ Menu ខាងឆ្វេង
   document
     .querySelectorAll(".c360-v-tab")
     .forEach((t) => t.classList.remove("active"));
 
-  // បើមានចុចលើ Menu ណា កំណត់ពណ៌ Active ឱ្យ Menu នោះ
   if (element) {
     element.classList.add("active");
   } else {
-    // Fallback ពេលកូដហៅដោយមិនបានចុចផ្ទាល់
     const activeTabBtn = document.getElementById(`tab-btn-${tabName}`);
     if (activeTabBtn) activeTabBtn.classList.add("active");
   }
 
-  // បង្ហាញ Content គោលដៅនៅខាងស្តាំ
   const targetTab = document.getElementById(`c360-tab-${tabName}`);
   if (targetTab) targetTab.style.display = "block";
 }
 
-// =======================================================
-// មុខងារ Refresh ទិន្នន័យតែអតិថិជនកំពុងមើល (Fast Refresh)
-// =======================================================
-async function c360RefreshData() {
+/**
+ * 🔹 ២.៣ ប្តូររូបថត Profile របស់អតិថិជនដោយផ្ទាល់តាមរយៈ Cloudinary និងរក្សាទុកតាម `_id`
+ */
+window.c360ChangeProfileImage = function () {
   if (!currentC360User) return;
+  const fileInput = document.createElement("input");
+  fileInput.type = "file";
+  fileInput.accept = "image/*";
+  fileInput.onchange = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
 
-  const icon = document.getElementById("c360-refresh-icon");
-  if (icon) icon.classList.add("fa-spin");
-
-  try {
-    const res = await fetch("/api/admin/get-user", {
-      method: "POST",
-      headers: getAuthHeaders(),
-      body: JSON.stringify({ username: currentC360User.username }),
+    Swal.fire({
+      title: "កំពុងបង្ហោះរូបថត Profile ថ្មី...",
+      allowOutsideClick: false,
+      didOpen: () => Swal.showLoading(),
+      customClass: { popup: "premium-swal kh-text" },
     });
 
-    if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
-    const data = await res.json();
+    const formData = new FormData();
+    formData.append("file", file);
+    formData.append("upload_preset", "iaxuqmpb");
 
-    if (data.success && data.user) {
-      // 🟢 ទាញយកកាតបន្ថែមពី Model Card មកបញ្ចូលក្នុង Object របស់ User ផ្ទាល់
-      const cardsRes = await fetch(`/api/admin/all-cards`, {
-        headers: getAuthHeaders(),
-      });
-      const cardsData = await cardsRes.json();
-      if (cardsData.success && cardsData.cards) {
-        data.user.virtualCards = cardsData.cards.filter(
-          (c) => c.username === data.user.username,
-        );
+    try {
+      const cloudRes = await fetch(
+        "https://api.cloudinary.com/v1_1/jp9yg3dj/image/upload",
+        { method: "POST", body: formData },
+      );
+      const cloudData = await cloudRes.json();
+
+      if (cloudData.secure_url) {
+        const canonicalId = c360GetCanonicalId(currentC360User);
+        const res = await fetch("/api/admin/edit-user", {
+          method: "POST",
+          headers: getAuthHeaders(),
+          body: JSON.stringify({
+            _id: canonicalId,
+            id: canonicalId,
+            username: currentC360User.username,
+            profileImage: cloudData.secure_url,
+          }),
+        });
+        const data = await res.json();
+        if (data.success) {
+          await c360RefreshData();
+          Swal.fire({
+            toast: true,
+            position: "top-end",
+            icon: "success",
+            title: "បានប្តូររូបថត Profile ជោគជ័យ!",
+            showConfirmButton: false,
+            timer: 1500,
+          });
+        }
       }
-
-      renderCustomerProfile(data.user);
-
-      if (typeof globalUsersData !== "undefined") {
-        const index = globalUsersData.findIndex(
-          (u) => u.username === data.user.username,
-        );
-        if (index !== -1) globalUsersData[index] = data.user;
-      }
-
-      Swal.fire({
-        toast: true,
-        position: "top-end",
-        icon: "success",
-        title: "ទិន្នន័យបានធ្វើបច្ចុប្បន្នភាព",
-        showConfirmButton: false,
-        timer: 1500,
-      });
+    } catch (err) {
+      Swal.fire("Error", "មិនអាចប្តូររូបថត Profile បានទេ", "error");
     }
-  } catch (e) {
-    console.error("Refresh Error:", e);
-  } finally {
-    if (icon) icon.classList.remove("fa-spin");
-  }
-}
+  };
+  fileInput.click();
+};
 
-// =======================================================
-// ៣. អនុវត្ត TABS ទាំង ៨
-// =======================================================
-// =======================================================
-// ➡️ TAB 1: ព័ត៌មានទូទៅ (Information) - GRID BOX & INLINE EDIT
-// =======================================================
+/**
+ * 🔹 ២.៤ បើកបន្ទប់សន្ទនាផ្ទាល់ (Direct Message) ជាមួយអតិថិជនតាមរយៈ MongoDB `_id`
+ */
+window.c360OpenFloatingChat = function () {
+  if (!currentC360User) return;
+  const canonicalId = c360GetCanonicalId(currentC360User);
+  const accNo =
+    currentC360User.mainAccounts?.USD?.accountNumber ||
+    currentC360User.mainAccounts?.KHR?.accountNumber ||
+    canonicalId;
+  const custName = currentC360User.fullName || currentC360User.username;
+
+  if (typeof showSection === "function") {
+    showSection("chat");
+  }
+  setTimeout(() => {
+    if (typeof openAdminChat === "function") {
+      openAdminChat(
+        canonicalId,
+        custName,
+        "pending",
+        currentC360User.profileImage || "",
+        accNo,
+      );
+    }
+  }, 150);
+};
+
+// ============================================================================
+// 👤 ជំពូកទី ៣៖ ផ្ទាំងទី ១ - ព័ត៌មានទូទៅ និងការកែប្រែភ្លាមៗតាម `_id` (TAB 1: GENERAL INFO & INLINE EDIT)
+// ============================================================================
+
+/**
+ * 🔹 ៣.១ គូរផ្ទាំងព័ត៌មានទូទៅរបស់អតិថិជន (Tab 1: Account Profile, Contact Info & Security Reset)
+ */
 function renderInfoTab(user) {
   const container = document.getElementById("c360-tab-info");
   if (!container) return;
 
+  const canonicalId = c360GetCanonicalId(user);
   const dateCreated = user.createdAt
     ? new Date(user.createdAt).toISOString().split("T")[0]
     : "N/A";
@@ -356,7 +510,6 @@ function renderInfoTab(user) {
     duplicateWarning = `<div style="color: #ef4444; font-size: 0.75rem; margin-top: 5px; font-weight: 600;"><i class="fa-solid fa-triangle-exclamation"></i> ប្រើលើសពី១គណនី! <br>(មូលហេតុ: ${user.duplicateIdReason})</div>`;
   }
 
-  // 🟢 គណនាសមតុល្យសរុប (Total Balance) គ្រប់គណនី (លើកលែង Junior)
   let totalUSD = user.mainAccounts?.USD?.balance || 0;
   let totalKHR = user.mainAccounts?.KHR?.balance || 0;
 
@@ -376,57 +529,35 @@ function renderInfoTab(user) {
   const formattedTotalKHR =
     new Intl.NumberFormat("en-US").format(totalKHR) + " ៛";
 
-  // 🟢 រកមើលអ្នកណែនាំ (Referred By)
   let referrerId = user.referredBy || "N/A";
   let referrerNameHtml = user.referredBy
     ? `<div style="font-size: 0.85rem; color: #64748b; margin-top: 5px; font-weight: 600; background: #e2e8f0; padding: 4px 8px; border-radius: 6px; display: inline-block;">ឈ្មោះ: ${user.referrerName || "មិនមានទិន្នន័យឈ្មោះ"}</div>`
     : "";
 
-  // 🟢 កំណត់ប៊ូតុង Freeze/Unfreeze
-  const freezeBtnStyle = user.isFrozen
-    ? "background: #10b981; color: white; border: none; box-shadow: 0 4px 10px rgba(16,185,129,0.2);"
-    : "background: #ef4444; color: white; border: none; box-shadow: 0 4px 10px rgba(239,68,68,0.2);";
-  const freezeBtnText = user.isFrozen
-    ? `<i class="fa-solid fa-unlock"></i> បើកគណនីវិញ`
-    : `<i class="fa-solid fa-lock"></i> ផ្អាកគណនី (Freeze)`;
-
   container.innerHTML = `
     <style>
       .c360-tab-title-main { margin: 0 0 20px 0; font-size: 1.2rem; color: #0f172a; font-family: 'Kantumruy Pro', sans-serif; display: flex; align-items: center; gap: 10px; font-weight: 800; border-bottom: 2px solid #f1f5f9; padding-bottom: 15px; }
-      
       .c360-inner-card { background: #ffffff; border-radius: 12px; border: 1px solid #e2e8f0; padding: 25px; margin-bottom: 20px; box-shadow: 0 4px 6px rgba(0,0,0,0.02); }
       .c360-inner-title { margin: 0 0 20px 0; font-size: 1rem; color: #1e293b; font-weight: 700; font-family: 'Kantumruy Pro', sans-serif; display: flex; align-items: center; gap: 10px; }
-      
       .c360-grid-container { display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; }
-      
       .c360-data-box { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 15px; position: relative; display: flex; flex-direction: column; justify-content: center; min-height: 75px; transition: 0.2s; box-sizing: border-box; }
-      
       .c360-label-small { font-size: 0.75rem; color: #64748b; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; font-family: 'Inter', 'Kantumruy Pro', sans-serif; margin-bottom: 4px; }
       .c360-value-text { font-size: 1.05rem; color: #0f172a; font-weight: 700; font-family: 'Inter', 'Kantumruy Pro', sans-serif; word-break: break-word; }
-      
-      /* Editable Box Styles */
       .c360-data-box.editable:hover { border-color: #cbd5e1; box-shadow: 0 2px 5px rgba(0,0,0,0.02); }
       .c360-data-box.editable .edit-icon { position: absolute; right: 15px; top: 15px; color: #3b82f6; cursor: pointer; opacity: 0; transition: 0.2s; padding: 5px; }
       .c360-data-box.editable:hover .edit-icon { opacity: 1; }
       .c360-data-box.editable .edit-icon:hover { color: #2563eb; transform: scale(1.1); }
-      
       .c360-inline-input { width: 100%; padding: 8px 10px; border: 2px solid #3b82f6; border-radius: 6px; font-size: 1rem; color: #0f172a; font-weight: 600; font-family: 'Inter', 'Kantumruy Pro', sans-serif; outline: none; box-sizing: border-box; box-shadow: 0 2px 8px rgba(59, 130, 246, 0.15); margin-top: 5px; }
       .inline-action-btns { display: flex; gap: 8px; margin-top: 10px; width: 100%; }
       .inline-btn-save { flex: 1; background: #10b981; color: white; border: none; padding: 8px; border-radius: 6px; font-size: 0.85rem; cursor: pointer; font-weight: bold; font-family: 'Kantumruy Pro'; transition: 0.2s; display: flex; align-items: center; justify-content: center; gap: 5px; }
       .inline-btn-save:hover { background: #059669; }
       .inline-btn-cancel { flex: 1; background: #f1f5f9; color: #64748b; border: 1px solid #cbd5e1; padding: 8px; border-radius: 6px; font-size: 0.85rem; cursor: pointer; font-weight: bold; font-family: 'Kantumruy Pro'; transition: 0.2s; }
       .inline-btn-cancel:hover { background: #e2e8f0; color: #0f172a; }
-
       .c360-security-section { background: rgba(239, 68, 68, 0.02); border: 1px solid rgba(239, 68, 68, 0.15); }
       .c360-btn-reset-outline { flex: 1; padding: 14px; border-radius: 8px; font-weight: bold; cursor: pointer; border: 1px solid rgba(239, 68, 68, 0.2); background: white; color: #ef4444; transition: 0.2s; font-family: 'Kantumruy Pro', sans-serif; display: flex; align-items: center; justify-content: center; gap: 8px; }
       .c360-btn-reset-outline:hover { background: #fef2f2; border-color: #ef4444; }
-
-      @media (max-width: 1000px) {
-          .c360-grid-container { grid-template-columns: repeat(2, 1fr); }
-      }
-      @media (max-width: 600px) {
-          .c360-grid-container { grid-template-columns: 1fr; }
-      }
+      @media (max-width: 1000px) { .c360-grid-container { grid-template-columns: repeat(2, 1fr); } }
+      @media (max-width: 600px) { .c360-grid-container { grid-template-columns: 1fr; } }
     </style>
 
     <h2 class="c360-tab-title-main"><i class="fa-solid fa-user-circle" style="color: #10b981;"></i> ព័ត៌មានអតិថិជន (Information)</h2>
@@ -465,38 +596,38 @@ function renderInfoTab(user) {
                 <span class="c360-value-text">${genderText}</span>
             </div>
 
-            <!-- ៤. User ID -->
-            <div class="c360-data-box">
-                <span class="c360-label-small">លេខសម្គាល់ (USER ID)</span>
-                <span class="c360-value-text">${user.userId || "N/A"}</span>
+            <!-- ៤. លេខសម្គាល់ស្នូល (MongoDB _id) -->
+            <div class="c360-data-box" onclick="navigator.clipboard.writeText('${canonicalId}'); Swal.fire({toast:true, position:'top-end', icon:'success', title:'Copied MongoDB _id!', showConfirmButton:false, timer:1000});" style="cursor:pointer;" title="ចុចដើម្បីចម្លង MongoDB _id">
+                <span class="c360-label-small">លេខសម្គាល់ស្នូល (MONGODB _ID)</span>
+                <span class="c360-value-text" style="font-family: 'JetBrains Mono', monospace; font-size: 0.88rem; color: #0d9488;">${canonicalId} <i class="fa-regular fa-copy" style="font-size:0.75rem;"></i></span>
             </div>
 
-            <!-- ៦. លេខអត្តសញ្ញាណប័ណ្ណ -->
+            <!-- ៥. លេខអត្តសញ្ញាណប័ណ្ណ -->
             <div class="c360-data-box">
                 <span class="c360-label-small">លេខអត្តសញ្ញាណប័ណ្ណ (ID NUMBER)</span>
                 <span class="c360-value-text">${idNumText}</span>
                 ${duplicateWarning}
             </div>
 
-            <!-- ៧. ថ្ងៃខែឆ្នាំកំណើត -->
+            <!-- ៦. ថ្ងៃខែឆ្នាំកំណើត -->
             <div class="c360-data-box">
                 <span class="c360-label-small">ថ្ងៃខែឆ្នាំកំណើត (DOB)</span>
                 <span class="c360-value-text">${dobText}</span>
             </div>
 
-            <!-- ៨. ថ្ងៃបង្កើតគណនី -->
+            <!-- ៧. ថ្ងៃបង្កើតគណនី -->
             <div class="c360-data-box">
                 <span class="c360-label-small">ថ្ងៃបង្កើតគណនី (JOIN DATE)</span>
                 <span class="c360-value-text">${dateCreated}</span>
             </div>
 
-            <!-- ៩. លុយដុល្លារសរុប -->
+            <!-- ៨. លុយដុល្លារសរុប -->
             <div class="c360-data-box" style="border-left: 4px solid var(--secondary);">
                 <span class="c360-label-small">លុយដុល្លារសរុប (TOTAL USD)</span>
                 <span class="c360-value-text" style="color: var(--secondary); font-size: 1.2rem;">${formattedTotalUSD}</span>
             </div>
 
-            <!-- ១0. លុយរៀលសរុប -->
+            <!-- ៩. លុយរៀលសរុប -->
             <div class="c360-data-box" style="border-left: 4px solid var(--accent);">
                 <span class="c360-label-small">លុយរៀលសរុប (TOTAL KHR)</span>
                 <span class="c360-value-text" style="color: var(--accent); font-size: 1.2rem;">${formattedTotalKHR}</span>
@@ -518,7 +649,7 @@ function renderInfoTab(user) {
                     <i class="fa-solid fa-pen edit-icon" id="icon-phone" onclick="c360ToggleEdit('phone', 'tel')" title="កែប្រែ"></i>
                 </div>
                 <div id="edit-phone" style="display: none; width: 100%;">
-                    <span class="c360-label-small" style="color: #3b82f6;">កែប្រេលេខទូរស័ព្ទ (PHONE)</span>
+                    <span class="c360-label-small" style="color: #3b82f6;">កែប្រែលេខទូរស័ព្ទ (PHONE)</span>
                     <input type="tel" id="input-phone" class="c360-inline-input" value="${user.phone || user.phoneNumber || ""}">
                     <div class="inline-action-btns">
                         <button class="inline-btn-save" onclick="c360SaveField('phone')"><i class="fa-solid fa-check"></i> រក្សាទុក</button>
@@ -544,8 +675,8 @@ function renderInfoTab(user) {
                 </div>
             </div>
 
-            <!-- ៣. អ្នកណែនាំ (Read-only) -->
-             <div class="c360-data-box" style="background: #ffffff;">
+            <!-- ៣. អ្នកណែនាំ -->
+            <div class="c360-data-box" style="background: #ffffff;">
                 <span class="c360-label-small">អ្នកណែនាំ (REFERRED BY)</span>
                 <span class="c360-value-text">${referrerId}</span>
                 ${referrerNameHtml}
@@ -572,15 +703,12 @@ function renderInfoTab(user) {
   `;
 }
 
-// =======================================================
-// មុខងារ Inline Edit Logic
-// =======================================================
-
+/**
+ * 🔹 ៣.២ មុខងារកែប្រែព័ត៌មានភ្លាមៗលើកាត (Inline Edit) និងរក្សាទុកតាមរយៈ MongoDB `_id`
+ */
 function c360ToggleEdit(field, type) {
   document.getElementById(`view-${field}`).style.display = "none";
   document.getElementById(`edit-${field}`).style.display = "block";
-
-  // ដក hover effect ចេញពេលកំពុង edit
   document.getElementById(`box-${field}`).classList.remove("editable");
 
   const input = document.getElementById(`input-${field}`);
@@ -593,8 +721,6 @@ function c360ToggleEdit(field, type) {
 function c360CancelEdit(field) {
   document.getElementById(`edit-${field}`).style.display = "none";
   document.getElementById(`view-${field}`).style.display = "flex";
-
-  // ដាក់ hover effect មកវិញ
   document.getElementById(`box-${field}`).classList.add("editable");
 
   const currentVal =
@@ -620,8 +746,10 @@ async function c360SaveField(field) {
     return inputEl.focus();
   }
 
+  const canonicalId = c360GetCanonicalId(currentC360User);
   const bodyData = {
-    id: currentC360User._id || currentC360User.id,
+    _id: canonicalId,
+    id: canonicalId,
     username: currentC360User.username,
   };
   bodyData[field] = newValue;
@@ -643,12 +771,10 @@ async function c360SaveField(field) {
 
     const data = await res.json();
     if (data.success) {
-      // Update UI
       document
         .getElementById(`view-${field}`)
         .querySelector(".c360-value-text").innerText = newValue || "N/A";
 
-      // Update State ក្នុង Local
       if (field === "phone") {
         currentC360User.phone = newValue;
         currentC360User.phoneNumber = newValue;
@@ -656,10 +782,8 @@ async function c360SaveField(field) {
         currentC360User[field] = newValue;
       }
 
-      // បិទ Edit Mode
       c360CancelEdit(field);
 
-      // បើកែឈ្មោះពេញ ត្រូវអាប់ដេតឈ្មោះនៅលើ Sidebar ខាងឆ្វេងដែរ
       if (field === "fullName") {
         const isKycVerified =
           currentC360User.kycStatus === "verified" ||
@@ -692,9 +816,9 @@ async function c360SaveField(field) {
   }
 }
 
-// =======================================================
-// មុខងារស្នើសុំ Reset PIN ឬ Password (ផ្ញើ Link ទៅ Email)
-// =======================================================
+/**
+ * 🔹 ៣.៣ មុខងារស្នើសុំ Reset PIN ឬ Password (ផ្ញើ Link ទៅ Email អតិថិជនតាមរយៈ `_id`)
+ */
 async function c360TriggerReset(type) {
   if (!currentC360User) return;
 
@@ -709,7 +833,6 @@ async function c360TriggerReset(type) {
     return;
   }
 
-  // សុំការបញ្ជាក់ពី Admin មុននឹងផ្ញើ
   const result = await Swal.fire({
     title: `<span class="kh-text" style="color: #ef4444;">បញ្ជាក់ការផ្ញើ Link Reset ${type}</span>`,
     html: `
@@ -735,13 +858,16 @@ async function c360TriggerReset(type) {
       customClass: { popup: "premium-swal" },
     });
 
+    const canonicalId = c360GetCanonicalId(currentC360User);
     try {
       const res = await fetch("/api/admin/request-reset", {
         method: "POST",
         headers: getAuthHeaders(),
         body: JSON.stringify({
+          _id: canonicalId,
+          userId: canonicalId,
           username: currentC360User.username,
-          resetType: type, // "PIN" ឬ "Password"
+          resetType: type,
         }),
       });
 
@@ -770,9 +896,13 @@ async function c360TriggerReset(type) {
   }
 }
 
-// =======================================================
-// ➡️ TAB 2: គ្រប់គ្រងកាបូបលុយ និងគណនី (Wallets & Accounts)
-// =======================================================
+// ============================================================================
+// 💼 ជំពូកទី ៤៖ ផ្ទាំងទី ២ - ការគ្រប់គ្រងកាបូបលុយ និងគណនីរងតាម `_id` (TAB 2: WALLETS & SUB-ACCOUNTS)
+// ============================================================================
+
+/**
+ * 🔹 ៤.១ គូរផ្ទាំងកាបូបលុយគោល និងគណនីរងទាំងអស់របស់អតិថិជន (Tab 2)
+ */
 function renderWalletsTab(user) {
   const container = document.getElementById("c360-tab-finance");
   if (!container) return;
@@ -785,9 +915,6 @@ function renderWalletsTab(user) {
   const formatKHR = (val) =>
     new Intl.NumberFormat("en-US").format(val || 0) + " ៛";
 
-  // ----------------------------------------------------
-  // ១. គណនីចម្បង (Main Accounts)
-  // ----------------------------------------------------
   const mainUSD = user.mainAccounts?.USD || {};
   const mainKHR = user.mainAccounts?.KHR || {};
 
@@ -826,11 +953,8 @@ function renderWalletsTab(user) {
             
             <div style="display: flex; gap: 8px;">
                 <button onclick="c360JumpToTrx('${mainUSD.accountNumber}')" style="flex: 1; background: rgba(255,255,255,0.1); border: none; padding: 10px; border-radius: 8px; color: white; cursor: pointer; font-size: 0.85rem; font-weight: bold; transition: 0.2s; font-family: 'Kantumruy Pro';" onmouseover="this.style.background='rgba(255,255,255,0.2)'" onmouseout="this.style.background='rgba(255,255,255,0.1)'"><i class="fa-solid fa-receipt"></i> របាយការណ៍</button>
-                
                 <button onclick="c360EditAccountLimit('${mainUSD.accountNumber}', ${mainUSD.dailyLimit || 1000})" style="flex: 1; background: rgba(255,255,255,0.1); border: none; padding: 10px; border-radius: 8px; color: white; cursor: pointer; font-size: 0.85rem; font-weight: bold; transition: 0.2s; font-family: 'Kantumruy Pro';" onmouseover="this.style.background='rgba(255,255,255,0.2)'" onmouseout="this.style.background='rgba(255,255,255,0.1)'"><i class="fa-solid fa-sliders"></i> កំណត់ Limit</button>
-                
                 <button onclick="c360ToggleAccHide('${mainUSD.accountNumber}', ${mainUSD.isHidden})" style="background: ${mainUSD.isHidden ? "#cbd5e1" : "rgba(255,255,255,0.1)"}; border: none; padding: 10px 15px; border-radius: 8px; color: ${mainUSD.isHidden ? "#0f172a" : "white"}; cursor: pointer; font-size: 0.85rem; font-weight: bold; transition: 0.2s;" title="${mainUSD.isHidden ? "បង្ហាញវិញ (Unhide)" : "លាក់គណនី (Hide)"}"><i class="fa-solid ${mainUSD.isHidden ? "fa-eye" : "fa-eye-slash"}"></i></button>
-
                 <button onclick="c360ToggleAccFreeze('${mainUSD.accountNumber}', ${mainUSD.isFrozen})" style="background: ${mainUSD.isFrozen ? "#10b981" : "rgba(239,68,68,0.2)"}; border: none; padding: 10px 15px; border-radius: 8px; color: ${mainUSD.isFrozen ? "white" : "#fca5a5"}; cursor: pointer; font-size: 0.85rem; font-weight: bold; transition: 0.2s;" title="${mainUSD.isFrozen ? "បើកគណនីនេះវិញ" : "ផ្អាកគណនីនេះ"}"><i class="fa-solid ${mainUSD.isFrozen ? "fa-play" : "fa-pause"}"></i></button>
             </div>
         </div>
@@ -867,20 +991,14 @@ function renderWalletsTab(user) {
             
             <div style="display: flex; gap: 8px;">
                 <button onclick="c360JumpToTrx('${mainKHR.accountNumber}')" style="flex: 1; background: rgba(255,255,255,0.1); border: none; padding: 10px; border-radius: 8px; color: white; cursor: pointer; font-size: 0.85rem; font-weight: bold; transition: 0.2s; font-family: 'Kantumruy Pro';" onmouseover="this.style.background='rgba(255,255,255,0.2)'" onmouseout="this.style.background='rgba(255,255,255,0.1)'"><i class="fa-solid fa-receipt"></i> របាយការណ៍</button>
-                
                 <button onclick="c360EditAccountLimit('${mainKHR.accountNumber}', ${mainKHR.dailyLimit || 4000000})" style="flex: 1; background: rgba(255,255,255,0.1); border: none; padding: 10px; border-radius: 8px; color: white; cursor: pointer; font-size: 0.85rem; font-weight: bold; transition: 0.2s; font-family: 'Kantumruy Pro';" onmouseover="this.style.background='rgba(255,255,255,0.2)'" onmouseout="this.style.background='rgba(255,255,255,0.1)'"><i class="fa-solid fa-sliders"></i> កំណត់ Limit</button>
-                
                 <button onclick="c360ToggleAccHide('${mainKHR.accountNumber}', ${mainKHR.isHidden})" style="background: ${mainKHR.isHidden ? "#cbd5e1" : "rgba(255,255,255,0.1)"}; border: none; padding: 10px 15px; border-radius: 8px; color: ${mainKHR.isHidden ? "#0f172a" : "white"}; cursor: pointer; font-size: 0.85rem; font-weight: bold; transition: 0.2s;" title="${mainKHR.isHidden ? "បង្ហាញវិញ (Unhide)" : "លាក់គណនី (Hide)"}"><i class="fa-solid ${mainKHR.isHidden ? "fa-eye" : "fa-eye-slash"}"></i></button>
-
                 <button onclick="c360ToggleAccFreeze('${mainKHR.accountNumber}', ${mainKHR.isFrozen})" style="background: ${mainKHR.isFrozen ? "#10b981" : "rgba(239,68,68,0.2)"}; border: none; padding: 10px 15px; border-radius: 8px; color: ${mainKHR.isFrozen ? "white" : "#fca5a5"}; cursor: pointer; font-size: 0.85rem; font-weight: bold; transition: 0.2s;" title="${mainKHR.isFrozen ? "បើកគណនីនេះវិញ" : "ផ្អាកគណនីនេះ"}"><i class="fa-solid ${mainKHR.isFrozen ? "fa-play" : "fa-pause"}"></i></button>
             </div>
         </div>
     </div>
   `;
 
-  // ----------------------------------------------------
-  // ២. គណនីរង គណនីសន្សំ និង គណនីកុមារ (Sub & Junior Accounts)
-  // ----------------------------------------------------
   let subAccountsHtml = "";
   if (user.subAccounts && user.subAccounts.length > 0) {
     const generateSubCard = (sub) => {
@@ -918,7 +1036,6 @@ function renderWalletsTab(user) {
       }
 
       const balText = isKHR ? formatKHR(sub.balance) : formatUSD(sub.balance);
-
       const dailyLimitVal = sub.dailyLimit || (isKHR ? 4000000 : 1000);
       const limitDisplay = isKHR
         ? `${dailyLimitVal.toLocaleString()} ៛ / ថ្ងៃ`
@@ -932,7 +1049,6 @@ function renderWalletsTab(user) {
                     ${sub.isFrozen ? `<div style="background: #ef4444; color: white; padding: 4px 12px; border-radius: 12px; font-size: 0.7rem; font-weight: bold; border: 2px solid white; box-shadow: 0 2px 4px rgba(239,68,68,0.3);"><i class="fa-solid fa-pause"></i> FROZEN</div>` : ""}
                 </div>
 
-                <!-- 🌟 មុខងារ VIEW ទម្រង់ដើម -->
                 <div id="view-mode-${sub.accountNumber}" style="margin-top: 5px;">
                     <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 15px;">
                         <div style="display: flex; align-items: center; gap: 10px;">
@@ -961,20 +1077,14 @@ function renderWalletsTab(user) {
 
                     <div style="display: flex; gap: 6px; flex-wrap: wrap;">
                         <button onclick="c360JumpToTrx('${sub.accountNumber}')" style="flex: 1; background: rgba(255,255,255,0.2); border: none; padding: 8px; border-radius: 8px; color: white; cursor: pointer; font-size: 0.8rem; font-weight: bold; font-family: 'Kantumruy Pro'; transition: 0.2s;"><i class="fa-solid fa-receipt"></i> Trx</button>
-                        
                         <button onclick="c360ToggleInlineEdit('${sub.accountNumber}')" style="background: rgba(255,255,255,0.2); border: none; padding: 8px 12px; border-radius: 8px; color: white; cursor: pointer; font-size: 0.8rem; font-weight: bold; transition: 0.2s;" title="កែប្រែគណនី (Edit)"><i class="fa-solid fa-pen"></i></button>
-                        
                         <button onclick="c360EditAccountLimit('${sub.accountNumber}', ${sub.dailyLimit || (isKHR ? 4000000 : 1000)})" style="background: rgba(255,255,255,0.2); border: none; padding: 8px 12px; border-radius: 8px; color: white; cursor: pointer; font-size: 0.8rem; font-weight: bold; transition: 0.2s;" title="កំណត់ Limit (Set Limit)"><i class="fa-solid fa-sliders"></i></button>
-                        
                         <button onclick="c360ToggleAccHide('${sub.accountNumber}', ${sub.isHidden})" style="background: ${sub.isHidden ? "#cbd5e1" : "rgba(255,255,255,0.2)"}; border: none; padding: 8px 12px; border-radius: 8px; color: ${sub.isHidden ? "#0f172a" : "white"}; cursor: pointer; font-size: 0.8rem; font-weight: bold; transition: 0.2s;" title="${sub.isHidden ? "បង្ហាញវិញ (Unhide)" : "លាក់គណនី (Hide)"}"><i class="fa-solid ${sub.isHidden ? "fa-eye" : "fa-eye-slash"}"></i></button>
-
                         <button onclick="c360ToggleAccFreeze('${sub.accountNumber}', ${sub.isFrozen})" style="background: ${sub.isFrozen ? "#10b981" : "rgba(255,255,255,0.2)"}; border: 1px solid ${sub.isFrozen ? "#10b981" : "transparent"}; padding: 8px 12px; border-radius: 8px; color: ${sub.isFrozen ? "white" : "#ef4444"}; cursor: pointer; font-size: 0.8rem; font-weight: bold; transition: 0.2s;" title="${sub.isFrozen ? "បើកវិញ (Play)" : "ផ្អាក (Pause)"}"><i class="fa-solid ${sub.isFrozen ? "fa-play" : "fa-pause"}"></i></button>
-
                         <button onclick="c360DeleteSubAccountConfirm('${sub.accountNumber}')" style="background: rgba(239, 68, 68, 0.4); border: none; padding: 8px 12px; border-radius: 8px; color: white; cursor: pointer; font-size: 0.8rem; font-weight: bold; transition: 0.2s;" title="លុបគណនី (Delete)"><i class="fa-solid fa-trash"></i></button>
                     </div>
                 </div>
 
-                <!-- 🌟 មុខងារ EDIT (លាក់សិន) -->
                 <div id="edit-mode-${sub.accountNumber}" style="display: none; margin-top: 5px;">
                     <div style="font-size: 0.85rem; font-weight: bold; margin-bottom: 10px; color: white;"><i class="fa-solid fa-pen"></i> កែប្រែគណនី</div>
                     
@@ -1021,11 +1131,9 @@ function renderWalletsTab(user) {
   `;
 }
 
-// =======================================================
-// មុខងារបញ្ជាកាត Sub-Accounts (Inline Actions)
-// =======================================================
-
-// ១. បិទ/បើក ផ្ទាំង Edit នៅលើកាតផ្ទាល់
+/**
+ * 🔹 ៤.២ មុខងារបញ្ជាលើគណនី និងគណនីរងតាមរយៈ MongoDB `_id` (កែឈ្មោះ, លុប, លាក់, កំណត់ Limit, ផ្អាក)
+ */
 window.c360ToggleInlineEdit = function (accountNumber) {
   const viewMode = document.getElementById(`view-mode-${accountNumber}`);
   const editMode = document.getElementById(`edit-mode-${accountNumber}`);
@@ -1039,7 +1147,6 @@ window.c360ToggleInlineEdit = function (accountNumber) {
   }
 };
 
-// ២. រក្សាទុកការកែប្រែ (Save Edit)
 window.c360SaveInlineEditSubAcc = async function (oldAccountNumber) {
   const newName = document
     .getElementById(`edit-name-${oldAccountNumber}`)
@@ -1058,7 +1165,10 @@ window.c360SaveInlineEditSubAcc = async function (oldAccountNumber) {
       timer: 2000,
     });
 
+  const canonicalId = c360GetCanonicalId(currentC360User);
   const bodyData = {
+    _id: canonicalId,
+    userId: canonicalId,
     username: currentC360User.username,
     oldAccountNumber: oldAccountNumber,
     newName: newName,
@@ -1091,7 +1201,6 @@ window.c360SaveInlineEditSubAcc = async function (oldAccountNumber) {
   }
 };
 
-// ៣. លុបគណនី (SweetAlert Delete Confirmation)
 window.c360DeleteSubAccountConfirm = async function (accountNumber) {
   const result = await Swal.fire({
     title:
@@ -1111,11 +1220,14 @@ window.c360DeleteSubAccountConfirm = async function (accountNumber) {
       allowOutsideClick: false,
       didOpen: () => Swal.showLoading(),
     });
+    const canonicalId = c360GetCanonicalId(currentC360User);
     try {
       const res = await fetch("/api/admin/account/delete-sub-account", {
         method: "POST",
         headers: getAuthHeaders(),
         body: JSON.stringify({
+          _id: canonicalId,
+          userId: canonicalId,
           username: currentC360User.username,
           accountNumber: accountNumber,
         }),
@@ -1140,18 +1252,20 @@ window.c360DeleteSubAccountConfirm = async function (accountNumber) {
   }
 };
 
-// 🟢 មុខងារលាក់/បង្ហាញគណនី (Hide / Unhide Account)
 window.c360ToggleAccHide = async function (accountNumber, isCurrentlyHidden) {
   Swal.fire({
     title: "កំពុងដំណើរការ...",
     allowOutsideClick: false,
     didOpen: () => Swal.showLoading(),
   });
+  const canonicalId = c360GetCanonicalId(currentC360User);
   try {
     const res = await fetch("/api/admin/account/toggle-hide", {
       method: "POST",
       headers: getAuthHeaders(),
       body: JSON.stringify({
+        _id: canonicalId,
+        userId: canonicalId,
         username: currentC360User.username,
         accountNumber,
       }),
@@ -1176,7 +1290,6 @@ window.c360ToggleAccHide = async function (accountNumber, isCurrentlyHidden) {
   }
 };
 
-// 🟢 មុខងារកែប្រែកម្រិតចំណាយប្រចាំថ្ងៃ (Edit Daily Limit)
 window.c360EditAccountLimit = async function (accountNumber, currentLimit) {
   const { value: newLimit } = await Swal.fire({
     title:
@@ -1201,11 +1314,14 @@ window.c360EditAccountLimit = async function (accountNumber, currentLimit) {
       allowOutsideClick: false,
       didOpen: () => Swal.showLoading(),
     });
+    const canonicalId = c360GetCanonicalId(currentC360User);
     try {
       const res = await fetch("/api/admin/account/update-limit", {
         method: "POST",
         headers: getAuthHeaders(),
         body: JSON.stringify({
+          _id: canonicalId,
+          userId: canonicalId,
           username: currentC360User.username,
           accountNumber,
           dailyLimit: Number(newLimit),
@@ -1228,7 +1344,6 @@ window.c360EditAccountLimit = async function (accountNumber, currentLimit) {
   }
 };
 
-// 🟢 មុខងារផ្អាកគណនីជាក់លាក់ (Freeze Specific Account)
 window.c360ToggleAccFreeze = async function (accountNumber, isCurrentlyFrozen) {
   const actionText = isCurrentlyFrozen
     ? "បើកឱ្យដំណើរការវិញ (Unfreeze)"
@@ -1252,11 +1367,14 @@ window.c360ToggleAccFreeze = async function (accountNumber, isCurrentlyFrozen) {
       allowOutsideClick: false,
       didOpen: () => Swal.showLoading(),
     });
+    const canonicalId = c360GetCanonicalId(currentC360User);
     try {
       const res = await fetch("/api/admin/account/toggle-freeze", {
         method: "POST",
         headers: getAuthHeaders(),
         body: JSON.stringify({
+          _id: canonicalId,
+          userId: canonicalId,
           username: currentC360User.username,
           accountNumber,
         }),
@@ -1279,7 +1397,6 @@ window.c360ToggleAccFreeze = async function (accountNumber, isCurrentlyFrozen) {
   }
 };
 
-// 🟢 មុខងារលោតទៅមើលប្រវត្តិ (Jump to Trx Tab) របស់គណនីនីមួយៗ
 window.c360JumpToTrx = function (accountNumber) {
   switchC360Tab("trx");
   setTimeout(() => {
@@ -1291,12 +1408,15 @@ window.c360JumpToTrx = function (accountNumber) {
   }, 100);
 };
 
-// =======================================================
-// ➡️ TAB 3: គ្រប់គ្រងកាតទាំង ៣ ប្រភេទ (Virtual, Debit & Credit Cards Management)
-// =======================================================
+// ============================================================================
+// 💳 ជំពូកទី ៥៖ ផ្ទាំងទី ៣ - ការគ្រប់គ្រងកាតទាំង ៣ ប្រភេទតាម `_id` (TAB 3: VIRTUAL, DEBIT & CREDIT CARDS)
+// ============================================================================
 let adminCardsSliderInstance = null;
 let adminCurrentCardIndex = 0;
 
+/**
+ * 🔹 ៥.១ គូរផ្ទាំងគ្រប់គ្រងកាតទាំងអស់របស់អតិថិជន (3D Flip Slider + 3x3 Control Grid)
+ */
 function renderCardsTab(user) {
   const container = document.getElementById("c360-tab-cards");
   if (!container) return;
@@ -1321,7 +1441,6 @@ function renderCardsTab(user) {
         gap: 15px;
       }
       .admin-cards-slider::-webkit-scrollbar { display: none; }
-      
       .admin-card-perspective {
         flex: 0 0 100%;
         scroll-snap-align: center;
@@ -1331,7 +1450,6 @@ function renderCardsTab(user) {
         z-index: 10;
         cursor: pointer;
       }
-      
       .admin-card-inner {
         position: relative;
         width: 100%;
@@ -1343,7 +1461,6 @@ function renderCardsTab(user) {
         box-shadow: 0 15px 30px rgba(0,0,0,0.15);
       }
       .admin-card-inner.flipped { transform: rotateY(180deg); }
-      
       .admin-card-front, .admin-card-back {
         position: absolute; width: 100%; height: 100%;
         -webkit-backface-visibility: hidden; backface-visibility: hidden;
@@ -1351,8 +1468,6 @@ function renderCardsTab(user) {
       }
       .admin-card-front { padding: 20px; display: flex; flex-direction: column; justify-content: space-between; }
       .admin-card-back { transform: rotateY(180deg); padding: 0; display: flex; flex-direction: column; }
-      
-      /* THEMES */
       .theme-standard { background: linear-gradient(135deg, #149a83 0%, #004d40 100%) !important; }
       .theme-fifa { background: linear-gradient(rgba(0,0,0,0.4), rgba(0,0,0,0.7)), url("https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQwH-pP-2EY5Ap18poVEhGeFe-THx0TOhEvgFqALyZhJZLzu2V67xpXNOi7&s=10") center/cover no-repeat !important; }
       .theme-metal { background: linear-gradient(135deg, #bf953f 0%, #fcf6ba 25%, #b38728 50%, #fbf5b7 75%, #aa771c 100%) !important; }
@@ -1363,38 +1478,29 @@ function renderCardsTab(user) {
       .theme-platinum { background: #000000 !important; }
       .theme-animal { background: linear-gradient(rgba(0,0,0,0.3), rgba(0,0,0,0.8)), url("https://images.unsplash.com/photo-1474511320723-9a56873867b5?auto=format&fit=crop&w=600&q=80") center/cover no-repeat !important; }
       .theme-custom { background: linear-gradient(rgba(0,0,0,0.5), rgba(0,0,0,0.8)) center/cover no-repeat !important; }
-
       .admin-u-chip { width: 40px; height: 28px; background: linear-gradient(135deg, #e5e7eb, #94a3b8); border-radius: 6px; box-shadow: inset 0 0 5px rgba(0, 0, 0, 0.3); }
       .theme-standard .admin-u-chip, .theme-metal .admin-u-chip, .theme-eco .admin-u-chip { background: linear-gradient(135deg, #fde047, #d97706); }
       .admin-u-nfc { font-size: 1.2rem; color: rgba(255,255,255,0.8); transform: rotate(90deg); margin-left: 10px; }
-      
       .admin-locked-overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(15, 23, 42, 0.75); backdrop-filter: blur(3px) grayscale(80%); display: none; align-items: center; justify-content: center; z-index: 20; border-radius: 20px;}
       .admin-card-inner.locked .admin-locked-overlay { display: flex; }
       .admin-locked-text { font-size: 1.8rem; font-weight: 900; color: #fff; letter-spacing: 4px; border: 3px solid #fff; padding: 10px 20px; border-radius: 8px; transform: rotate(-15deg); }
-      
       .admin-slider-dots { display: flex; justify-content: center; gap: 8px; margin-top: 5px; margin-bottom: 25px; }
       .admin-dot { width: 8px; height: 8px; background: #cbd5e1; border-radius: 50%; transition: 0.3s; }
       .admin-dot.active { background: #10b981; width: 22px; border-radius: 10px; }
-
-      /* 🟢 3x3 Grid Actions */
       .admin-card-actions { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; max-width: 450px; margin: 0 auto; }
       .admin-action-btn { background: #ffffff; border: 1px solid #e2e8f0; padding: 12px; border-radius: 12px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; cursor: pointer; transition: 0.2s; box-shadow: 0 2px 4px rgba(0,0,0,0.02); }
       .admin-action-btn:hover { border-color: #3b82f6; transform: translateY(-2px); box-shadow: 0 4px 10px rgba(59, 130, 246, 0.1); }
       .admin-action-btn i { font-size: 1.3rem; color: #475569; }
       .admin-action-btn span { font-size: 0.75rem; color: #1e293b; font-weight: 700; font-family: 'Kantumruy Pro', sans-serif; text-align: center; line-height: 1.3;}
-      
       .admin-action-btn.danger { background: #fef2f2; border-color: #fca5a5; }
       .admin-action-btn.danger i, .admin-action-btn.danger span { color: #ef4444; }
       .admin-action-btn.danger:hover { border-color: #ef4444; background: #fee2e2; }
       .admin-action-btn.disabled-btn { opacity: 0.45; cursor: not-allowed; }
-
-      /* 🟢 Information Box Styles */
       .admin-card-info-box { max-width: 450px; margin: 20px auto; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 15px; font-family: 'Kantumruy Pro', sans-serif; }
       .admin-info-row { display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 1px dashed #cbd5e1; }
       .admin-info-row:last-child { border-bottom: none; }
       .admin-info-label { font-size: 0.8rem; color: #64748b; font-weight: 600; font-family: 'Kantumruy Pro', sans-serif; }
       .admin-info-value { font-size: 0.85rem; color: #0f172a; font-weight: 800; font-family: 'Kantumruy Pro', sans-serif; text-align: right; }
-
       @media (max-width: 600px) {
         .admin-cards-slider-wrapper { max-width: 100%; }
         .admin-card-actions { max-width: 100%; }
@@ -1548,55 +1654,44 @@ function renderCardsTab(user) {
   let actionsHtml = `
     <div class="admin-card-actions-container" style="max-width: 450px; margin: 0 auto;">
         <div class="admin-card-actions">
-            
             <div class="admin-action-btn" onclick="c360JumpToCardTrx()">
                 <i class="fa-solid fa-receipt" style="color: #3b82f6;"></i>
                 <span>ប្រវត្តិ (Trx)</span>
             </div>
-            
             <div class="admin-action-btn" onclick="c360RevealFullCardNumber()">
                 <i class="fa-solid fa-eye" style="color: #0ea5e9;"></i>
                 <span>មើលលេខពេញ</span>
             </div>
-            
             <div class="admin-action-btn" onclick="c360ToggleOnlinePay()">
                 <i class="fa-solid fa-globe" style="color: #10b981;" id="adminOnlinePayIcon"></i>
                 <span id="adminOnlinePayText">អនឡាញ: ON</span>
             </div>
-            
             <div class="admin-action-btn" onclick="c360ChangeCardLimit()">
                 <i class="fa-solid fa-sliders" style="color: #f59e0b;"></i>
                 <span id="adminLimitBtnText">កែប្រែ Limit</span>
             </div>
-
             <div class="admin-action-btn" onclick="c360RenameCard()">
                 <i class="fa-solid fa-pen" style="color: #8b5cf6;"></i>
                 <span>ប្តូរឈ្មោះកាត</span>
             </div>
-            
             <div class="admin-action-btn" onclick="c360ChangeLinkedAccount()" id="adminLinkedAccBtn">
                 <i class="fa-solid fa-link" style="color: #eab308;"></i>
                 <span>ប្តូរគណនីភ្ជាប់</span>
             </div>
-            
             <div class="admin-action-btn" onclick="c360ToggleCardNFC()" id="adminNfcBtn">
                 <i class="fa-solid fa-wifi" style="color: #6366f1;" id="adminNfcIcon"></i>
                 <span id="adminNfcText">ភ្ជាប់ NFC</span>
             </div>
-            
             <div class="admin-action-btn" onclick="c360ToggleCardLock()">
                 <i class="fa-solid fa-lock" style="color: #64748b;" id="adminLockIcon"></i>
                 <span id="adminLockText">ផ្អាកកាត</span>
             </div>
-            
             <div class="admin-action-btn danger" onclick="c360DeleteCard()">
                 <i class="fa-solid fa-trash"></i>
                 <span>លុបកាតចោល</span>
             </div>
-
         </div>
     </div>
-    
     <div class="admin-card-info-box" id="adminCardInfoBox"></div>
   `;
 
@@ -1634,7 +1729,6 @@ window.c360UpdateCardInfoBox = function () {
 
   const cat = c.cardCategory || (c.isPhysical ? "debit" : "virtual");
 
-  // 1. Update Lock Button Status
   const lockIcon = document.getElementById("adminLockIcon");
   const lockText = document.getElementById("adminLockText");
   if (c.isLocked) {
@@ -1645,7 +1739,6 @@ window.c360UpdateCardInfoBox = function () {
     lockText.innerText = "ផ្អាកកាត";
   }
 
-  // 2. Update Online Pay Button Status
   const onlineIcon = document.getElementById("adminOnlinePayIcon");
   const onlineText = document.getElementById("adminOnlinePayText");
   if (c.isOnlinePayEnabled !== false) {
@@ -1658,7 +1751,6 @@ window.c360UpdateCardInfoBox = function () {
     onlineText.innerText = "អនឡាញ: OFF";
   }
 
-  // 3. Update NFC Button Status (បិទមិនឱ្យភ្ជាប់បើជាកាត Virtual សុទ្ធ)
   const nfcBtn = document.getElementById("adminNfcBtn");
   const nfcIcon = document.getElementById("adminNfcIcon");
   const nfcText = document.getElementById("adminNfcText");
@@ -1682,7 +1774,6 @@ window.c360UpdateCardInfoBox = function () {
     nfcBtn.classList.remove("disabled-btn");
   }
 
-  // 4. Update Info Box
   const infoBox = document.getElementById("adminCardInfoBox");
   let linkedName =
     cat === "credit"
@@ -1769,7 +1860,9 @@ window.c360UpdateCardInfoBox = function () {
   `;
 };
 
-// ១. មើលលេខកាតពេញ (Reveal Card Number)
+/**
+ * 🔹 ៥.២ មុខងារបញ្ជាលើកាតទាំង ១០ (មើលលេខពេញ, ប្រវត្តិ, Online Pay, Limit, ប្តូរឈ្មោះ, គណនីភ្ជាប់, Lock, លុប, បង្កើតកាត និង NFC) តាមរយៈ `_id`
+ */
 window.c360RevealFullCardNumber = function () {
   const c = currentC360User.virtualCards[adminCurrentCardIndex];
   if (!c) return;
@@ -1782,18 +1875,18 @@ window.c360RevealFullCardNumber = function () {
     customClass: { popup: "premium-swal" },
   });
 
+  const canonicalId = c360GetCanonicalId(currentC360User);
   fetch("/api/admin/log-action", {
     method: "POST",
     headers: getAuthHeaders(),
     body: JSON.stringify({
       action: "Viewed Card Details",
-      target: currentC360User.username,
-      details: `មើលលេខកាតពេញ: **** ${c.number.slice(-4)}`,
+      target: canonicalId,
+      details: `មើលលេខកាតពេញ: **** ${c.number.slice(-4)} (${currentC360User.fullName || currentC360User.username})`,
     }),
   });
 };
 
-// ២. លោតទៅមើលប្រវត្តិ (Jump to Card Trx)
 window.c360JumpToCardTrx = function () {
   const c = currentC360User.virtualCards[adminCurrentCardIndex];
   if (!c) return;
@@ -1802,23 +1895,18 @@ window.c360JumpToCardTrx = function () {
     const accSelect = document.getElementById("c360-trx-acc-filter");
     if (accSelect) accSelect.value = "ALL";
     c360FilterTrxList(true);
-    const globalSearch = document.getElementById("searchC360");
-    if (globalSearch) {
-      globalSearch.value = c.number;
-      Swal.fire({
-        toast: true,
-        position: "top",
-        icon: "info",
-        title: `បង្ហាញប្រវត្តិសម្រាប់កាតចុងក្រោយ: ${c.number.slice(-4)}`,
-        showConfirmButton: false,
-        timer: 2000,
-        customClass: { popup: "kh-text" },
-      });
-    }
+    Swal.fire({
+      toast: true,
+      position: "top",
+      icon: "info",
+      title: `បង្ហាញប្រវត្តិសម្រាប់កាតចុងក្រោយ: ${c.number.slice(-4)}`,
+      showConfirmButton: false,
+      timer: 2000,
+      customClass: { popup: "kh-text" },
+    });
   }, 100);
 };
 
-// ៣. បិទ/បើក ការទិញអនឡាញ (Toggle Online Pay)
 window.c360ToggleOnlinePay = async function () {
   const c = currentC360User.virtualCards[adminCurrentCardIndex];
   if (!c) return;
@@ -1844,11 +1932,14 @@ window.c360ToggleOnlinePay = async function () {
       allowOutsideClick: false,
       didOpen: () => Swal.showLoading(),
     });
+    const canonicalId = c360GetCanonicalId(currentC360User);
     try {
       const res = await fetch("/api/admin/toggle-card-online", {
         method: "POST",
         headers: getAuthHeaders(),
         body: JSON.stringify({
+          _id: canonicalId,
+          userId: canonicalId,
           username: currentC360User.username,
           cardId: c.id,
           isEnabled: !isEnabled,
@@ -1872,7 +1963,6 @@ window.c360ToggleOnlinePay = async function () {
   }
 };
 
-// ៤. កំណត់ Limit កាត (គាំទ្រទាំង Daily Limit និង Credit Limit សម្រាប់កាតឥណទាន)
 window.c360ChangeCardLimit = async function () {
   const c = currentC360User.virtualCards[adminCurrentCardIndex];
   if (!c) return;
@@ -1921,11 +2011,14 @@ window.c360ChangeCardLimit = async function () {
       allowOutsideClick: false,
       didOpen: () => Swal.showLoading(),
     });
+    const canonicalId = c360GetCanonicalId(currentC360User);
     try {
       const res = await fetch("/api/admin/update-card-limit", {
         method: "POST",
         headers: getAuthHeaders(),
         body: JSON.stringify({
+          _id: canonicalId,
+          userId: canonicalId,
           username: currentC360User.username,
           cardId: c.id,
           newCreditLimit: formValues.newCreditLimit,
@@ -1950,7 +2043,6 @@ window.c360ChangeCardLimit = async function () {
   }
 };
 
-// ៥. ប្តូរឈ្មោះកាត (Rename Card)
 window.c360RenameCard = async function () {
   const c = currentC360User.virtualCards[adminCurrentCardIndex];
   if (!c) return;
@@ -1979,11 +2071,14 @@ window.c360RenameCard = async function () {
       allowOutsideClick: false,
       didOpen: () => Swal.showLoading(),
     });
+    const canonicalId = c360GetCanonicalId(currentC360User);
     try {
       const res = await fetch("/api/admin/rename-card", {
         method: "POST",
         headers: getAuthHeaders(),
         body: JSON.stringify({
+          _id: canonicalId,
+          userId: canonicalId,
           username: currentC360User.username,
           cardId: c.id,
           name: newName,
@@ -2006,7 +2101,6 @@ window.c360RenameCard = async function () {
   }
 };
 
-// ៦. ប្តូរគណនីភ្ជាប់ (Change Linked Account)
 window.c360ChangeLinkedAccount = async function () {
   const c = currentC360User.virtualCards[adminCurrentCardIndex];
   if (!c) return;
@@ -2075,11 +2169,14 @@ window.c360ChangeLinkedAccount = async function () {
       didOpen: () => Swal.showLoading(),
       allowOutsideClick: false,
     });
+    const canonicalId = c360GetCanonicalId(currentC360User);
     try {
       const res = await fetch("/api/admin/change-card-account", {
         method: "POST",
         headers: getAuthHeaders(),
         body: JSON.stringify({
+          _id: canonicalId,
+          userId: canonicalId,
           username: currentC360User.username,
           cardId: c.id || c._id,
           linkedAccount: newLinkedAcc,
@@ -2103,7 +2200,6 @@ window.c360ChangeLinkedAccount = async function () {
   }
 };
 
-// ៧. ផ្អាកកាត (Freeze Card)
 window.c360ToggleCardLock = async function () {
   const c = currentC360User.virtualCards[adminCurrentCardIndex];
   if (!c) return;
@@ -2129,11 +2225,14 @@ window.c360ToggleCardLock = async function () {
       allowOutsideClick: false,
       didOpen: () => Swal.showLoading(),
     });
+    const canonicalId = c360GetCanonicalId(currentC360User);
     try {
       const res = await fetch("/api/admin/toggle-card-lock", {
         method: "POST",
         headers: getAuthHeaders(),
         body: JSON.stringify({
+          _id: canonicalId,
+          userId: canonicalId,
           username: currentC360User.username,
           cardId: c.id,
           isLocked: !c.isLocked,
@@ -2156,7 +2255,6 @@ window.c360ToggleCardLock = async function () {
   }
 };
 
-// ៨. លុបកាតចោល (Delete Card)
 window.c360DeleteCard = async function () {
   const c = currentC360User.virtualCards[adminCurrentCardIndex];
   if (!c) return;
@@ -2181,11 +2279,14 @@ window.c360DeleteCard = async function () {
       allowOutsideClick: false,
       didOpen: () => Swal.showLoading(),
     });
+    const canonicalId = c360GetCanonicalId(currentC360User);
     try {
       const res = await fetch("/api/admin/delete-card", {
         method: "POST",
         headers: getAuthHeaders(),
         body: JSON.stringify({
+          _id: canonicalId,
+          userId: canonicalId,
           username: currentC360User.username,
           cardId: c.id,
           reason: result.value || "Admin លុប",
@@ -2209,7 +2310,6 @@ window.c360DeleteCard = async function () {
   }
 };
 
-// ៩. បង្កើតកាតថ្មីដោយ Admin (គាំទ្រទាំង ៣ ប្រភេទ៖ Virtual, Debit, និង Credit)
 window.c360CreateCardModal = async function () {
   const allTiers = [
     {
@@ -2416,11 +2516,14 @@ window.c360CreateCardModal = async function () {
       allowOutsideClick: false,
       customClass: { popup: "premium-swal" },
     });
+    const canonicalId = c360GetCanonicalId(currentC360User);
     try {
       const res = await fetch("/api/admin/create-card", {
         method: "POST",
         headers: getAuthHeaders(),
         body: JSON.stringify({
+          _id: canonicalId,
+          userId: canonicalId,
           username: currentC360User.username,
           ...formResult,
         }),
@@ -2445,7 +2548,6 @@ window.c360CreateCardModal = async function () {
   }
 };
 
-// ១០. បិទ/បើក NFC (ការពារមិនឱ្យភ្ជាប់លើកាត Virtual)
 window.c360ToggleCardNFC = async function () {
   const c = currentC360User.virtualCards[adminCurrentCardIndex];
   if (!c) return;
@@ -2475,11 +2577,14 @@ window.c360ToggleCardNFC = async function () {
 
     if (result.isConfirmed) {
       Swal.fire({ title: "កំពុងផ្តាច់...", didOpen: () => Swal.showLoading() });
+      const canonicalId = c360GetCanonicalId(currentC360User);
       try {
         const res = await fetch("/api/admin/cards/unbind-nfc", {
           method: "POST",
           headers: getAuthHeaders(),
           body: JSON.stringify({
+            _id: canonicalId,
+            userId: canonicalId,
             username: currentC360User.username,
             cardId: c.id,
           }),
@@ -2576,8 +2681,7 @@ window.c360ToggleCardNFC = async function () {
 async function processAdminNFCBind(cardId, rawUid) {
   let uid = String(rawUid).trim().toUpperCase();
   if (/^\d{10}$/.test(uid)) {
-    let hex = parseInt(uid, 10).toString(16).toUpperCase();
-    hex = hex.padStart(8, "0");
+    let hex = parseInt(uid, 10).toString(16).toUpperCase().padStart(8, "0");
     uid =
       hex.substring(6, 8) +
       hex.substring(4, 6) +
@@ -2586,11 +2690,14 @@ async function processAdminNFCBind(cardId, rawUid) {
   }
 
   Swal.fire({ title: "កំពុងភ្ជាប់...", didOpen: () => Swal.showLoading() });
+  const canonicalId = c360GetCanonicalId(currentC360User);
   try {
     const res = await fetch("/api/admin/cards/bind-nfc", {
       method: "POST",
       headers: getAuthHeaders(),
       body: JSON.stringify({
+        _id: canonicalId,
+        userId: canonicalId,
         username: currentC360User.username,
         cardId,
         uid,
@@ -2615,11 +2722,13 @@ async function processAdminNFCBind(cardId, rawUid) {
   }
 }
 
-// =======================================================
-// 💸 TAB 4: Transactions (ADVANCED BANKING STANDARD)
-// =======================================================
+// ============================================================================
+// 💸 ជំពូកទី ៦៖ ផ្ទាំងទី ៤ - ប្រវត្តិប្រតិបត្តិការ, វិក្កយបត្រ និងការទាញយក PDF (TAB 4: TRANSACTIONS & PDF STATEMENT)
+// ============================================================================
 
-// 🛠️ អនុគមន៍ជំនួយកាលបរិច្ឆេទ
+/**
+ * 🔹 ៦.១ អនុគមន៍ជំនួយកាលបរិច្ឆេទ និងអថេរគ្រប់គ្រងទំព័រប្រតិបត្តិការ
+ */
 function c360ParseDateString(dateStr) {
   if (!dateStr) return new Date();
   let d = new Date(dateStr);
@@ -2658,21 +2767,21 @@ function c360GetTimeString(d, orig) {
       : "";
 }
 
-// 🟢 អថេរសម្រាប់គ្រប់គ្រង Pagination និង Filter
 let c360CurrentTrxPage = 1;
 const c360TrxPerPage = 6;
 let c360FilteredTrx = [];
 let c360CurrentFilterTab = "all";
 
+/**
+ * 🔹 ៦.២ គូរផ្ទាំងប្រតិបត្តិការ និងរបាយការណ៍សង្ខេបចំណូល/ចំណាយ (Tab 4)
+ */
 function renderTrxTab(user) {
   const container = document.getElementById("c360-tab-trx");
   if (!container) return;
 
-  // 🟢 ទុកថ្ងៃទីឱ្យទទេរ (Empty) ដើម្បិបង្ហាញទាំងអស់រហូតទាល់តែមានការជ្រើសរើស
   const startStr = "";
   const endStr = "";
 
-  // ទាញយកលេខគណនីទាំងអស់របស់អតិថិជន
   const accUSD = user.mainAccounts?.USD?.accountNumber;
   const accKHR = user.mainAccounts?.KHR?.accountNumber;
 
@@ -2688,12 +2797,9 @@ function renderTrxTab(user) {
     });
   }
 
-  // 🟢 បន្ថែម Media Queries សម្រាប់ Responsive Design ឱ្យរួញស្អាតលើទូរស័ព្ទ
   let html = `
     <style>
       .c360-trx-dash-card { background: var(--bg-card); border: 1px solid var(--border); border-radius: 16px; padding: 20px; margin-bottom: 20px; }
-      
-      /* 🟢 របាយការណ៍សង្ខេប (Mini Dashboard) */
       .c360-mini-dash { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 20px; }
       .c360-dash-box { background: #f8fafc; padding: 15px; border-radius: 12px; border: 1px solid #e2e8f0; display: flex; align-items: center; gap: 15px; }
       .c360-dash-box.income .icon { background: #ecfdf5; color: #10b981; }
@@ -2701,21 +2807,14 @@ function renderTrxTab(user) {
       .c360-dash-box .icon { width: 45px; height: 45px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 1.2rem; flex-shrink: 0; }
       .c360-dash-box .label { font-size: 0.75rem; color: #64748b; font-weight: 700; font-family: 'Kantumruy Pro', sans-serif; margin-bottom: 3px; }
       .c360-dash-box .value { font-size: 1.2rem; font-weight: 800; font-family: 'JetBrains Mono', monospace; word-break: break-all; line-height: 1.2; }
-
-      /* 🟢 Tabs & Filters */
       .c360-filter-tab { flex: 1; padding: 10px; border: none; background: transparent; color: var(--text-muted); font-weight: bold; border-radius: 10px; cursor: pointer; transition: 0.2s; font-family: 'Kantumruy Pro', sans-serif; text-align: center; }
       .c360-filter-tab.active { background: var(--primary); color: white; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
-      
-      /* 🟢 Transaction Items */
       .c360-trx-date-header { position: sticky; top: 0; background: rgba(248, 250, 252, 0.95); backdrop-filter: blur(5px); padding: 8px 10px; font-size: 0.8rem; font-weight: 700; color: #475569; z-index: 10; margin: 15px 0 10px 0; border-radius: 8px; font-family: 'Kantumruy Pro', sans-serif; }
       .c360-trx-item { display: flex; align-items: center; justify-content: space-between; padding: 16px; background: var(--bg-body); border-radius: 16px; margin-bottom: 12px; cursor: pointer; border: 1px solid var(--border); transition: 0.2s; }
       .c360-trx-item:hover { border-color: var(--secondary); transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
-      
       .c360-page-btn { padding: 8px 15px; background: var(--bg-body); border: 1px solid var(--border); border-radius: 8px; color: var(--text-main); font-weight: bold; cursor: pointer; transition: 0.2s; font-family: 'Kantumruy Pro', sans-serif; }
       .c360-page-btn:hover:not(:disabled) { background: var(--secondary); color: white; border-color: var(--secondary); }
       .c360-page-btn:disabled { opacity: 0.5; cursor: not-allowed; }
-
-      /* 🔥 Responsive Design (Mobile View) */
       @media (max-width: 600px) {
         .c360-mini-dash { grid-template-columns: 1fr; gap: 10px; }
         .c360-trx-item { flex-direction: column; align-items: flex-start; gap: 10px; }
@@ -2724,71 +2823,59 @@ function renderTrxTab(user) {
       }
     </style>
 
-    <!-- 🟢 ចំណងជើង Tab (Tab Title) -->
     <h2 style="margin: 0 0 20px 0; font-size: 1.3rem; color: var(--text-main); font-family: 'Kantumruy Pro'; font-weight: 800; border-bottom: 2px solid var(--border); padding-bottom: 15px;">
         <i class="fa-solid fa-receipt" style="color: var(--secondary);"></i> ប្រតិបត្តិការអតិថិជន (Transactions)
     </h2>
 
     <div class="c360-trx-dash-card">
-       <!-- Filters -->
-<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 20px; margin-bottom: 25px; font-family: 'Kantumruy Pro', sans-serif;">
-    
-    <!-- ប្រអប់ជ្រើសរើសគណនី -->
-    <div style="display: flex; flex-direction: column; gap: 6px;">
-        <label class="kh-text" style="font-size: 0.85rem; color: var(--text-muted); font-weight: 600;">ជ្រើសរើសគណនី (Account)</label>
-        <select id="c360-trx-acc-filter" class="form-input kh-text" style="width: 100%; padding: 10px 14px; border: 1px solid #e2e8f0; border-radius: 8px; font-size: 0.95rem; font-weight: 700; color: var(--text-main); background-color: #f8fafc; outline: none; transition: all 0.2s;" onchange="c360FilterTrxList(true)">
-            ${accOptions}
-        </select>
-    </div>
-    
-          <!-- ប្រអប់ជ្រើសរើសកាលបរិច្ឆេទ -->
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 20px; margin-bottom: 25px; font-family: 'Kantumruy Pro', sans-serif;">
+          <div style="display: flex; flex-direction: column; gap: 6px;">
+              <label class="kh-text" style="font-size: 0.85rem; color: var(--text-muted); font-weight: 600;">ជ្រើសរើសគណនី (Account)</label>
+              <select id="c360-trx-acc-filter" class="form-input kh-text" style="width: 100%; padding: 10px 14px; border: 1px solid #e2e8f0; border-radius: 8px; font-size: 0.95rem; font-weight: 700; color: var(--text-main); background-color: #f8fafc; outline: none; transition: all 0.2s;" onchange="c360FilterTrxList(true)">
+                  ${accOptions}
+              </select>
+          </div>
+          
           <div style="display: flex; flex-direction: column; gap: 6px;">
               <label class="kh-text" style="font-size: 0.85rem; color: var(--text-muted); font-weight: 600;">កាលបរិច្ឆេទ (Date Range)</label>
               <div style="display: flex; gap: 10px; align-items: center;">
                   <input type="date" id="c360-date-start" class="form-input" value="${startStr}" style="flex: 1; width: 100%; padding: 10px 12px; border: 1px solid #e2e8f0; border-radius: 8px; font-size: 0.95rem; color: var(--text-main); background-color: #f8fafc; outline: none;" onchange="c360FilterTrxList(true)">
-                  
                   <span style="color: var(--text-muted); font-weight: bold; font-size: 1.1rem;">-</span>
-                  
                   <input type="date" id="c360-date-end" class="form-input" value="${endStr}" style="flex: 1; width: 100%; padding: 10px 12px; border: 1px solid #e2e8f0; border-radius: 8px; font-size: 0.95rem; color: var(--text-main); background-color: #f8fafc; outline: none;" onchange="c360FilterTrxList(true)">
               </div>
           </div>
       </div>
 
+      <div class="c360-mini-dash">
+          <div class="c360-dash-box income">
+              <div class="icon"><i class="fa-solid fa-arrow-down"></i></div>
+              <div>
+                  <div class="label">ចំណូលសរុប (INCOME)</div>
+                  <div class="value" id="c360-total-in" style="color: #10b981;">$0.00</div>
+              </div>
+          </div>
+          <div class="c360-dash-box expense">
+              <div class="icon"><i class="fa-solid fa-arrow-up"></i></div>
+              <div>
+                  <div class="label">ចំណាយសរុប (EXPENSE)</div>
+                  <div class="value" id="c360-total-out" style="color: #ef4444;">$0.00</div>
+              </div>
+          </div>
+      </div>
 
-        <!-- 🌟 Mini Dashboard Summary -->
-        <div class="c360-mini-dash">
-            <div class="c360-dash-box income">
-                <div class="icon"><i class="fa-solid fa-arrow-down"></i></div>
-                <div>
-                    <div class="label">ចំណូលសរុប (INCOME)</div>
-                    <div class="value" id="c360-total-in" style="color: #10b981;">$0.00</div>
-                </div>
-            </div>
-            <div class="c360-dash-box expense">
-                <div class="icon"><i class="fa-solid fa-arrow-up"></i></div>
-                <div>
-                    <div class="label">ចំណាយសរុប (EXPENSE)</div>
-                    <div class="value" id="c360-total-out" style="color: #ef4444;">$0.00</div>
-                </div>
-            </div>
-        </div>
+      <div style="display:flex; gap:5px; background:var(--bg-body); padding:5px; border-radius:12px; border:1px solid var(--border); margin-bottom:15px;">
+          <button class="c360-filter-tab active kh-text" onclick="c360SetFilterTab('all', this)">ទាំងអស់</button>
+          <button class="c360-filter-tab kh-text" onclick="c360SetFilterTab('in', this)">ចំណូល</button>
+          <button class="c360-filter-tab kh-text" onclick="c360SetFilterTab('out', this)">ចំណាយ</button>
+      </div>
 
-        <!-- Tabs & Export -->
-        <div style="display:flex; gap:5px; background:var(--bg-body); padding:5px; border-radius:12px; border:1px solid var(--border); margin-bottom:15px;">
-            <button class="c360-filter-tab active kh-text" onclick="c360SetFilterTab('all', this)">ទាំងអស់</button>
-            <button class="c360-filter-tab kh-text" onclick="c360SetFilterTab('in', this)">ចំណូល</button>
-            <button class="c360-filter-tab kh-text" onclick="c360SetFilterTab('out', this)">ចំណាយ</button>
-        </div>
-
-        <button onclick="c360ExportStatementPDF()" class="kh-text" style="width:100%; padding:14px; background:#0f172a; color:white; border:none; border-radius:12px; font-weight:bold; cursor:pointer; font-size:1rem; box-shadow:0 4px 10px rgba(15, 23, 42, 0.2); transition: 0.2s;">
-            <i class="fa-solid fa-file-pdf" style="color: #ef4444; margin-right: 5px;"></i> ទាញយករបាយការណ៍ PDF
-        </button>
+      <button onclick="c360ExportStatementPDF()" class="kh-text" style="width:100%; padding:14px; background:#0f172a; color:white; border:none; border-radius:12px; font-weight:bold; cursor:pointer; font-size:1rem; box-shadow:0 4px 10px rgba(15, 23, 42, 0.2); transition: 0.2s;">
+          <i class="fa-solid fa-file-pdf" style="color: #ef4444; margin-right: 5px;"></i> ទាញយករបាយការណ៍ PDF
+      </button>
     </div>
 
-    <!-- 🌟 Transaction List Container -->
     <div id="c360-trx-content" style="min-height: 300px; position: relative;"></div>
 
-    <!-- Pagination -->
     <div style="display:flex; justify-content:space-between; align-items:center; margin-top:20px; padding-top:15px; border-top:1px dashed var(--border);">
         <button id="c360-btn-prev" class="c360-page-btn" onclick="c360ChangeTrxPage(-1)" disabled><i class="fa-solid fa-chevron-left"></i> ថយក្រោយ</button>
         <span id="c360-page-info" class="kh-text" style="font-weight:bold; color:var(--text-main);">ទំព័រ 1</span>
@@ -2801,7 +2888,6 @@ function renderTrxTab(user) {
   c360FilterTrxList(true);
 }
 
-// 🟢 គ្រប់គ្រង Tab (All, Income, Expense)
 window.c360SetFilterTab = function (type, btnEl) {
   c360CurrentFilterTab = type;
   document
@@ -2811,7 +2897,6 @@ window.c360SetFilterTab = function (type, btnEl) {
   c360FilterTrxList(true);
 };
 
-// 🟢 តម្រងទិន្នន័យ និងគណនាសរុប (Filter & Calculate)
 window.c360FilterTrxList = function (resetPage = false) {
   const user = currentC360User;
   if (!user) return;
@@ -2824,7 +2909,6 @@ window.c360FilterTrxList = function (resetPage = false) {
 
   let trxs = user.transactions || [];
 
-  // 1. Filter by Account
   if (accVal !== "ALL") {
     if (accVal === "USD" || accVal === "KHR") {
       trxs = trxs.filter((t) => t.currency === accVal);
@@ -2838,7 +2922,6 @@ window.c360FilterTrxList = function (resetPage = false) {
     }
   }
 
-  // 2. Filter by Date (បើមិនបានរើសថ្ងៃ វានឹងរំលងការ Filter នេះ)
   if (startStr && endStr) {
     trxs = trxs.filter((t) => {
       let dDate = t.createdAt
@@ -2850,10 +2933,8 @@ window.c360FilterTrxList = function (resetPage = false) {
     });
   }
 
-  // 3. ដក Pending ចេញកុំអោយរញ៉េរញ៉ៃ Statement
   trxs = trxs.filter((t) => t.status !== "Pending");
 
-  // 🌟 គណនា Mini Dashboard (គណនាមុនពេល Filter Tab)
   let totalInUSD = 0,
     totalOutUSD = 0;
   let totalInKHR = 0,
@@ -2875,7 +2956,6 @@ window.c360FilterTrxList = function (resetPage = false) {
     }
   });
 
-  // បង្ហាញលទ្ធផលក្នុងប្រអប់ (Show combined if ALL accounts, else show specific currency)
   const isKHR =
     accVal !== "ALL" &&
     (accVal === "KHR" || (trxs.length > 0 && trxs[0].currency === "KHR"));
@@ -2897,13 +2977,11 @@ window.c360FilterTrxList = function (resetPage = false) {
       `<span style="font-size:1rem;">-$${totalOutUSD.toFixed(2)}<br>-${totalOutKHR.toLocaleString()}៛</span>`;
   }
 
-  // 4. Filter by Tab (In / Out)
   if (c360CurrentFilterTab === "in")
     trxs = trxs.filter((t) => t.amount > 0 || t.type === "Received");
   if (c360CurrentFilterTab === "out")
     trxs = trxs.filter((t) => t.amount < 0 && t.type !== "Received");
 
-  // តម្រៀបពីថ្មីទៅចាស់
   c360FilteredTrx = trxs.sort(
     (a, b) =>
       new Date(b.createdAt || c360ParseDateString(b.date)) -
@@ -2913,7 +2991,6 @@ window.c360FilterTrxList = function (resetPage = false) {
   c360RenderTrxPage();
 };
 
-// 🟢 គូរផ្ទាំងបញ្ជីប្រតិបត្តិការ
 function c360RenderTrxPage() {
   const container = document.getElementById("c360-trx-content");
   const btnPrev = document.getElementById("c360-btn-prev");
@@ -2953,13 +3030,11 @@ function c360RenderTrxPage() {
       : c360ParseDateString(t.date);
     let dateLabel = c360GetSmartDateLabel(parsedDate);
 
-    // 🌟 ដាក់ Sticky Date Header
     if (dateLabel !== lastDateLabel) {
       html += `<div class="c360-trx-date-header">${dateLabel}</div>`;
       lastDateLabel = dateLabel;
     }
 
-    // 🌟 កំណត់ Icon តាមប្រភេទ
     let iconClass = isIncome ? "fa-arrow-down" : "fa-arrow-up";
     let bgStyle = isIncome
       ? "background: rgba(16, 185, 129, 0.15); color: #10b981;"
@@ -3009,7 +3084,6 @@ function c360RenderTrxPage() {
     const sign = isIncome ? "+" : "-";
     const timeStr = c360GetTimeString(parsedDate, t.date);
 
-    // 🟢 ចាប់យក Ref ID ពេញលេញ
     const safeRefId = t.refId || t.id || t._id || t.transactionId || "";
     const realIndex = startIndex + index;
 
@@ -3029,7 +3103,6 @@ function c360RenderTrxPage() {
                     ${isRefunded ? "" : sign}${displayAmt}
                     ${isRefunded ? '<br><span class="kh-text" style="font-size:0.65rem; color:#10b981; font-weight:bold;">បានបង្វិលសង</span>' : ""}
                 </div>
-                <!-- 🟢 បង្ហាញ Ref ID ពេញលេញ និងដកសញ្ញា # ចេញ -->
                 <div style="font-size: 0.7rem; color: var(--text-muted); margin-top: 3px; font-family: monospace;">${safeRefId}</div>
             </div>
         </div>`;
@@ -3047,16 +3120,14 @@ window.c360ChangeTrxPage = function (step) {
   c360RenderTrxPage();
 };
 
-// =======================================================
-// 🌟 មុខងារបង្ហាញ Slip សម្រាប់ Admin (Admin Standalone Slip)
-// មិនពឹងផ្អែកលើ slip.js របស់ User ទៀតទេ ដើម្បីការពារ Error 404 រូបភាព
-// =======================================================
+/**
+ * 🔹 ៦.៣ បង្ហាញវិក្កយបត្រផ្លូវការសម្រាប់ Admin (Admin Standalone Slip)
+ */
 window.c360ViewTrxDetails = function (filteredIndex) {
   const t = c360FilteredTrx[filteredIndex];
   if (!t)
     return Swal.fire("បរាជ័យ", "រកមិនឃើញទិន្នន័យវិក្កយបត្រនេះទេ", "error");
 
-  // 1. រៀបចំទិន្នន័យ
   const isKHR = t.currency === "KHR";
   const currSym = isKHR ? "៛" : "$";
   const isIncome = t.amount > 0 || t.type === "Received";
@@ -3075,7 +3146,6 @@ window.c360ViewTrxDetails = function (filteredIndex) {
     maximumFractionDigits: isKHR ? 0 : 2,
   });
 
-  // 2. កំណត់ Theme តាមប្រភេទប្រតិបត្តិការ
   let bgColor = "#004d40";
   let iconColor = "#004d40";
   let iconClass = "fa-check";
@@ -3155,7 +3225,6 @@ window.c360ViewTrxDetails = function (filteredIndex) {
     lblReceiverText = "Refunded To";
   }
 
-  // 3. រៀបចំឈ្មោះ និងគណនី
   let displaySenderAcc = t.senderAcc || "";
   let displayReceiverAcc = t.receiverAcc || "";
 
@@ -3173,7 +3242,6 @@ window.c360ViewTrxDetails = function (filteredIndex) {
   if (displayReceiverAcc)
     receiverNameFull += `<br><span style="font-size:0.75rem; color:#64748b; font-family: 'JetBrains Mono', monospace;">${displayReceiverAcc}</span>`;
 
-  // 4. បង្កើត Container បើមិនទាន់មាន
   let slipContainer = document.getElementById("admin-standalone-slip");
   if (!slipContainer) {
     slipContainer = document.createElement("div");
@@ -3181,7 +3249,6 @@ window.c360ViewTrxDetails = function (filteredIndex) {
     document.body.appendChild(slipContainer);
   }
 
-  // 5. បញ្ចូល HTML ទៅក្នុង Container (ប្រើ Path ត្រឹមត្រូវ ../images/)
   slipContainer.innerHTML = `
     <style>
       .admin-slip-overlay {
@@ -3196,9 +3263,7 @@ window.c360ViewTrxDetails = function (filteredIndex) {
         overflow: hidden; box-shadow: 0 15px 40px rgba(0,0,0,0.3);
         transform: translateY(20px); animation: adminSlideUp 0.3s ease forwards;
       }
-      .admin-slip-header {
-        padding: 30px 20px 25px; text-align: center; color: white;
-      }
+      .admin-slip-header { padding: 30px 20px 25px; text-align: center; color: white; }
       .admin-slip-icon {
         width: 65px; height: 65px; background: white; border-radius: 50%;
         display: flex; align-items: center; justify-content: center; font-size: 2.2rem;
@@ -3220,7 +3285,6 @@ window.c360ViewTrxDetails = function (filteredIndex) {
 
     <div class="admin-slip-overlay" onclick="closeAdminSlip()">
       <div class="admin-slip-card" onclick="event.stopPropagation()">
-        
         <div class="admin-slip-header" style="background: ${bgColor};">
           <div class="admin-slip-icon" style="color: ${iconColor};">
             <i class="fa-solid ${iconClass}"></i>
@@ -3272,13 +3336,11 @@ window.c360ViewTrxDetails = function (filteredIndex) {
               <img src="https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=Verify_${t.refId}" style="width:35px; height:35px;"/>
               <div style="font-size:0.65rem; font-weight:800; color:#004d40; line-height: 1.2;">SCAN TO<br/>VERIFY</div>
             </div>
-            <!-- 🟢 Path រូបភាពត្រឹមត្រូវសម្រាប់ Admin (ទប់ស្កាត់ការ Error) -->
             <img src="../images/logo.png" style="width:75px;" onerror="this.style.display='none'"/>
           </div>
         </div>
       </div>
       
-      <!-- Action Buttons -->
       <div style="display:flex; justify-content:center; gap:35px; margin-top: 25px;">
         <div style="text-align:center; color:white;">
           <div class="admin-slip-btn" onclick="c360ExportStatementPDF()"><i class="fa-solid fa-file-pdf"></i></div>
@@ -3293,17 +3355,16 @@ window.c360ViewTrxDetails = function (filteredIndex) {
   `;
 };
 
-// មុខងារបិទ Admin Slip
 window.closeAdminSlip = function () {
   const slipContainer = document.getElementById("admin-standalone-slip");
   if (slipContainer) {
-    slipContainer.innerHTML = ""; // លុបចេញពីអេក្រង់ភ្លាមៗ
+    slipContainer.innerHTML = "";
   }
 };
 
-// =======================================================
-// 🖨️ មុខងារ EXPORT PDF (ទម្រង់ដូច History 100%)
-// =======================================================
+/**
+ * 🔹 ៦.៤ ទាញយករបាយការណ៍ប្រតិបត្តិការធនាគារជាឯកសារ PDF (Account Statement PDF)
+ */
 window.c360ExportStatementPDF = async function () {
   if (c360FilteredTrx.length === 0) {
     return Swal.fire(
@@ -3329,7 +3390,6 @@ window.c360ExportStatementPDF = async function () {
     customClass: { popup: "premium-swal kh-text" },
   });
 
-  // Load jsPDF library dynamically if it doesn't exist in admin
   if (typeof window.jspdf === "undefined") {
     await new Promise((resolve) => {
       const script = document.createElement("script");
@@ -3372,7 +3432,6 @@ window.c360ExportStatementPDF = async function () {
           .trim();
       };
 
-      // ដក Pending ចេញកុំអោយរញ៉េរញ៉ៃ Statement
       const allTrxAsc = [...currentC360User.transactions]
         .filter((t) => t.status !== "Pending")
         .sort(
@@ -3398,7 +3457,6 @@ window.c360ExportStatementPDF = async function () {
         }
       });
 
-      // Filter យកតែអីដែលកំពុងបង្ហាញ
       const stTrx = [...c360FilteredTrx].sort(
         (a, b) =>
           new Date(a.createdAt || a.date) - new Date(b.createdAt || b.date),
@@ -3447,7 +3505,6 @@ window.c360ExportStatementPDF = async function () {
       if (endUSD) endingUSD = num(endUSD.computedBalance);
       if (endKHR) endingKHR = num(endKHR.computedBalance);
 
-      // បញ្ចូលរូប Logo (ផ្លូវទៅកាន់ File គឺ '../images/' សម្រាប់ Dashboard Admin)
       doc.addImage("../images/logo-nobg.png", "PNG", 40, 40, 70, 32);
       doc.setFont("helvetica", "bold");
       doc.setFontSize(20);
@@ -3740,18 +3797,18 @@ window.c360ExportStatementPDF = async function () {
     }
   }, 500);
 };
+// ============================================================================
+// 🪪 ជំពូកទី ៧៖ ផ្ទាំងទី ៥ - ឯកសារបញ្ជាក់អត្តសញ្ញាណ និង MAKER-CHECKER តាម `_id` (TAB 5: KYC & IDENTITY)
+// ============================================================================
 
-// =======================================================
-// 🪪 TAB 5: KYC & Identity (100% Pro Maker-Checker, Dark Mode & Smart Duplicate Sync)
-// =======================================================
-
-// 🔍 ១. អនុគមន៍ចាប់យកអត្តសញ្ញាណ Admin កំពុង Login (ទាំង Username និង Full Name ដើម្បីការពារ Maker-Checker 100%)
+/**
+ * 🔹 ៧.១ ចាប់យកអត្តសញ្ញាណបុគ្គលិក Admin កំពុង Login (ទាំង Username និង Full Name ដើម្បីការពារ Maker-Checker 100%)
+ */
 function c360GetActiveAdminIdentity() {
   let username = "";
   let fullName = "";
 
   try {
-    // ១.១ ទាញពី JWT Token មុនគេ (ជាក់លាក់បំផុតសម្រាប់ Admin)
     const tokenKeys = ["adminToken", "token", "upay_admin_token"];
     for (const k of tokenKeys) {
       const tk = localStorage.getItem(k) || sessionStorage.getItem(k);
@@ -3767,7 +3824,6 @@ function c360GetActiveAdminIdentity() {
       }
     }
 
-    // ១.២ ទាញពី Storage Objects
     const storeKeys = ["admin", "adminUser", "currentAdmin"];
     for (const k of storeKeys) {
       const raw = localStorage.getItem(k) || sessionStorage.getItem(k);
@@ -3783,7 +3839,6 @@ function c360GetActiveAdminIdentity() {
       }
     }
 
-    // ១.៣ ទាញពី Globals ឬ Sidebar DOM បើមាន
     if (
       !username &&
       typeof window.currentAdmin !== "undefined" &&
@@ -3795,19 +3850,19 @@ function c360GetActiveAdminIdentity() {
     if (domDisp && !fullName) {
       fullName = domDisp.replace(/^@/, "").trim();
     }
-  } catch (e) {
-    console.warn("Admin identity parse warning:", e);
-  }
+  } catch (e) {}
 
   return {
     username: username,
     usernameLower: username.toLowerCase(),
-    fullName: fullName,
-    fullNameLower: fullName.toLowerCase(),
+    fullName: fullName || username || "មន្ត្រីប្រតិបត្តិ U-Pay",
+    fullNameLower: (fullName || username).toLowerCase(),
   };
 }
 
-// 🔍 ២. អនុគមន៍រកមើលគណនីទាំងអស់ដែលប្រើលេខអត្តសញ្ញាណប័ណ្ណដូចគ្នា
+/**
+ * 🔹 ៧.២ រកមើលគណនីទាំងអស់ដែលប្រើលេខអត្តសញ្ញាណប័ណ្ណដូចគ្នា
+ */
 function c360FindAccountsWithSameIdNumber(idNumber) {
   const cleanId = String(idNumber || "").trim();
   if (!cleanId || cleanId === "N/A" || typeof globalUsersData === "undefined") {
@@ -3818,18 +3873,21 @@ function c360FindAccountsWithSameIdNumber(idNumber) {
   );
 }
 
-// 🎨 ៣. អនុគមន៍គូរផ្ទាំង Tab 5 (KYC & Identity)
+/**
+ * 🔹 ៧.៣ គូរផ្ទាំងត្រួតពិនិត្យឯកសារ KYC តាមរយៈ MongoDB `_id` (គាំទ្រទាំងមនុស្សធំ និងសំបុត្រកំណើតកុមារ)
+ */
 function renderKycTab(user) {
   const container = document.getElementById("c360-tab-kyc");
   if (!container) return;
 
+  const canonicalId = c360GetCanonicalId(user);
+  const isJunior = user.role === "junior";
   const status = (user.kycStatus || "unverified").toLowerCase();
   const imgUrl = user.kycDocument || user.kycImage || user.idCardImage || "";
   const selfieUrl = user.selfieUrl || "";
   const kycSubmittedAt = user.kycSubmittedAt || "មិនមានកាលបរិច្ឆេទ";
   const kycRejectReason = user.kycRejectReason || "មិនបានបញ្ជាក់មូលហេតុ";
 
-  // 🛡️ ផ្ទៀងផ្ទាត់សិទ្ធិ Maker-Checker (ប្រៀបធៀបទាំង Username និង Full Name)
   const adminIdent = c360GetActiveAdminIdentity();
   const rawUploader = String(user.kycUploadedBy || "")
     .replace(/^@/, "")
@@ -3840,6 +3898,7 @@ function renderKycTab(user) {
   const isUploadedByCustomer =
     !rawUploader ||
     rawUploader === "អតិថិជនផ្ទាល់" ||
+    rawUploader.includes("អាណាព្យាបាល") ||
     uploaderLower === customerUsernameLower;
 
   const isCurrentAdminTheMaker =
@@ -3850,19 +3909,17 @@ function renderKycTab(user) {
         uploaderLower === adminIdent.fullNameLower));
 
   const makerBadgeHtml = isUploadedByCustomer
-    ? `<span class="kyc-role-pill pill-customer"><i class="fa-solid fa-mobile-screen"></i> អតិថិជនផ្ទាល់ (@${user.username})</span>`
+    ? `<span class="kyc-role-pill pill-customer"><i class="fa-solid fa-mobile-screen"></i> ${rawUploader || `អតិថិជនផ្ទាល់ (${user.fullName || user.username})`}</span>`
     : isCurrentAdminTheMaker
-      ? `<span class="kyc-role-pill pill-maker"><i class="fa-solid fa-user-pen"></i> Admin: @${rawUploader} (អ្នកជាអ្នកបញ្ជូន - Maker)</span>`
-      : `<span class="kyc-role-pill pill-other-admin"><i class="fa-solid fa-user-shield"></i> Admin: @${rawUploader}</span>`;
+      ? `<span class="kyc-role-pill pill-maker"><i class="fa-solid fa-user-pen"></i> មន្ត្រីប្រតិបត្តិ៖ ${rawUploader} (អ្នកជាអ្នកបញ្ជូន - Maker)</span>`
+      : `<span class="kyc-role-pill pill-other-admin"><i class="fa-solid fa-user-shield"></i> មន្ត្រីប្រតិបត្តិ៖ ${rawUploader}</span>`;
 
-  // 🔗 ឆែកមើលលេខអត្តសញ្ញាណប័ណ្ណស្ទួន (បង្ហាញតែពេលមានគណនីស្ទួនពិតប្រាកដ >= 2 គណនី)
   const sameIdAccounts = c360FindAccountsWithSameIdNumber(user.idNumber);
   const otherAccountsWithSameId = sameIdAccounts.filter(
-    (u) => u.username !== user.username,
+    (u) => String(u._id || u.id) !== canonicalId,
   );
   const hasRealDuplicateId = otherAccountsWithSameId.length > 0;
 
-  // កំណត់ស្ថានភាព និងប៊ូតុងសកម្មភាពតាម Status
   let statusBadge = "";
   let statusColor = "#64748b";
   let isEditable = false;
@@ -3882,7 +3939,7 @@ function renderKycTab(user) {
           <div class="kyc-banner-icon"><i class="fa-solid fa-cloud-arrow-up"></i></div>
           <div>
             <div class="kyc-banner-title">គណនីនេះមិនទាន់មានឯកសារ KYC ពេញលេញទេ</div>
-            <div class="kyc-banner-sub">សូមចុចប៊ូតុង Upload លើប្រអប់រូបភាពខាងក្រោម ដើម្បីបង្ហោះអត្តសញ្ញាណប័ណ្ណ និងរូបថត Selfie ជូនអតិថិជន។</div>
+            <div class="kyc-banner-sub">សូមចុចប៊ូតុង Upload លើប្រអប់រូបភាពខាងក្រោម ដើម្បីបង្ហោះ${isJunior ? "សំបុត្រកំណើតកូន" : "អត្តសញ្ញាណប័ណ្ណ"} និងរូបថតផ្ទាល់ជូនអតិថិជន។</div>
           </div>
         </div>
       </div>
@@ -3916,8 +3973,6 @@ function renderKycTab(user) {
       </div>
     `;
 
-    // 🛑 គោលការណ៍ Maker-Checker ដាច់ខាត៖
-    // បើ Admin កំពុងមើលជាអ្នកបញ្ជូន (Maker) -> ហាមបង្ហាញប៊ូតុង Approve / Reject ដាច់ខាត!
     if (isCurrentAdminTheMaker) {
       isEditable = true;
       canUpload = true;
@@ -3927,25 +3982,24 @@ function renderKycTab(user) {
             <i class="fa-solid fa-user-lock" style="font-size: 1.4rem; color: #3b82f6; flex-shrink: 0;"></i>
             <div>
               <div style="font-weight: 800; font-size: 0.92rem;">គោលការណ៍ Maker-Checker៖ មិនអាចអនុម័តសំណើដែលអ្នកបានបញ្ជូនខ្លួនឯងបានទេ!</div>
-              <div style="font-size: 0.8rem; opacity: 0.85; margin-top: 2px;">សូមរង់ចាំ Admin ផ្សេងទៀត (Checker) ជាអ្នកត្រួតពិនិត្យ និងអនុម័ត ឬអ្នកអាចចុចដកសំណើមកកែសម្រួលវិញបាន។</div>
+              <div style="font-size: 0.8rem; opacity: 0.85; margin-top: 2px;">សូមរង់ចាំមន្ត្រីផ្សេងទៀត (Checker) ជាអ្នកត្រួតពិនិត្យ និងអនុម័ត ឬអ្នកអាចចុចដកសំណើមកកែសម្រួលវិញបាន។</div>
             </div>
           </div>
-          <button type="button" onclick="c360WithdrawOwnKycRequest('${user.username}')" class="kyc-btn kyc-btn-withdraw">
+          <button type="button" onclick="c360WithdrawOwnKycRequest('${canonicalId}')" class="kyc-btn kyc-btn-withdraw">
             <i class="fa-solid fa-rotate-left"></i> ដកសំណើមកកែវិញ
           </button>
         </div>
       `;
     } else {
-      // ✅ បើជា Admin ផ្សេង (Checker) ឬអតិថិជនបញ្ជូនខ្លួនឯង -> បង្ហាញប៊ូតុង បដិសេធ (Reject) និង អនុម័ត (Approve)
       isEditable = true;
       canUpload = false;
       actionsHtml = `
         <div class="kyc-action-btn-row">
-          <button type="button" onclick="c360PromptKycReject('${user.username}', 'reject')" class="kyc-btn kyc-btn-reject">
+          <button type="button" onclick="c360PromptKycReject('${canonicalId}', 'reject')" class="kyc-btn kyc-btn-reject">
             <i class="fa-solid fa-circle-xmark"></i> បដិសេធសំណើ (Reject & Clear ID)
           </button>
-          <button type="button" onclick="processC360KycAction('${user.username}', 'approved')" class="kyc-btn kyc-btn-approve">
-            <i class="fa-solid fa-circle-check"></i> អនុម័តឯកសារ (Approve KYC)
+          <button type="button" onclick="processC360KycAction('${canonicalId}', 'approved')" class="kyc-btn kyc-btn-approve">
+            <i class="fa-solid fa-circle-check"></i> ${isJunior ? "អនុម័តសំបុត្រកំណើត & បើកគណនីកូនភ្លាមៗ" : "អនុម័តឯកសារ (Approve KYC)"}
           </button>
         </div>
       `;
@@ -3956,6 +4010,11 @@ function renderKycTab(user) {
     isEditable = false;
     canUpload = false;
 
+    const approvedByClean = String(user.kycApprovedBy || "System").replace(
+      /^@/,
+      "",
+    );
+
     auditCardHtml = `
       <div class="kyc-audit-banner banner-verified">
         <div class="kyc-audit-grid">
@@ -3965,7 +4024,7 @@ function renderKycTab(user) {
           </div>
           <div>
             <div class="kyc-audit-lbl">អនុម័តដោយ (CHECKER)</div>
-            <div class="kyc-audit-val"><i class="fa-solid fa-user-check" style="color:#10b981;"></i> @${user.kycApprovedBy || "System"}</div>
+            <div class="kyc-audit-val"><i class="fa-solid fa-user-check" style="color:#10b981;"></i> ${approvedByClean}</div>
           </div>
           <div>
             <div class="kyc-audit-lbl">កាលបរិច្ឆេទអនុម័ត (APPROVED AT)</div>
@@ -3976,7 +4035,7 @@ function renderKycTab(user) {
     `;
 
     actionsHtml = `
-      <button type="button" onclick="c360PromptKycReject('${user.username}', 'revoke')" class="kyc-btn kyc-btn-reject" style="width: 100%;">
+      <button type="button" onclick="c360PromptKycReject('${canonicalId}', 'revoke')" class="kyc-btn kyc-btn-reject" style="width: 100%;">
         <i class="fa-solid fa-ban"></i> ដកហូតសិទ្ធិ KYC ឡើងវិញ និងលុបលេខអត្តសញ្ញាណប័ណ្ណ (Revoke Verification)
       </button>
     `;
@@ -3986,12 +4045,17 @@ function renderKycTab(user) {
     isEditable = true;
     canUpload = true;
 
+    const rejectedByClean = String(user.kycRejectedBy || "System").replace(
+      /^@/,
+      "",
+    );
+
     auditCardHtml = `
       <div class="kyc-audit-banner banner-rejected">
         <div class="kyc-audit-grid" style="margin-bottom: 10px;">
           <div>
             <div class="kyc-audit-lbl">បដិសេធដោយ (REJECTED BY)</div>
-            <div class="kyc-audit-val">@${user.kycRejectedBy || "System"}</div>
+            <div class="kyc-audit-val">${rejectedByClean}</div>
           </div>
           <div>
             <div class="kyc-audit-lbl">កាលបរិច្ឆេទបដិសេធ (REJECTED AT)</div>
@@ -4006,17 +4070,18 @@ function renderKycTab(user) {
     `;
   }
 
-  // 🚨 ៤. ប្រអប់បង្ហាញគណនីស្ទួនលេខអត្តសញ្ញាណប័ណ្ណ (លាក់ចោលទាំងស្រុង បើមិនមានគណនីស្ទួនទេ!)
+  // 🎯 ប្រអប់គណនីស្ទួនលេខអត្តសញ្ញាណប័ណ្ណ (លោតឆ្លងគណនីតាមរយៈ MongoDB `_id` ផ្ទាល់!)
   let duplicateIdSectionHtml = "";
   if (hasRealDuplicateId) {
     const linkedBadges = sameIdAccounts
       .map((acc) => {
-        const isCurrent = acc.username === user.username;
+        const accId = String(acc._id || acc.id);
+        const isCurrent = accId === canonicalId;
         return `
-          <span onclick="${isCurrent ? "" : `document.getElementById('searchC360').value='${acc.username}'; searchCustomer360();`}"
+          <span onclick="${isCurrent ? "" : `searchCustomer360('${accId}');`}"
                 class="kyc-dup-acc-chip ${isCurrent ? "current-acc" : ""}"
-                title="${isCurrent ? "គណនីកំពុងមើលបច្ចុប្បន្ន" : "ចុចដើម្បីលោតទៅមើលគណនីនេះ"}">
-            <i class="fa-solid fa-user"></i> ${(acc.fullName || acc.username).toUpperCase()} (@${acc.username})
+                title="${isCurrent ? "គណនីកំពុងមើលបច្ចុប្បន្ន" : "ចុចដើម្បីលោតទៅមើលគណនីនេះតាម _id"}">
+            <i class="fa-solid fa-user"></i> ${(acc.fullName || acc.username).toUpperCase()}
             ${isCurrent ? '<span style="opacity:0.8;">• បច្ចុប្បន្ន</span>' : '<i class="fa-solid fa-arrow-up-right-from-square" style="font-size:0.65rem;"></i>'}
           </span>
         `;
@@ -4051,7 +4116,6 @@ function renderKycTab(user) {
     `;
   }
 
-  // 🖼️ ៥. ប្រអប់រូបភាព ID Card និង Live Selfie
   const renderImageCard = (type, title, url, accentColor, iconClass) => {
     const isId = type === "idCard";
     const imgDomId = isId ? "c360-img-id" : "c360-img-selfie";
@@ -4093,7 +4157,6 @@ function renderKycTab(user) {
     `;
   };
 
-  // 📝 ៦. ប្រអប់ទិន្នន័យអត្តសញ្ញាណ (Full Name ជាអក្សរធំ UPPERCASE ជានិច្ច)
   const renderDataBox = (label, id, value) => {
     const displayVal =
       id === "fullName" && value ? String(value).toUpperCase() : value || "N/A";
@@ -4140,342 +4203,75 @@ function renderKycTab(user) {
     `;
   };
 
+  const doc1Title = isJunior
+    ? "១. សំបុត្រកំណើតកូន (Birth Certificate)"
+    : "១. អត្តសញ្ញាណប័ណ្ណ ឬលិខិតឆ្លងដែន";
+
   container.innerHTML = `
     <style>
       .c360-kyc-scope, .c360-kyc-scope button, .c360-kyc-scope input, .c360-kyc-scope select,
       .c360-kyc-swal, .c360-kyc-swal button, .c360-kyc-swal input, .c360-kyc-swal select, .c360-kyc-swal .swal2-title, .c360-kyc-swal .swal2-html-container {
         font-family: 'Kantumruy Pro', 'Inter', sans-serif !important;
       }
-
-      /* Status Badges */
-      .kyc-status-badge {
-        padding: 7px 16px;
-        border-radius: 10px;
-        font-weight: 800;
-        font-size: 0.85rem;
-        display: inline-flex;
-        align-items: center;
-        gap: 6px;
-      }
+      .kyc-status-badge { padding: 7px 16px; border-radius: 10px; font-weight: 800; font-size: 0.85rem; display: inline-flex; align-items: center; gap: 6px; }
       .kyc-status-badge.st-unverified { background: rgba(148, 163, 184, 0.15); color: var(--text-muted, #64748b); border: 1px solid rgba(148, 163, 184, 0.3); }
       .kyc-status-badge.st-pending { background: rgba(245, 158, 11, 0.15); color: #f59e0b; border: 1px solid rgba(245, 158, 11, 0.35); }
       .kyc-status-badge.st-verified { background: rgba(16, 185, 129, 0.15); color: #10b981; border: 1px solid rgba(16, 185, 129, 0.35); }
       .kyc-status-badge.st-rejected { background: rgba(239, 68, 68, 0.15); color: #ef4444; border: 1px solid rgba(239, 68, 68, 0.35); }
-
-      /* Role Pills */
-      .kyc-role-pill {
-        padding: 4px 10px;
-        border-radius: 8px;
-        font-weight: 800;
-        font-size: 0.8rem;
-        display: inline-flex;
-        align-items: center;
-        gap: 5px;
-      }
+      .kyc-role-pill { padding: 4px 10px; border-radius: 8px; font-weight: 800; font-size: 0.8rem; display: inline-flex; align-items: center; gap: 5px; }
       .kyc-role-pill.pill-customer { background: rgba(2, 132, 199, 0.15); color: #38bdf8; }
       .kyc-role-pill.pill-maker { background: rgba(37, 99, 235, 0.18); color: #60a5fa; }
       .kyc-role-pill.pill-other-admin { background: rgba(126, 34, 206, 0.16); color: #c084fc; }
       body:not(.dark-mode) .kyc-role-pill.pill-customer { background: #e0f2fe; color: #0284c7; }
       body:not(.dark-mode) .kyc-role-pill.pill-maker { background: #dbeafe; color: #1d4ed8; }
       body:not(.dark-mode) .kyc-role-pill.pill-other-admin { background: #f3e8ff; color: #7e22ce; }
-
-      /* Audit Banner (Supports Light & Dark Mode) */
-      .kyc-audit-banner {
-        border-radius: 14px;
-        padding: 16px 20px;
-        margin-bottom: 18px;
-        border: 1px solid var(--border, #e2e8f0);
-        background: var(--bg-body, #f8fafc);
-      }
+      .kyc-audit-banner { border-radius: 14px; padding: 16px 20px; margin-bottom: 18px; border: 1px solid var(--border, #e2e8f0); background: var(--bg-body, #f8fafc); }
       .kyc-audit-banner.banner-pending { background: rgba(245, 158, 11, 0.08); border-color: rgba(245, 158, 11, 0.35); }
       .kyc-audit-banner.banner-verified { background: rgba(16, 185, 129, 0.08); border-color: rgba(16, 185, 129, 0.35); }
       .kyc-audit-banner.banner-rejected { background: rgba(239, 68, 68, 0.08); border-color: rgba(239, 68, 68, 0.35); }
-      .kyc-banner-icon {
-        width: 42px; height: 42px; border-radius: 10px;
-        background: rgba(148, 163, 184, 0.15); color: var(--text-main);
-        display: flex; align-items: center; justify-content: center; font-size: 1.2rem; flex-shrink: 0;
-      }
+      .kyc-banner-icon { width: 42px; height: 42px; border-radius: 10px; background: rgba(148, 163, 184, 0.15); color: var(--text-main); display: flex; align-items: center; justify-content: center; font-size: 1.2rem; flex-shrink: 0; }
       .kyc-banner-title { font-weight: 800; color: var(--text-main); font-size: 0.95rem; }
       .kyc-banner-sub { font-size: 0.82rem; color: var(--text-muted); margin-top: 2px; }
-      .kyc-audit-grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-        gap: 12px;
-      }
+      .kyc-audit-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; }
       .kyc-audit-lbl { font-size: 0.74rem; color: var(--text-muted); font-weight: 700; margin-bottom: 4px; }
       .kyc-audit-val { font-weight: 800; color: var(--text-main); font-size: 0.9rem; }
-      .kyc-reject-reason-box {
-        background: var(--bg-card, #ffffff);
-        border: 1px solid rgba(239, 68, 68, 0.3);
-        padding: 10px 14px;
-        border-radius: 10px;
-        color: var(--text-main);
-      }
-
-      /* Image Cards */
-      .kyc-images-grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-        gap: 16px;
-        width: 100%;
-      }
-      .kyc-img-card {
-        background: var(--bg-card, #ffffff);
-        border: 1px solid var(--border, #e2e8f0);
-        border-radius: 16px;
-        overflow: hidden;
-        display: flex;
-        flex-direction: column;
-      }
-      .kyc-img-card-header {
-        padding: 11px 15px;
-        background: var(--bg-body, #f8fafc);
-        border-bottom: 1px solid var(--border, #e2e8f0);
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        flex-wrap: wrap;
-        gap: 8px;
-      }
-      .kyc-img-card-title {
-        font-weight: 800;
-        font-size: 0.84rem;
-        color: var(--text-main);
-        display: flex;
-        align-items: center;
-        gap: 6px;
-      }
-      .kyc-mini-btn {
-        padding: 5px 11px;
-        font-size: 0.75rem;
-        font-weight: 800;
-        border-radius: 8px;
-        cursor: pointer;
-        display: inline-flex;
-        align-items: center;
-        gap: 5px;
-        transition: 0.2s;
-      }
-      .kyc-mini-btn-view {
-        background: var(--bg-card, #ffffff);
-        color: var(--text-main);
-        border: 1px solid var(--border, #cbd5e1);
-      }
+      .kyc-reject-reason-box { background: var(--bg-card, #ffffff); border: 1px solid rgba(239, 68, 68, 0.3); padding: 10px 14px; border-radius: 10px; color: var(--text-main); }
+      .kyc-images-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px; width: 100%; }
+      .kyc-img-card { background: var(--bg-card, #ffffff); border: 1px solid var(--border, #e2e8f0); border-radius: 16px; overflow: hidden; display: flex; flex-direction: column; }
+      .kyc-img-card-header { padding: 11px 15px; background: var(--bg-body, #f8fafc); border-bottom: 1px solid var(--border, #e2e8f0); display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px; }
+      .kyc-img-card-title { font-weight: 800; font-size: 0.84rem; color: var(--text-main); display: flex; align-items: center; gap: 6px; }
+      .kyc-mini-btn { padding: 5px 11px; font-size: 0.75rem; font-weight: 800; border-radius: 8px; cursor: pointer; display: inline-flex; align-items: center; gap: 5px; transition: 0.2s; }
+      .kyc-mini-btn-view { background: var(--bg-card, #ffffff); color: var(--text-main); border: 1px solid var(--border, #cbd5e1); }
       .kyc-mini-btn:hover { transform: translateY(-1px); }
-      .kyc-img-viewport {
-        height: 290px;
-        background: #0f172a;
-        position: relative;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        cursor: pointer;
-        overflow: hidden;
-      }
-      .kyc-img-viewport img {
-        width: 100%;
-        height: 100%;
-        object-fit: contain;
-        transition: transform 0.25s ease;
-      }
+      .kyc-img-viewport { height: 290px; background: #0f172a; position: relative; display: flex; align-items: center; justify-content: center; cursor: pointer; overflow: hidden; }
+      .kyc-img-viewport img { width: 100%; height: 100%; object-fit: contain; transition: transform 0.25s ease; }
       .kyc-img-viewport:hover img { transform: scale(1.02); }
-      .kyc-img-placeholder {
-        width: 100%;
-        height: 100%;
-        background: var(--bg-body, #f8fafc);
-        flex-direction: column;
-        align-items: center;
-        justify-content: center;
-        color: var(--text-muted);
-        gap: 10px;
-        padding: 20px;
-        text-align: center;
-      }
-
-      /* Extracted Data Boxes */
-      .kyc-fields-grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-        gap: 14px;
-      }
-      .kyc-field-box {
-        background: var(--bg-body, #f8fafc);
-        border: 1px solid var(--border, #e2e8f0);
-        border-radius: 12px;
-        padding: 15px;
-        position: relative;
-        min-height: 74px;
-        display: flex;
-        flex-direction: column;
-        justify-content: center;
-        transition: 0.2s;
-      }
-      .kyc-field-box.editable-box:hover {
-        border-color: #3b82f6 !important;
-        box-shadow: 0 4px 12px rgba(59, 130, 246, 0.08);
-      }
-      .kyc-field-box .edit-icon {
-        position: absolute;
-        right: 14px;
-        top: 14px;
-        color: #3b82f6;
-        cursor: pointer;
-        opacity: 0;
-        transition: 0.2s;
-        padding: 5px;
-      }
+      .kyc-img-placeholder { width: 100%; height: 100%; background: var(--bg-body, #f8fafc); flex-direction: column; align-items: center; justify-content: center; color: var(--text-muted); gap: 10px; padding: 20px; text-align: center; }
+      .kyc-fields-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 14px; }
+      .kyc-field-box { background: var(--bg-body, #f8fafc); border: 1px solid var(--border, #e2e8f0); border-radius: 12px; padding: 15px; position: relative; min-height: 74px; display: flex; flex-direction: column; justify-content: center; transition: 0.2s; }
+      .kyc-field-box.editable-box:hover { border-color: #3b82f6 !important; box-shadow: 0 4px 12px rgba(59, 130, 246, 0.08); }
+      .kyc-field-box .edit-icon { position: absolute; right: 14px; top: 14px; color: #3b82f6; cursor: pointer; opacity: 0; transition: 0.2s; padding: 5px; }
       .kyc-field-box.editable-box:hover .edit-icon { opacity: 1; }
-      .kyc-field-lbl {
-        font-size: 0.74rem;
-        color: var(--text-muted, #64748b);
-        font-weight: 700;
-        display: block;
-        margin-bottom: 4px;
-      }
-      .kyc-field-val {
-        font-size: 1.04rem;
-        color: var(--text-main, #0f172a);
-        font-weight: 800;
-        word-break: break-word;
-      }
-      .kyc-inline-input {
-        width: 100%;
-        padding: 8px 10px;
-        border: 2px solid #3b82f6;
-        border-radius: 8px;
-        font-size: 0.94rem;
-        background: var(--bg-card, #ffffff);
-        color: var(--text-main, #0f172a);
-        font-weight: 700;
-        outline: none;
-        box-sizing: border-box;
-      }
-      .kyc-btn-inline-save {
-        flex: 1; background: #10b981; color: white; border: none; padding: 7px; border-radius: 7px; font-size: 0.8rem; font-weight: 800; cursor: pointer;
-      }
-      .kyc-btn-inline-cancel {
-        flex: 1; background: var(--bg-card); color: var(--text-muted); border: 1px solid var(--border); padding: 7px; border-radius: 7px; font-size: 0.8rem; font-weight: 800; cursor: pointer;
-      }
-
-      /* Duplicate ID Alert Card */
-      .kyc-dup-alert-card {
-        background: rgba(249, 115, 22, 0.08);
-        border: 1px solid rgba(249, 115, 22, 0.4);
-        border-radius: 14px;
-        padding: 16px 20px;
-        margin-top: 18px;
-        color: var(--text-main);
-      }
-      .kyc-dup-title {
-        font-weight: 800;
-        font-size: 0.94rem;
-        color: #f97316;
-        display: flex;
-        align-items: center;
-        gap: 8px;
-      }
-      .kyc-dup-reason-line {
-        font-size: 0.86rem;
-        color: var(--text-main);
-        margin-top: 6px;
-      }
-      .kyc-dup-reason-val {
-        font-weight: 800;
-        background: var(--bg-card);
-        border: 1px solid var(--border);
-        padding: 2px 9px;
-        border-radius: 6px;
-        margin-left: 4px;
-      }
-      .kyc-dup-acc-chip {
-        background: var(--bg-card);
-        color: var(--text-main);
-        border: 1px solid var(--border);
-        padding: 4px 10px;
-        border-radius: 8px;
-        font-size: 0.78rem;
-        font-weight: 800;
-        cursor: pointer;
-        display: inline-flex;
-        align-items: center;
-        gap: 5px;
-        transition: 0.2s;
-      }
-      .kyc-dup-acc-chip:hover:not(.current-acc) {
-        border-color: #3b82f6;
-        color: #3b82f6;
-      }
-      .kyc-dup-acc-chip.current-acc {
-        background: #0f172a;
-        color: #fef08a;
-        border-color: #0f172a;
-        cursor: default;
-      }
-
-      /* Action Buttons */
-      .kyc-maker-lock-box {
-        background: rgba(59, 130, 246, 0.08);
-        border: 1px dashed rgba(59, 130, 246, 0.45);
-        border-radius: 14px;
-        padding: 15px 18px;
-        color: var(--text-main);
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        flex-wrap: wrap;
-        gap: 12px;
-        width: 100%;
-      }
-      .kyc-action-btn-row {
-        display: flex;
-        gap: 14px;
-        width: 100%;
-        flex-wrap: wrap;
-      }
-      .kyc-btn {
-        padding: 13px 20px;
-        border-radius: 12px;
-        font-weight: 800;
-        font-size: 0.96rem;
-        cursor: pointer;
-        transition: 0.2s;
-        display: inline-flex;
-        justify-content: center;
-        align-items: center;
-        gap: 8px;
-      }
+      .kyc-field-lbl { font-size: 0.74rem; color: var(--text-muted, #64748b); font-weight: 700; display: block; margin-bottom: 4px; }
+      .kyc-field-val { font-size: 1.04rem; color: var(--text-main, #0f172a); font-weight: 800; word-break: break-word; }
+      .kyc-inline-input { width: 100%; padding: 8px 10px; border: 2px solid #3b82f6; border-radius: 8px; font-size: 0.94rem; background: var(--bg-card, #ffffff); color: var(--text-main, #0f172a); font-weight: 700; outline: none; box-sizing: border-box; }
+      .kyc-btn-inline-save { flex: 1; background: #10b981; color: white; border: none; padding: 7px; border-radius: 7px; font-size: 0.8rem; font-weight: 800; cursor: pointer; }
+      .kyc-btn-inline-cancel { flex: 1; background: var(--bg-card); color: var(--text-muted); border: 1px solid var(--border); padding: 7px; border-radius: 7px; font-size: 0.8rem; font-weight: 800; cursor: pointer; }
+      .kyc-dup-alert-card { background: rgba(249, 115, 22, 0.08); border: 1px solid rgba(249, 115, 22, 0.4); border-radius: 14px; padding: 16px 20px; margin-top: 18px; color: var(--text-main); }
+      .kyc-dup-title { font-weight: 800; font-size: 0.94rem; color: #f97316; display: flex; align-items: center; gap: 8px; }
+      .kyc-dup-reason-line { font-size: 0.86rem; color: var(--text-main); margin-top: 6px; }
+      .kyc-dup-reason-val { font-weight: 800; background: var(--bg-card); border: 1px solid var(--border); padding: 2px 9px; border-radius: 6px; margin-left: 4px; }
+      .kyc-dup-acc-chip { background: var(--bg-card); color: var(--text-main); border: 1px solid var(--border); padding: 4px 10px; border-radius: 8px; font-size: 0.78rem; font-weight: 800; cursor: pointer; display: inline-flex; align-items: center; gap: 5px; transition: 0.2s; }
+      .kyc-dup-acc-chip:hover:not(.current-acc) { border-color: #3b82f6; color: #3b82f6; }
+      .kyc-dup-acc-chip.current-acc { background: #0f172a; color: #fef08a; border-color: #0f172a; cursor: default; }
+      .kyc-maker-lock-box { background: rgba(59, 130, 246, 0.08); border: 1px dashed rgba(59, 130, 246, 0.45); border-radius: 14px; padding: 15px 18px; color: var(--text-main); display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; width: 100%; }
+      .kyc-action-btn-row { display: flex; gap: 14px; width: 100%; flex-wrap: wrap; }
+      .kyc-btn { padding: 13px 20px; border-radius: 12px; font-weight: 800; font-size: 0.96rem; cursor: pointer; transition: 0.2s; display: inline-flex; justify-content: center; align-items: center; gap: 8px; }
       .kyc-btn:hover { transform: translateY(-1px); }
-      .kyc-btn-approve {
-        flex: 1.5;
-        min-width: 220px;
-        background: linear-gradient(135deg, #059669, #10b981);
-        color: #ffffff;
-        border: none;
-        box-shadow: 0 6px 15px rgba(16, 185, 129, 0.25);
-      }
-      .kyc-btn-reject {
-        flex: 1;
-        min-width: 200px;
-        background: rgba(239, 68, 68, 0.1);
-        color: #ef4444;
-        border: 1px solid rgba(239, 68, 68, 0.35);
-      }
-      .kyc-btn-withdraw {
-        padding: 10px 16px;
-        font-size: 0.85rem;
-        background: rgba(225, 29, 72, 0.12);
-        color: #f43f5e;
-        border: 1px solid rgba(225, 29, 72, 0.35);
-        white-space: nowrap;
-      }
-      .kyc-btn-dup-edit {
-        padding: 8px 14px;
-        font-size: 0.8rem;
-        background: var(--bg-card);
-        color: #f97316;
-        border: 1px solid rgba(249, 115, 22, 0.45);
-        flex-shrink: 0;
-      }
+      .kyc-btn-approve { flex: 1.5; min-width: 220px; background: linear-gradient(135deg, #059669, #10b981); color: #ffffff; border: none; box-shadow: 0 6px 15px rgba(16, 185, 129, 0.25); }
+      .kyc-btn-reject { flex: 1; min-width: 200px; background: rgba(239, 68, 68, 0.1); color: #ef4444; border: 1px solid rgba(239, 68, 68, 0.35); }
+      .kyc-btn-withdraw { padding: 10px 16px; font-size: 0.85rem; background: rgba(225, 29, 72, 0.12); color: #f43f5e; border: 1px solid rgba(225, 29, 72, 0.35); white-space: nowrap; }
+      .kyc-btn-dup-edit { padding: 8px 14px; font-size: 0.8rem; background: var(--bg-card); color: #f97316; border: 1px solid rgba(249, 115, 22, 0.45); flex-shrink: 0; }
     </style>
 
     <div class="c360-kyc-scope">
@@ -4491,10 +4287,10 @@ function renderKycTab(user) {
 
       ${auditCardHtml}
 
-      <!-- 🖼️ រូបភាពទាំង ២ (ID Card & Selfie) -->
+      <!-- 🖼️ រូបភាពទាំង ២ (ID Card / Birth Certificate & Selfie) -->
       <div class="kyc-images-grid">
-        ${renderImageCard("idCard", "១. អត្តសញ្ញាណប័ណ្ណ ឬលិខិតឆ្លងដែន", imgUrl, "#0d9488", "fa-id-card")}
-        ${renderImageCard("selfie", "២. រូបថតផ្ទាល់របស់អតិថិជន", selfieUrl, "#2563eb", "fa-camera-retro")}
+        ${renderImageCard("idCard", doc1Title, imgUrl, "#0d9488", "fa-id-card")}
+        ${renderImageCard("selfie", "២. រូបថតផ្ទាល់របស់អតិថិជន (KYC Selfie)", selfieUrl, "#2563eb", "fa-camera-retro")}
       </div>
 
       <!-- 📝 ទិន្នន័យអត្តសញ្ញាណ (OCR Extracted Data) -->
@@ -4503,8 +4299,8 @@ function renderKycTab(user) {
       </h4>
 
       <div class="kyc-fields-grid">
-        ${renderDataBox("ឈ្មោះពេញលើអត្តសញ្ញាណប័ណ្ណ (FULL NAME)", "fullName", user.fullName)}
-        ${renderDataBox("លេខអត្តសញ្ញាណប័ណ្ណ (ID NUMBER)", "idNumber", user.idNumber)}
+        ${renderDataBox("ឈ្មោះពេញលើឯកសារផ្លូវការ (FULL NAME)", "fullName", user.fullName)}
+        ${renderDataBox(isJunior ? "លេខសំបុត្រកំណើត (BIRTH CERT NO.)" : "លេខអត្តសញ្ញាណប័ណ្ណ (ID NUMBER)", "idNumber", user.idNumber)}
         ${renderDataBox("ថ្ងៃខែឆ្នាំកំណើត (DATE OF BIRTH)", "dob", user.dob)}
         ${renderDataBox("ភេទ (GENDER)", "gender", user.gender)}
       </div>
@@ -4529,9 +4325,9 @@ function renderKycTab(user) {
   `;
 }
 
-// =======================================================
-// 🟢 ៤. មុខងារកែប្រែទិន្នន័យ KYC (Inline Edit + Uppercase Name + ឆែក ID ស្ទួន)
-// =======================================================
+/**
+ * 🔹 ៧.៤ មុខងារកែប្រែទិន្នន័យ KYC, ឆែកលេខ ID ស្ទួន និងអនុម័ត/បដិសេធតាមរយៈ MongoDB `_id`
+ */
 window.c360ToggleKycEdit = function (id) {
   document.getElementById(`kyc-view-${id}`).style.display = "none";
   document.getElementById(`kyc-edit-${id}`).style.display = "block";
@@ -4549,14 +4345,14 @@ window.c360CancelKycEdit = function (id) {
     id === "fullName" ? String(val).toUpperCase() : val;
 };
 
-// 🔍 ពិនិត្យថាតើលេខ ID ថ្មីមានជាន់ជាមួយគណនីផ្សេងឬអត់ បើជាន់តម្រូវឱ្យបញ្ចូលមូលហេតុភ្លាម
 async function c360CheckAndPromptDuplicateIdReason(newIdNumber) {
   const cleanId = String(newIdNumber || "").trim();
   if (!cleanId || cleanId === "N/A") return { ok: true, reason: "" };
 
+  const canonicalId = c360GetCanonicalId(currentC360User);
   const others = (globalUsersData || []).filter(
     (u) =>
-      u.username !== currentC360User.username &&
+      String(u._id || u.id) !== canonicalId &&
       String(u.idNumber || "").trim() === cleanId,
   );
 
@@ -4583,7 +4379,7 @@ async function c360CheckAndPromptDuplicateIdReason(newIdNumber) {
     "";
 
   const otherNames = others
-    .map((u) => `${(u.fullName || u.username).toUpperCase()} (@${u.username})`)
+    .map((u) => (u.fullName || u.username).toUpperCase())
     .join(", ");
 
   const { value: dupReason, isConfirmed } = await Swal.fire({
@@ -4649,9 +4445,11 @@ window.c360SaveKycField = async function (id) {
     didOpen: () => Swal.showLoading(),
   });
 
+  const canonicalId = c360GetCanonicalId(currentC360User);
   try {
     const bodyData = {
-      id: currentC360User._id || currentC360User.id,
+      _id: canonicalId,
+      id: canonicalId,
       username: currentC360User.username,
     };
     bodyData[id] = newVal;
@@ -4689,7 +4487,6 @@ window.c360SaveKycField = async function (id) {
   }
 };
 
-// កែប្រែមូលហេតុប្រើអត្តសញ្ញាណប័ណ្ណស្ទួនរួមគ្នាគ្រប់គណនី
 window.c360EditDuplicateIdReasonModal = async function () {
   if (!currentC360User.idNumber || currentC360User.idNumber === "N/A") return;
 
@@ -4717,12 +4514,14 @@ window.c360EditDuplicateIdReasonModal = async function () {
       allowOutsideClick: false,
       didOpen: () => Swal.showLoading(),
     });
+    const canonicalId = c360GetCanonicalId(currentC360User);
     try {
       const res = await fetch("/api/admin/edit-user", {
         method: "POST",
         headers: getAuthHeaders(),
         body: JSON.stringify({
-          id: currentC360User._id || currentC360User.id,
+          _id: canonicalId,
+          id: canonicalId,
           username: currentC360User.username,
           idNumber: currentC360User.idNumber,
           duplicateIdReason: newReason,
@@ -4756,10 +4555,7 @@ window.c360EditDuplicateIdReasonModal = async function () {
   }
 };
 
-// =======================================================
-// 🟢 ៥. មុខងារដកសំណើវិញ (សម្រាប់ Maker) និង អនុម័ត/បដិសេធ (សម្រាប់ Checker)
-// =======================================================
-window.c360WithdrawOwnKycRequest = async function (username) {
+window.c360WithdrawOwnKycRequest = async function (identifier) {
   const { value: reason } = await Swal.fire({
     title:
       '<span class="kh-text" style="font-size: 1.2rem; color: #e11d48;">ដកសំណើ KYC មកកែប្រែវិញ?</span>',
@@ -4773,11 +4569,11 @@ window.c360WithdrawOwnKycRequest = async function (username) {
   });
 
   if (reason) {
-    await processC360KycAction(username, "withdraw", reason);
+    await processC360KycAction(identifier, "withdraw", reason);
   }
 };
 
-window.c360PromptKycReject = async function (username, mode = "reject") {
+window.c360PromptKycReject = async function (identifier, mode = "reject") {
   const isRevoke = mode === "revoke";
   const { value: reason } = await Swal.fire({
     title: `<span class="kh-text" style="font-size: 1.22rem; color: #ef4444;">${isRevoke ? "បញ្ជាក់ការដកហូតសិទ្ធិ KYC?" : "បញ្ជាក់ការបដិសេធសំណើ KYC?"}</span>`,
@@ -4786,9 +4582,9 @@ window.c360PromptKycReject = async function (username, mode = "reject") {
         ការបដិសេធនេះនឹង <b>លុបរូបភាព KYC និងលុបលេខអត្តសញ្ញាណប័ណ្ណចេញពីគណនីនេះ</b> ដើម្បីឱ្យអតិថិជន ឬ Admin អាចបញ្ជូនឯកសារថ្មីម្ដងទៀតបាន។ សូមបញ្ជាក់មូលហេតុ៖
       </p>
       <div style="display:flex; gap:6px; flex-wrap:wrap; margin-bottom:10px;">
-        <span onclick="document.getElementById('swal-reject-reason').value='រូបថតអត្តសញ្ញាណប័ណ្ណព្រិល ឬចាំងពន្លឺមើលមិនច្បាស់'" style="font-size:0.75rem; background:#fef2f2; color:#dc2626; border:1px solid #fecaca; padding:4px 10px; border-radius:16px; cursor:pointer; font-weight:700;">រូបថតព្រិល/ចាំងពន្លឺ</span>
-        <span onclick="document.getElementById('swal-reject-reason').value='រូបថត Selfie មិនត្រូវគ្នាជាមួយរូបលើអត្តសញ្ញាណប័ណ្ណ'" style="font-size:0.75rem; background:#fef2f2; color:#dc2626; border:1px solid #fecaca; padding:4px 10px; border-radius:16px; cursor:pointer; font-weight:700;">ខុសមុខមាត់ Selfie</span>
-        <span onclick="document.getElementById('swal-reject-reason').value='ឯកសារអត្តសញ្ញាណប័ណ្ណផុតសុពលភាព ឬមិនត្រឹមត្រូវ'" style="font-size:0.75rem; background:#fef2f2; color:#dc2626; border:1px solid #fecaca; padding:4px 10px; border-radius:16px; cursor:pointer; font-weight:700;">ឯកសារផុតកំណត់</span>
+        <span onclick="document.getElementById('swal-reject-reason').value='រូបថតឯកសារព្រិល ឬចាំងពន្លឺមើលមិនច្បាស់'" style="font-size:0.75rem; background:#fef2f2; color:#dc2626; border:1px solid #fecaca; padding:4px 10px; border-radius:16px; cursor:pointer; font-weight:700;">រូបថតព្រិល/ចាំងពន្លឺ</span>
+        <span onclick="document.getElementById('swal-reject-reason').value='រូបថត Selfie មិនត្រូវគ្នាជាមួយរូបលើឯកសារផ្លូវការ'" style="font-size:0.75rem; background:#fef2f2; color:#dc2626; border:1px solid #fecaca; padding:4px 10px; border-radius:16px; cursor:pointer; font-weight:700;">ខុសមុខមាត់ Selfie</span>
+        <span onclick="document.getElementById('swal-reject-reason').value='ឯកសារបញ្ជាក់អត្តសញ្ញាណផុតសុពលភាព ឬមិនត្រឹមត្រូវ'" style="font-size:0.75rem; background:#fef2f2; color:#dc2626; border:1px solid #fecaca; padding:4px 10px; border-radius:16px; cursor:pointer; font-weight:700;">ឯកសារផុតកំណត់</span>
       </div>
       <input id="swal-reject-reason" class="swal2-input kh-text" placeholder="វាយបញ្ចូលមូលហេតុទីនេះ..." style="width:100%; margin:0; box-sizing:border-box; font-size: 0.95rem; padding: 10px; border-radius: 10px;">
     `,
@@ -4807,12 +4603,12 @@ window.c360PromptKycReject = async function (username, mode = "reject") {
   });
 
   if (reason) {
-    processC360KycAction(username, isRevoke ? "revoke" : "rejected", reason);
+    processC360KycAction(identifier, isRevoke ? "revoke" : "rejected", reason);
   }
 };
 
 window.processC360KycAction = async function (
-  username,
+  identifier,
   action,
   rejectReason = "",
 ) {
@@ -4820,7 +4616,7 @@ window.processC360KycAction = async function (
     const confirm = await Swal.fire({
       title:
         '<span class="kh-text" style="font-size: 1.25rem; color: #10b981;">អនុម័តឯកសារ KYC នេះ?</span>',
-      text: "តើអ្នកបានពិនិត្យផ្ទៀងផ្ទាត់រូបភាព និងទិន្នន័យអត្តសញ្ញាណប័ណ្ណត្រឹមត្រូវ ១០០% ហើយមែនទេ?",
+      text: "តើអ្នកបានពិនិត្យផ្ទៀងផ្ទាត់រូបភាព និងទិន្នន័យអត្តសញ្ញាណត្រឹមត្រូវ ១០០% ហើយមែនទេ?",
       icon: "question",
       showCancelButton: true,
       confirmButtonText: '<span class="kh-text">បាទ/ចាស អនុម័តឥឡូវនេះ</span>',
@@ -4839,8 +4635,15 @@ window.processC360KycAction = async function (
     customClass: { popup: "premium-swal kh-text c360-kyc-swal" },
   });
 
+  const canonicalId = c360GetCanonicalId(currentC360User) || identifier;
   try {
-    const payload = { username, action, rejectReason };
+    const payload = {
+      _id: canonicalId,
+      userId: canonicalId,
+      username: currentC360User ? currentC360User.username : identifier,
+      action,
+      rejectReason,
+    };
     const res = await fetch("/api/admin/kyc-action", {
       method: "POST",
       headers: getAuthHeaders(),
@@ -4871,9 +4674,9 @@ window.processC360KycAction = async function (
   }
 };
 
-// =======================================================
-// 🟢 ៦. មុខងារ Upload រូបថតថ្មីដោយ Admin (Clear ទិន្នន័យចាស់ភ្លាមៗពេល Upload រូបថ្មី + AI OCR)
-// =======================================================
+/**
+ * 🔹 ៧.៥ មុខងារបង្ហោះរូបភាព KYC ថ្មី + អានទិន្នន័យដោយ AI OCR និងរក្សាទុកតាម `_id`
+ */
 window.c360UploadSpecificKyc = function (type) {
   const fileInput = document.createElement("input");
   fileInput.type = "file";
@@ -4882,7 +4685,6 @@ window.c360UploadSpecificKyc = function (type) {
     const file = e.target.files[0];
     if (!file) return;
 
-    // 🧹 ប្រសិនបើ Upload រូបអត្តសញ្ញាណប័ណ្ណថ្មី ត្រូវ Clear ទិន្នន័យចាស់ទាំងអស់ចេញភ្លាម ត្រៀមចាប់ទិន្នន័យថ្មី!
     if (type === "idCard") {
       ["fullName", "idNumber", "dob", "gender"].forEach((f) => {
         const valEl = document.getElementById(`kyc-val-${f}`);
@@ -5026,7 +4828,6 @@ window.c360SubmitKycDraft = async function () {
     });
   }
 
-  // 🔍 ពិនិត្យលេខអត្តសញ្ញាណប័ណ្ណស្ទួនមុនពេលរក្សាទុក
   const dupCheck = await c360CheckAndPromptDuplicateIdReason(idNumber);
   if (!dupCheck.ok) return;
 
@@ -5037,9 +4838,11 @@ window.c360SubmitKycDraft = async function () {
     customClass: { popup: "premium-swal kh-text c360-kyc-swal" },
   });
 
+  const canonicalId = c360GetCanonicalId(currentC360User);
   try {
     const editPayload = {
-      id: currentC360User._id || currentC360User.id,
+      _id: canonicalId,
+      id: canonicalId,
       username: currentC360User.username,
       fullName,
       idNumber,
@@ -5054,13 +4857,15 @@ window.c360SubmitKycDraft = async function () {
       body: JSON.stringify(editPayload),
     });
 
-    const activeAdmin = c360GetActiveAdminIdentity().username || "Admin";
+    const activeAdmin = c360GetActiveAdminIdentity().fullName;
 
     if (tempIdUrl) {
       await fetch("/api/admin/upload-specific-kyc", {
         method: "POST",
         headers: getAuthHeaders(),
         body: JSON.stringify({
+          _id: canonicalId,
+          userId: canonicalId,
           username: currentC360User.username,
           type: "idCard",
           url: tempIdUrl,
@@ -5073,6 +4878,8 @@ window.c360SubmitKycDraft = async function () {
         method: "POST",
         headers: getAuthHeaders(),
         body: JSON.stringify({
+          _id: canonicalId,
+          userId: canonicalId,
           username: currentC360User.username,
           type: "selfie",
           url: tempSelfieUrl,
@@ -5085,7 +4892,7 @@ window.c360SubmitKycDraft = async function () {
     Swal.fire({
       icon: "success",
       title: "បានបញ្ជូនសំណើ KYC!",
-      text: "ឯកសារត្រូវបានរក្សាទុកក្នុងស្ថានភាព Pending រង់ចាំ Admin ផ្សេងទៀត (Checker) ត្រួតពិនិត្យ និងអនុម័ត។",
+      text: "ឯកសារត្រូវបានរក្សាទុកក្នុងស្ថានភាព Pending រង់ចាំមន្ត្រីផ្សេងទៀត (Checker) ត្រួតពិនិត្យ និងអនុម័ត។",
       timer: 2200,
       showConfirmButton: false,
       customClass: { popup: "premium-swal kh-text c360-kyc-swal" },
@@ -5100,9 +4907,6 @@ window.c360SubmitKycDraft = async function () {
   }
 };
 
-// =======================================================
-// 🖼️ ៧. ផ្ទាំងពង្រីកមើលរូបភាពធំល្មមស្អាត (Pro HD Lightbox Viewer)
-// =======================================================
 window.c360ViewFullImage = function (url, title = "រូបភាពឯកសារ KYC") {
   if (!url || url === "" || url.includes("none")) return;
   Swal.fire({
@@ -5122,32 +4926,33 @@ window.c360ViewFullImage = function (url, title = "រូបភាពឯកស�
   });
 };
 
-// =======================================================
-// 🛡️ TAB 6: Security (សន្តិសុខ និងសុវត្ថិភាព)
-// =======================================================
+// ============================================================================
+// 🛡️ ជំពូកទី ៨៖ ផ្ទាំងទី ៦ - សន្តិសុខគណនី, ឧបករណ៍ភ្ជាប់ និងការទាត់ចេញតាម `_id` (TAB 6: SECURITY)
+// ============================================================================
+
+/**
+ * 🔹 ៨.១ គូរផ្ទាំងសន្តិសុខគណនី និងបញ្ជីឧបករណ៍ដែលបានភ្ជាប់ (Tab 6)
+ */
 function renderSecurityTab(user) {
   const container = document.getElementById("c360-tab-security");
   if (!container) return;
 
+  const canonicalId = c360GetCanonicalId(user);
   const isFrozen = user.isFrozen || false;
   const pinAttempts = user.pinAttempts || 0;
   const passwordAttempts = user.passwordAttempts || 0;
-  const hasTelegram = user.telegramChatId ? true : false;
-  const hasEmail = user.email ? true : false;
+  const hasTelegram = Boolean(user.telegramChatId);
+  const hasEmail = Boolean(user.email);
 
-  // 🟢 ១. រៀបចំ UI សម្រាប់ស្ថានភាពគណនី
   const freezeStatusHtml = isFrozen
     ? `<span style="background: #fee2e2; color: #ef4444; padding: 4px 12px; border-radius: 6px; font-weight: bold; font-size: 0.85rem;"><i class="fa-solid fa-lock" style="margin-right: 5px;"></i> បានផ្អាក (Frozen)</span>`
     : `<span style="background: #dcfce7; color: #10b981; padding: 4px 12px; border-radius: 6px; font-weight: bold; font-size: 0.85rem;"><i class="fa-solid fa-lock-open" style="margin-right: 5px;"></i> ដំណើរការ (Active)</span>`;
 
-  // 🟢 ២. រៀបចំ UI សម្រាប់ ស្ថានភាពអនឡាញ (Online Status) ពិតប្រាកដ
   let isActuallyOnline = false;
   if (user.lastActive) {
     const lastActiveTime = new Date(user.lastActive).getTime();
     const currentTime = new Date().getTime();
     const diffInMinutes = (currentTime - lastActiveTime) / (1000 * 60);
-
-    // បើគាត់មានសកម្មភាព (Heartbeat) ក្នុងរយៈពេល ៥ នាទីចុងក្រោយ ចាត់ទុកថា Online
     if (diffInMinutes <= 5 && user.isOnline) {
       isActuallyOnline = true;
     }
@@ -5157,14 +4962,12 @@ function renderSecurityTab(user) {
     ? `<span style="color: #10b981; font-weight: bold;"><i class="fa-solid fa-circle" style="font-size: 0.6rem; vertical-align: middle; margin-right: 4px; animation: pulse 2s infinite;"></i> អនឡាញ (Online)</span>`
     : `<span style="color: #94a3b8; font-weight: bold;"><i class="fa-solid fa-circle" style="font-size: 0.6rem; vertical-align: middle; margin-right: 4px;"></i> អហ្វឡាញ (Offline)</span>`;
 
-  // 🟢 ៣. រៀបចំ UI សម្រាប់ កម្រិតសុវត្ថិភាព (KYC Level)
   const isKycVerified =
     user.kycStatus === "verified" || user.kycStatus === "approved";
   const kycLevelHtml = isKycVerified
     ? `<span style="color: #3b82f6; font-weight: bold;"><i class="fa-solid fa-shield-check" style="margin-right: 4px;"></i> កម្រិតខ្ពស់ (Verified)</span>`
     : `<span style="color: #f59e0b; font-weight: bold;"><i class="fa-solid fa-shield-halved" style="margin-right: 4px;"></i> កម្រិតទាប (Unverified)</span>`;
 
-  // 🟢 ៤. រៀបចំ UI សម្រាប់ PIN & Password Attempts
   let pinColor = "#10b981",
     pinLabel = "Normal";
   if (pinAttempts >= 3) {
@@ -5187,14 +4990,11 @@ function renderSecurityTab(user) {
   }
   const passwordStatusHtml = `<span style="color: ${passColor}; font-weight: bold;">${passwordAttempts} ដង (${passLabel})</span>`;
 
-  // 🟢 ៥. រៀបចំ UI សម្រាប់ Telegram
   const telegramHtml = hasTelegram
     ? `<span style="color: #0ea5e9; font-weight: bold;"><i class="fa-brands fa-telegram"></i> បានភ្ជាប់</span>`
     : `<span style="color: #64748b; font-weight: bold;">មិនទាន់ភ្ជាប់ទេ</span>`;
 
-  // 🟢 ៦. រៀបចំបញ្ជីឧបករណ៍ដែលបានភ្ជាប់ (Connected Devices Array) 🚀 លេង Loop
   let devicesHtml = "";
-
   if (user.connectedDevices && user.connectedDevices.length > 0) {
     devicesHtml = user.connectedDevices
       .map((dev, index) => {
@@ -5243,7 +5043,6 @@ function renderSecurityTab(user) {
       })
       .join("");
   } else {
-    // Fallback: ប្រើប្រាស់ទិន្នន័យចាស់ បើ Array អត់មានទិន្នន័យ
     const lastIp = user.lastIp || "មិនមានទិន្នន័យ (N/A)";
     const lastDevice = user.lastDevice || "មិនមានទិន្នន័យ (N/A)";
     const lastLogin = user.lastLogin
@@ -5291,7 +5090,6 @@ function renderSecurityTab(user) {
           </div>`;
   }
 
-  // 🟢 ៧. រៀបចំប៊ូតុង Freeze/Unfreeze
   const freezeBtnHtml = isFrozen
     ? `<button onclick="c360ToggleFreeze(false)" class="kh-text" style="width: 100%; padding: 12px; background: #10b981; color: white; border: none; border-radius: 8px; font-weight: bold; font-size: 0.95rem; cursor: pointer; transition: 0.2s; display: flex; justify-content: center; align-items: center; gap: 8px; box-shadow: 0 4px 10px rgba(16, 185, 129, 0.2);">
           <i class="fa-solid fa-unlock-keyhole"></i> បើកគណនីវិញ (Unfreeze)
@@ -5300,7 +5098,7 @@ function renderSecurityTab(user) {
           <i class="fa-solid fa-user-lock"></i> ផ្អាកគណនី (Freeze Account)
        </button>`;
 
-  const html = `
+  container.innerHTML = `
     <style>
         .c360-sec-card { background: white; border: 1px solid #e2e8f0; border-radius: 12px; padding: 20px; margin-bottom: 20px; box-shadow: 0 2px 10px rgba(0,0,0,0.02); }
         .c360-sec-card-header { display: flex; align-items: center; gap: 10px; margin-bottom: 15px; font-weight: 800; font-family: 'Kantumruy Pro', sans-serif; color: #1e293b; font-size: 1.1rem; }
@@ -5308,11 +5106,9 @@ function renderSecurityTab(user) {
         .c360-sec-row:last-child { border-bottom: none; padding-bottom: 0; }
         .c360-sec-label { color: #64748b; font-size: 0.9rem; font-family: 'Kantumruy Pro', sans-serif; font-weight: 600; }
         .c360-sec-val { color: #0f172a; font-size: 0.95rem; font-family: 'Inter', 'Kantumruy Pro', sans-serif; font-weight: 700; text-align: right; }
-        
         .c360-sec-action-card { border-radius: 12px; padding: 20px; margin-bottom: 20px; border: 1px solid transparent; }
         .c360-sec-action-title { font-family: 'Kantumruy Pro', sans-serif; font-weight: 800; font-size: 1.1rem; margin-bottom: 10px; display: flex; align-items: center; gap: 8px; }
         .c360-sec-action-desc { font-family: 'Kantumruy Pro', sans-serif; font-size: 0.85rem; line-height: 1.5; margin-bottom: 15px; }
-
         @media (max-width: 900px) {
             .c360-security-layout { flex-direction: column; }
             .c360-security-left, .c360-security-right { width: 100% !important; }
@@ -5325,13 +5121,8 @@ function renderSecurityTab(user) {
         </h2>
     </div>
 
-    <!-- ផ្នែកខាងលើ៖ ចែកជា ២ ជួរ -->
     <div class="c360-security-layout" style="display: flex; gap: 25px; align-items: stretch; margin-bottom: 20px;">
-        
-        <!-- ជួរខាងឆ្វេង៖ ព័ត៌មានទូទៅ (Info Cards) -->
         <div class="c360-security-left" style="flex: 1; min-width: 0;">
-            
-            <!-- កាតស្ថានភាពគណនី -->
             <div class="c360-sec-card" style="background: #f8fafc; height: calc(100% - 20px);">
                 <div class="c360-sec-card-header">
                     <i class="fa-solid fa-heart-pulse" style="color: #10b981;"></i> ស្ថានភាពគណនី (Account Health)
@@ -5363,10 +5154,7 @@ function renderSecurityTab(user) {
             </div>
         </div>
 
-       <!-- ជួរខាងស្តាំ៖ សកម្មភាព (Action Cards) -->
         <div class="c360-security-right" style="flex: 1; min-width: 0;">
-            
-            <!-- កាតគ្រប់គ្រងគណនី (លឿង) -->
             <div class="c360-sec-action-card" style="background: #fffbeb; border-color: #fde68a; margin-bottom: 20px;">
                 <div class="c360-sec-action-title" style="color: #d97706;">
                     <i class="fa-solid fa-sliders"></i> ការគ្រប់គ្រងគណនី
@@ -5378,40 +5166,34 @@ function renderSecurityTab(user) {
                 
                 <hr style="border: 0; border-top: 1px dashed #fcd34d; margin: 20px 0;">
                 
-                 <div class="c360-sec-action-title" style="color: #3b82f6;">
+                <div class="c360-sec-action-title" style="color: #3b82f6;">
                     <i class="fa-solid fa-key"></i> កំណត់ពាក្យសម្ងាត់ថ្មី
                 </div>
                 <p class="c360-sec-action-desc" style="color: #92400e;">
                     ស្នើសុំកំណត់ពាក្យសម្ងាត់ ឬ PIN ថ្មី។ ប្រព័ន្ធនឹងផ្ញើ Link ទៅកាន់ Email អតិថិជន។
                 </p>
-                <!-- 🟢 បំបែកប៊ូតុង Reset ជាពីរ -->
                 <div style="display: flex; gap: 10px;">
-                    <button onclick="c360DirectRequestReset('Password', '${user.username}')" ${!hasEmail ? 'disabled title="អតិថិជនមិនទាន់មាន Email ទេ"' : ""} class="kh-text" style="flex: 1; padding: 12px; background: #3b82f6; color: white; border: none; border-radius: 8px; font-weight: bold; font-size: 0.95rem; cursor: pointer; transition: 0.2s; box-shadow: 0 4px 10px rgba(59, 130, 246, 0.3); display: flex; justify-content: center; align-items: center; gap: 8px; opacity: ${!hasEmail ? "0.5" : "1"};">
+                    <button onclick="c360DirectRequestReset('Password', '${canonicalId}')" ${!hasEmail ? 'disabled title="អតិថិជនមិនទាន់មាន Email ទេ"' : ""} class="kh-text" style="flex: 1; padding: 12px; background: #3b82f6; color: white; border: none; border-radius: 8px; font-weight: bold; font-size: 0.95rem; cursor: pointer; transition: 0.2s; box-shadow: 0 4px 10px rgba(59, 130, 246, 0.3); display: flex; justify-content: center; align-items: center; gap: 8px; opacity: ${!hasEmail ? "0.5" : "1"};">
                         <i class="fa-solid fa-key"></i> Reset Password
                     </button>
-                    <button onclick="c360DirectRequestReset('PIN', '${user.username}')" ${!hasEmail ? 'disabled title="អតិថិជនមិនទាន់មាន Email ទេ"' : ""} class="kh-text" style="flex: 1; padding: 12px; background: #8b5cf6; color: white; border: none; border-radius: 8px; font-weight: bold; font-size: 0.95rem; cursor: pointer; transition: 0.2s; box-shadow: 0 4px 10px rgba(139, 92, 246, 0.3); display: flex; justify-content: center; align-items: center; gap: 8px; opacity: ${!hasEmail ? "0.5" : "1"};">
+                    <button onclick="c360DirectRequestReset('PIN', '${canonicalId}')" ${!hasEmail ? 'disabled title="អតិថិជនមិនទាន់មាន Email ទេ"' : ""} class="kh-text" style="flex: 1; padding: 12px; background: #8b5cf6; color: white; border: none; border-radius: 8px; font-weight: bold; font-size: 0.95rem; cursor: pointer; transition: 0.2s; box-shadow: 0 4px 10px rgba(139, 92, 246, 0.3); display: flex; justify-content: center; align-items: center; gap: 8px; opacity: ${!hasEmail ? "0.5" : "1"};">
                         <i class="fa-solid fa-th-large"></i> Reset PIN
                     </button>
                 </div>
             </div>
-            
         </div>
     </div>
 
-    <!-- ផ្នែកកណ្តាល៖ ឧបករណ៍ភ្ជាប់ (Connected Devices Array) លាតពេញ -->
     <div class="c360-sec-card" style="background: #f8fafc; width: 100%;">
         <div class="c360-sec-card-header" style="margin-bottom: 20px;">
             <i class="fa-solid fa-network-wired" style="color: #8b5cf6;"></i> ឧបករណ៍ដែលបានភ្ជាប់ចុងក្រោយ (Connected Devices)
         </div>
-        
         ${devicesHtml}
-        
         <p class="kh-text" style="font-size: 0.85rem; color: #94a3b8; margin: 15px 0 0 0; text-align: center; display: flex; justify-content: center; align-items: center; gap: 8px;">
             <i class="fa-solid fa-circle-info"></i> ប្រព័ន្ធរក្សាទុកត្រឹម ៤ ឧបករណ៍ចុងក្រោយប៉ុណ្ណោះ។ 
         </p>
     </div>
 
-    <!-- ផ្នែកខាងក្រោមបង្អស់៖ ភាពអាសន្ន (Emergency) លាតពេញ និងវែង -->
     <div class="c360-sec-action-card" style="background: #fef2f2; border-color: #fecaca; width: 100%; margin-top: 20px;">
         <div class="c360-sec-action-title" style="color: #ef4444;">
             <i class="fa-solid fa-triangle-exclamation"></i> ភាពអាសន្ន (Emergency)
@@ -5419,27 +5201,29 @@ function renderSecurityTab(user) {
         <p class="c360-sec-action-desc" style="color: #991b1b; max-width: 800px;">
             ប្រសិនបើគណនីមានហានិភ័យ អ្នកអាចទាត់អតិថិជននេះចេញពីកម្មវិធីភ្លាមៗ (Force Logout) ពីគ្រប់ឧបករណ៍ទាំងអស់។ គាត់នឹងត្រូវតម្រូវឱ្យ Login ចូលម្តងទៀត។
         </p>
-        <button onclick="c360ForceLogout('${user.username}')" class="kh-text" style="width: 100%; padding: 12px 24px; background: #ef4444; color: white; border: none; border-radius: 8px; font-weight: bold; font-size: 0.95rem; cursor: pointer; transition: 0.2s; box-shadow: 0 4px 10px rgba(239, 68, 68, 0.3); display: flex; justify-content: center; align-items: center; gap: 8px;">
-            <i class="fa-solid fa-right-from-bracket"></i> ទាត់ចេញពីគណនី
+        <button onclick="c360ForceLogout('${canonicalId}')" class="kh-text" style="width: 100%; padding: 12px 24px; background: #ef4444; color: white; border: none; border-radius: 8px; font-weight: bold; font-size: 0.95rem; cursor: pointer; transition: 0.2s; box-shadow: 0 4px 10px rgba(239, 68, 68, 0.3); display: flex; justify-content: center; align-items: center; gap: 8px;">
+            <i class="fa-solid fa-right-from-bracket"></i> ទាត់ចេញពីគណនី (Force Logout)
         </button>
     </div>
   `;
-
-  container.innerHTML = html;
 }
 
-// =======================================================
-// 🟢 អនុគមន៍សកម្មភាពសុវត្ថិភាព (Security Actions)
-// =======================================================
-
-// ១. ផ្អាក / បើក គណនី (Toggle Freeze)
+/**
+ * 🔹 ៨.២ សកម្មភាពផ្អាកគណនី, ផ្ញើ Link Reset និងទាត់ចេញពីប្រព័ន្ធតាមរយៈ MongoDB `_id`
+ */
 window.c360ToggleFreeze = async function (freezeAction) {
+  if (!currentC360User) return;
+  if (typeof freezeAction !== "boolean") {
+    freezeAction = !currentC360User.isFrozen;
+  }
+
   const actionText = freezeAction ? "ផ្អាក" : "បើក";
   const color = freezeAction ? "#f59e0b" : "#10b981";
+  const custName = currentC360User.fullName || currentC360User.username;
 
   const { isConfirmed } = await Swal.fire({
     title: `<span class="kh-text" style="color: ${color};">បញ្ជាក់ការ${actionText}គណនី</span>`,
-    text: `តើអ្នកពិតជាចង់${actionText}គណនីរបស់ @${currentC360User.username} មែនទេ?`,
+    text: `តើអ្នកពិតជាចង់${actionText}គណនីរបស់ "${custName}" មែនទេ?`,
     icon: "warning",
     showCancelButton: true,
     confirmButtonColor: color,
@@ -5456,12 +5240,14 @@ window.c360ToggleFreeze = async function (freezeAction) {
       didOpen: () => Swal.showLoading(),
       customClass: { popup: "premium-swal" },
     });
+    const canonicalId = c360GetCanonicalId(currentC360User);
     try {
       const res = await fetch("/api/admin/toggle-freeze", {
         method: "POST",
         headers: getAuthHeaders(),
         body: JSON.stringify({
-          id: currentC360User._id || currentC360User.id,
+          _id: canonicalId,
+          id: canonicalId,
           isFrozen: freezeAction,
         }),
       });
@@ -5495,9 +5281,9 @@ window.c360ToggleFreeze = async function (freezeAction) {
   }
 };
 
-// ២. ផ្ញើ Link កំណត់ Password/PIN ថ្មី
-window.c360DirectRequestReset = async function (resetType, username) {
-  if (!username || username === "undefined") {
+window.c360DirectRequestReset = async function (resetType, identifier) {
+  const canonicalId = c360GetCanonicalId(currentC360User) || identifier;
+  if (!canonicalId) {
     return Swal.fire("Error", "រកមិនឃើញទិន្នន័យអតិថិជនទេ!", "error");
   }
 
@@ -5513,7 +5299,9 @@ window.c360DirectRequestReset = async function (resetType, username) {
       method: "POST",
       headers: getAuthHeaders(),
       body: JSON.stringify({
-        username: username,
+        _id: canonicalId,
+        userId: canonicalId,
+        username: currentC360User ? currentC360User.username : identifier,
         resetType: resetType,
       }),
     });
@@ -5543,17 +5331,17 @@ window.c360DirectRequestReset = async function (resetType, username) {
   }
 };
 
-// ៣. ទាត់ចេញពីគណនី (Force Logout)
-window.c360ForceLogout = async function (username) {
-  if (!username || username === "undefined") {
-    return Swal.fire("Error", "រកមិនឃើញទិន្នន័យអតិថិជនទេ!", "error");
-  }
+window.c360ForceLogout = async function (identifier) {
+  const canonicalId = c360GetCanonicalId(currentC360User) || identifier;
+  const custName = currentC360User
+    ? currentC360User.fullName || currentC360User.username
+    : identifier;
 
   const { value: remark } = await Swal.fire({
     title:
       '<span class="kh-text" style="font-size:1.4rem; color: #ef4444;">ទាត់ចេញ (Force Logout)</span>',
     html: `
-        <p class="kh-text" style="font-size: 0.9rem; color: #64748b; margin-bottom: 15px;">តើអ្នកពិតជាចង់ទាត់អតិថិជន <b>@${username}</b> នេះចេញពីប្រព័ន្ធមែនទេ?</p>
+        <p class="kh-text" style="font-size: 0.9rem; color: #64748b; margin-bottom: 15px;">តើអ្នកពិតជាចង់ទាត់អតិថិជន <b>${custName}</b> ចេញពីប្រព័ន្ធមែនទេ?</p>
         <div style="text-align: left; padding: 0 10px;">
             <label class="kh-text" style="font-size: 0.85rem; font-weight: 600; color: #64748b;">មូលហេតុ (Remark)</label>
             <input id="swal-logout-remark" class="swal2-input kh-text" placeholder="បញ្ជាក់មូលហេតុ..." style="width: 100%; margin: 5px 0 0; border: 1px solid #cbd5e1; border-radius: 8px;">
@@ -5564,9 +5352,9 @@ window.c360ForceLogout = async function (username) {
     confirmButtonColor: "#ef4444",
     customClass: { popup: "modal-radius kh-text" },
     preConfirm: () => {
-      const remark = document.getElementById("swal-logout-remark").value.trim();
-      if (!remark) Swal.showValidationMessage("សូមបញ្ចូលមូលហេតុ!");
-      return remark;
+      const r = document.getElementById("swal-logout-remark").value.trim();
+      if (!r) Swal.showValidationMessage("សូមបញ្ចូលមូលហេតុ!");
+      return r;
     },
   });
 
@@ -5582,21 +5370,14 @@ window.c360ForceLogout = async function (username) {
         method: "POST",
         headers: getAuthHeaders(),
         body: JSON.stringify({
-          username: username,
+          _id: canonicalId,
+          userId: canonicalId,
+          username: currentC360User ? currentC360User.username : identifier,
           reason: remark,
         }),
       });
       const data = await res.json();
       if (data.success) {
-        await fetch("/api/admin/log-action", {
-          method: "POST",
-          headers: getAuthHeaders(),
-          body: JSON.stringify({
-            action: "Force Logout",
-            target: username,
-            details: `បានទាត់អតិថិជនចេញពីប្រព័ន្ធ - មូលហេតុ: ${remark}`,
-          }),
-        });
         Swal.fire({
           icon: "success",
           title: "ជោគជ័យ!",
@@ -5625,24 +5406,60 @@ window.c360ForceLogout = async function (username) {
   }
 };
 
-// =======================================================
-// 🏪 TAB 7: Merchant (Admin Pro View - Full Integrated)
-// =======================================================
+// ============================================================================
+// 🏪 ជំពូកទី ៩៖ ផ្ទាំងទី ៧ - ការគ្រប់គ្រងអាជីវកម្ម និង QR STAND PRO តាម `_id` (TAB 7: MERCHANT HUB)
+// ============================================================================
 let c360CurrentMerchantId = null;
 let c360MerchantTrxPage = 1;
 const c360MerchantTrxPerPage = 4;
-let c360CurrentMerchantsList = []; // អថេររក្សាទុកបញ្ជីហាងបណ្តោះអាសន្ន
+let c360CurrentMerchantsList = [];
+let c360CachedMerchantTrx = [];
 
+const cambodiaProvinces = [
+  "Phnom Penh",
+  "Banteay Meanchey",
+  "Battambang",
+  "Kampong Cham",
+  "Kampong Chhnang",
+  "Kampong Speu",
+  "Kampong Thom",
+  "Kampot",
+  "Kandal",
+  "Kep",
+  "Kratie",
+  "Mondulkiri",
+  "Oddar Meanchey",
+  "Pailin",
+  "Sihanoukville",
+  "Preah Vihear",
+  "Prey Veng",
+  "Pursat",
+  "Ratanakiri",
+  "Siem Reap",
+  "Stung Treng",
+  "Svay Rieng",
+  "Takeo",
+  "Tbong Khmum",
+];
+
+/**
+ * 🔹 ៩.១ ទាញយក និងគូរផ្ទាំងហាងទំនិញរបស់អតិថិជនតាមរយៈ MongoDB `_id` (`/api/admin/merchants-by-user/:id`)
+ */
 async function renderMerchantTab(user) {
   const container = document.getElementById("c360-tab-merchant");
   if (!container) return;
 
   container.innerHTML = `<div style="text-align: center; padding: 50px;"><i class="fa-solid fa-spinner fa-spin" style="font-size: 2rem; color: var(--text-muted);"></i><br><br><span class="kh-text" style="color: var(--text-muted); font-size: 0.9rem;">កំពុងទាញយកទិន្នន័យហាង...</span></div>`;
 
+  const canonicalId = c360GetCanonicalId(user);
   try {
-    const res = await fetch(`/api/admin/merchants-by-user/${user.username}`, {
-      headers: getAuthHeaders(),
-    });
+    // 🎯 បោះ MongoDB `_id` ទៅកាន់ Route `/api/admin/merchants-by-user/:identifier`
+    const res = await fetch(
+      `/api/admin/merchants-by-user/${encodeURIComponent(canonicalId || user.username)}`,
+      {
+        headers: getAuthHeaders(),
+      },
+    );
     const data = await res.json();
 
     let userMerchants = [];
@@ -5653,7 +5470,6 @@ async function renderMerchantTab(user) {
       c360CurrentMerchantsList = [];
     }
 
-    // 🟢 ករណីគ្មានហាង
     if (userMerchants.length === 0) {
       container.innerHTML = `
             <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 60px 20px; background: var(--bg-card); border-radius: 16px; border: 1px dashed var(--border);">
@@ -5671,18 +5487,22 @@ async function renderMerchantTab(user) {
 
     if (
       !c360CurrentMerchantId ||
-      !userMerchants.find((m) => m._id === c360CurrentMerchantId)
+      !userMerchants.find(
+        (m) => String(m._id) === String(c360CurrentMerchantId),
+      )
     ) {
       c360CurrentMerchantId = userMerchants[0]._id;
     }
 
-    const m = userMerchants.find((m) => m._id === c360CurrentMerchantId);
+    const m = userMerchants.find(
+      (m) => String(m._id) === String(c360CurrentMerchantId),
+    );
     const isSuspended = m.status === "Suspended";
 
-    // 🟢 ១. របារជ្រើសរើសសាខា (Branch Selector Pills)
     let branchSelectorHtml = `<div style="display: flex; gap: 10px; overflow-x: auto; padding-bottom: 10px; margin-bottom: 15px;">`;
     userMerchants.forEach((branch) => {
-      const isActiveBranch = branch._id === c360CurrentMerchantId;
+      const isActiveBranch =
+        String(branch._id) === String(c360CurrentMerchantId);
       const bg = isActiveBranch ? "var(--secondary)" : "var(--bg-body)";
       const color = isActiveBranch ? "white" : "var(--text-main)";
       const border = isActiveBranch ? "none" : "1px solid var(--border)";
@@ -5710,7 +5530,6 @@ async function renderMerchantTab(user) {
     let hasUSD = !!m.linkedAccounts?.USD;
     let hasKHR = !!m.linkedAccounts?.KHR;
 
-    // អនុគមន៍ជំនួយសម្រាប់ទាញយកឈ្មោះគណនី
     function getAccName(accNum) {
       if (!accNum) return "";
       if (currentC360User.mainAccounts?.USD?.accountNumber === accNum)
@@ -5762,12 +5581,9 @@ async function renderMerchantTab(user) {
         </h2>
 
         <div style="display: flex; flex-direction: column; gap: 15px;">
-            
             ${branchSelectorHtml}
 
             <div style="display: flex; flex-wrap: wrap; gap: 15px;">
-                
-                <!-- ផ្នែកខាងឆ្វេង៖ ព័ត៌មានលម្អិត -->
                 <div style="flex: 2; min-width: 300px; background: var(--bg-card); border: 1px solid var(--border); border-radius: 16px; padding: 20px; box-shadow: 0 4px 10px rgba(0,0,0,0.02);">
                     <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 20px;">
                         <div style="display: flex; align-items: center; gap: 15px;">
@@ -5801,7 +5617,6 @@ async function renderMerchantTab(user) {
                         </div>
                     </div>
 
-                    <!-- ប៊ូតុងសកម្មភាព -->
                     <div style="display: flex; gap: 10px;">
                         <button onclick="editMerchantByAdmin('${m._id}')" class="kh-text" style="flex: 1; padding: 10px; background: white; color: #3b82f6; border: 1px solid #bfdbfe; border-radius: 8px; font-weight: bold; cursor: pointer; transition: 0.2s;"><i class="fa-solid fa-pen"></i> កែប្រែ</button>
                         <button onclick="c360ShowMerchantQR('${m.merchantId}', '${m.name}', '${strAccountsStr}')" class="kh-text" style="flex: 1; padding: 10px; background: white; color: #8b5cf6; border: 1px solid #ddd6fe; border-radius: 8px; font-weight: bold; cursor: pointer; transition: 0.2s;"><i class="fa-solid fa-qrcode"></i> QR Code</button>
@@ -5809,17 +5624,13 @@ async function renderMerchantTab(user) {
                     </div>
                 </div>
 
-               <!-- ផ្នែកខាងស្តាំ៖ ចំណូលសរុប (កែសម្រួលទំហំលេខឱ្យស្មើគ្នា និងដាក់ពណ៌ទាក់ទាញ) -->
                 <div style="flex: 1; min-width: 250px; background: linear-gradient(135deg, #004d40 0%, #059669 100%); border-radius: 16px; padding: 25px; color: white; display: flex; flex-direction: column; justify-content: center; position: relative; overflow: hidden; box-shadow: 0 10px 20px rgba(5, 150, 105, 0.2);">
                     <i class="fa-solid fa-chart-line" style="position: absolute; right: -20px; bottom: -20px; font-size: 8rem; opacity: 0.1;"></i>
                     <h4 class="kh-text" style="margin: 0 0 15px; font-size: 0.95rem; color: #d1fae5; font-weight: 700;"><i class="fa-solid fa-sack-dollar"></i> ចំណូលសរុប (Total Revenue)</h4>
-                    
                     <div style="display: flex; flex-direction: column; gap: 8px;">
-                        <!-- លេខ USD -->
                         <div style="font-size: 1.8rem; font-weight: 800; font-family: 'JetBrains Mono', monospace; line-height: 1; color: #ffffff;">
                             $${balUSD}
                         </div>
-                        <!-- លេខ KHR (ទំហំស្មើគ្នា និងប្តូរពណ៌លឿងខ្ចីស្អាត) -->
                         <div style="font-size: 1.8rem; font-weight: 800; font-family: 'JetBrains Mono', monospace; line-height: 1; color: #fef08a;">
                             ៛${balKHR}
                         </div>
@@ -5827,7 +5638,6 @@ async function renderMerchantTab(user) {
                 </div>
             </div>
 
-            <!-- ៣. បញ្ជីប្រតិបត្តិការ និង Refund -->
             <div style="background: var(--bg-card); border-radius: 16px; padding: 20px; border: 1px solid var(--border);">
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
                     <h4 class="kh-text" style="margin: 0; color: var(--text-main); font-size: 1.1rem; font-weight: 800;"><i class="fa-solid fa-receipt" style="color: var(--secondary);"></i> ប្រតិបត្តិការចូលហាងនេះ (Transactions)</h4>
@@ -5838,7 +5648,6 @@ async function renderMerchantTab(user) {
                     <div style="text-align: center; padding: 30px;"><i class="fa-solid fa-spinner fa-spin" style="font-size: 2rem; color: var(--text-muted);"></i></div>
                 </div>
 
-                <!-- 🟢 ប៊ូតុងបញ្ជាទំព័រ (Pagination) -->
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 15px; padding-top: 15px; border-top: 1px dashed var(--border);">
                     <button id="c360-btn-merch-prev" onclick="c360ChangeMerchantTrxPage(-1)" style="padding: 8px 15px; background: var(--bg-body); border: 1px solid var(--border); border-radius: 8px; color: var(--text-main); font-weight: bold; cursor: pointer; font-family: 'Kantumruy Pro';" disabled><i class="fa-solid fa-chevron-left"></i> ថយក្រោយ</button>
                     <span id="c360-merch-page-info" class="kh-text" style="font-weight: bold; color: var(--text-main);">ទំព័រ 1</span>
@@ -5855,11 +5664,9 @@ async function renderMerchantTab(user) {
   }
 }
 
-// =======================================================
-// 🟢 អនុគមន៍ជំនួយសម្រាប់ Tab Merchant (API Logic)
-// =======================================================
-let c360CachedMerchantTrx = [];
-
+/**
+ * 🔹 ៩.២ ការទាញយកប្រតិបត្តិការហាង, QR Stand Pro PDF, ដោះ Hold និង Refund តាមរយៈ `_id`
+ */
 async function c360FetchMerchantTransactions(mid) {
   const listDiv = document.getElementById("c360-merchant-trx-list");
   listDiv.innerHTML = `<div style="text-align: center; padding: 30px;"><i class="fa-solid fa-spinner fa-spin" style="font-size: 2rem; color: var(--text-muted);"></i><br><br><span class="kh-text" style="font-size: 0.9rem; color: var(--text-muted);">កំពុងទាញយកប្រវត្តិ...</span></div>`;
@@ -5923,7 +5730,6 @@ function c360RenderMerchantTrxPage() {
         statusBadge = `<span style="color: #ef4444; font-weight: bold;">🔴 ${t.status}</span>`;
       }
 
-      // 🌟 បង្ហាញប៊ូតុងដោះ Hold (Approve) និង Refund ពេល Status ជា "Hold"
       let refundBtnHtml = "";
       if (isIncome && t.status === "Hold") {
         refundBtnHtml = `
@@ -5948,19 +5754,18 @@ function c360RenderMerchantTrxPage() {
              onmouseout="this.style.borderColor='var(--border)'; this.style.transform='translateY(0)'"
              title="ចុចដើម្បីមើលវិក្កយបត្រ (View Slip)">
             <div style="display: flex; align-items: center; gap: 12px;">
-                <div style="width: 45px; height: 45px; border-radius: 12px; background: ${isIncome ? "#ecfdf5" : "#fef2f2"}; color: ${color}; display: flex; align-items: center; justify-content: center; font-size: 1.2rem; border: 1px solid ${isIncome ? "#a7f3d0" : "#fecaca"};">
+                <div style="width: 45px; height: 45px; border-radius: 12px; background: ${isIncome ? "#ecfdf5" : "#fef2f2"}; color: ${color}; display: flex; align-items: center; justify-content: center; font-size: 1.2rem; border: 1px solid${isIncome ? "#a7f3d0" : "#fecaca"};">
                     <i class="fa-solid ${isIncome ? "fa-arrow-down" : "fa-arrow-up"}"></i>
                 </div>
                 <div>
                     <div class="kh-text" style="font-weight: 700; color: var(--text-main); font-size: 0.95rem;">${t.senderName || t.receiverName}</div>
                     <div style="font-size: 0.75rem; color: var(--text-muted); font-family: monospace; margin-top: 3px;">
-                        Ref: ${t.refId} • ${t.date} • ${statusBadge}
+                        Ref: ${t.refId} • ${t.date} •${statusBadge}
                     </div>
                 </div>
             </div>
             <div style="text-align: right; display: flex; flex-direction: column; align-items: flex-end; gap: 6px;">
-                <div style="font-weight: 800; color: ${t.status === "Refunded" ? "#94a3b8" : color}; font-family: 'JetBrains Mono', monospace; font-size: 1.1rem; text-decoration: ${t.status === "Refunded" ? "line-through" : "none"};">${sign}${curSym}${displayAmt}</div>
-                ${refundBtnHtml}
+                <div style="font-weight: 800; color: ${t.status === "Refunded" ? "#94a3b8" : color}; font-family: 'JetBrains Mono', monospace; font-size: 1.1rem; text-decoration: ${t.status === "Refunded" ? "line-through" : "none"};">${sign}${curSym}${displayAmt}</div>${refundBtnHtml}
             </div>
         </div>`;
     })
@@ -5974,7 +5779,6 @@ function c360RenderMerchantTrxPage() {
     c360MerchantTrxPage === totalPages;
 }
 
-// 🌟 ប្រើប្រាស់គំរូដូច Tab 4 (ហៅ c360ViewTrxDetails ដើម្បីបង្ហាញ Slip យ៉ាងស្អាត)
 window.c360OpenMerchantTrxSlip = function (index) {
   const trx = c360CachedMerchantTrx[index];
   if (!trx) return;
@@ -5990,26 +5794,16 @@ window.c360OpenMerchantTrxSlip = function (index) {
   }
 
   if (typeof c360ViewTrxDetails === "function") {
+    c360FilteredTrx = currentC360User.transactions;
     c360ViewTrxDetails(existIdx);
-  } else {
-    Swal.fire(
-      "Error",
-      "មុខងារបង្ហាញ Slip (c360ViewTrxDetails) មិនមានទេ!",
-      "error",
-    );
   }
 };
 
-// =======================================================
-// 🖨️ [Pro] មុខងារបង្ហាញ និងទាញយក PDF QR Code របស់ហាង (Stand Pro)
-// =======================================================
 window.c360ShowMerchantQR = function (mid, name, strAccountsStr) {
   let accounts = {};
   try {
     accounts = JSON.parse(decodeURIComponent(strAccountsStr));
-  } catch (e) {
-    console.error("Parse Accounts Error", e);
-  }
+  } catch (e) {}
 
   let hasUSD = !!accounts.USD;
   let hasKHR = !!accounts.KHR;
@@ -6024,7 +5818,6 @@ window.c360ShowMerchantQR = function (mid, name, strAccountsStr) {
 
   let defaultCurr = hasUSD ? "USD" : "KHR";
 
-  // បង្ហាញ Popup (Default Theme: #004d40)
   Swal.fire({
     title: `<span class="kh-text" style="color: var(--primary); font-size: 1.3rem;"><i class="fa-solid fa-qrcode"></i> កាត QR Code ហាង (POS Stand)</span>`,
     html: getQRModalContent(mid, name, strAccountsStr, defaultCurr, "#004d40"),
@@ -6037,17 +5830,15 @@ window.c360ShowMerchantQR = function (mid, name, strAccountsStr) {
     cancelButtonColor: "#64748b",
     customClass: { popup: "modal-radius kh-text premium-swal" },
     preConfirm: () => {
-      // 📄 ពេលចុចប៊ូតុង Confirm គឺអោយវា Download PDF ភ្លាមៗតែម្តង
       const popup = Swal.getPopup();
       const curr = popup?.dataset?.currentCurr || defaultCurr;
       const themeBg = popup?.dataset?.currentTheme || "#004d40";
       c360DownloadQRPDF(mid, name, strAccountsStr, curr, themeBg);
-      return false; // កុំអោយបិទ Popup ស្វ័យប្រវត្តិ អោយ Admin អាចមើលឬប្តូរពណ៌បន្តបាន
+      return false;
     },
   });
 };
 
-// 🎨 មុខងារបង្កើត HTML Content ខាងក្នុង Modal
 function getQRModalContent(mid, name, strAccountsStr, curr, themeBg) {
   let accounts = {};
   try {
@@ -6073,7 +5864,6 @@ function getQRModalContent(mid, name, strAccountsStr, curr, themeBg) {
             </div>
         `;
   } else {
-    const badgeColor = hasUSD ? "#004d40" : "#047857";
     const badgeText = hasUSD ? "USD ($)" : "KHR (៛)";
     toggleBtns = `<div style="margin-bottom: 15px; background: rgba(255,255,255,0.2); padding: 6px 14px; border-radius: 10px; color: #ffffff; font-weight: 800; font-size: 0.85rem; display: inline-block;">${badgeText}</div>`;
   }
@@ -6090,7 +5880,7 @@ function getQRModalContent(mid, name, strAccountsStr, curr, themeBg) {
   return `
         <style>
             .c360-qr-print-card {
-                background: ${themeBg}; width: 100%; max-width: 320px; padding: 25px 20px; border-radius: 24px; box-shadow: 0 15px 30px rgba(0,0,0,0.15); text-align: center; box-sizing: border-box; margin: 0 auto 15px auto; color: ${textColor}; border: 1px solid rgba(0,0,0,0.1);
+                background: ${themeBg}; width: 100\%; max-width: 320px; padding: 25px 20px; border-radius: 24px; box-shadow: 0 15px 30px rgba(0,0,0,0.15); text-align: center; box-sizing: border-box; margin: 0 auto 15px auto; color:${textColor}; border: 1px solid rgba(0,0,0,0.1);
             }
             .c360-theme-dot { width: 26px; height: 26px; border-radius: 50%; cursor: pointer; border: 2px solid white; box-shadow: 0 2px 5px rgba(0,0,0,0.2); transition: 0.2s; }
             .c360-theme-dot:hover { transform: scale(1.15); }
@@ -6110,7 +5900,6 @@ function getQRModalContent(mid, name, strAccountsStr, curr, themeBg) {
             </div>
         </div>
 
-        <!-- 🎨 ជម្រើសប្តូរពណ៌ Background (Theme Selector) -->
         <div style="display: flex; justify-content: center; align-items: center; gap: 10px; margin-bottom: 15px;" class="no-print">
             <span style="font-size: 0.8rem; font-weight: bold; color: var(--text-muted);">រចនាប័ទ្មពណ៌:</span>
             <div class="c360-theme-dot" style="background: #004d40;" onclick="window.c360RefreshQRContent('${mid}', '${name}', '${strAccountsStr}', '${curr}', '#004d40')" title="Emerald Dark"></div>
@@ -6122,7 +5911,6 @@ function getQRModalContent(mid, name, strAccountsStr, curr, themeBg) {
     `;
 }
 
-// 🔄 មុខងារ Update UI ភ្លាមៗពេលចុចប្តូរ Theme ឬ Currency
 window.c360RefreshQRContent = function (
   mid,
   name,
@@ -6147,7 +5935,6 @@ window.c360RefreshQRContent = function (
   }
 };
 
-// 📄 [Pro] មុខងារទាញយក PDF (Design ថ្មី ធំទូលាយ ស្អាតកម្រិត Stand Pro មិនកន្តឿរ)
 window.c360DownloadQRPDF = async function (
   mid,
   name,
@@ -6177,10 +5964,9 @@ window.c360DownloadQRPDF = async function (
     const doc = new jsPDF("p", "mm", "a4");
     const pageWidth = doc.internal.pageSize.width;
 
-    // 🎨 បំប្លែង Code ពណ៌ Hex ទៅជា RGB
     let r = 0,
       g = 77,
-      b = 64; // Default #004d40
+      b = 64;
     if (themeBg === "#1e293b") {
       r = 30;
       g = 41;
@@ -6199,13 +5985,11 @@ window.c360DownloadQRPDF = async function (
       b = 255;
     }
 
-    // 📏 កាត Stand កម្ពស់ធំទូលាយសមរម្យ (Width: 120mm, Height: 165mm - កាត Stand Pro ពេញទំហឹង)
     const cardW = 120;
     const cardH = 165;
     const cardX = (pageWidth - cardW) / 2;
     const cardY = 20;
 
-    // គូរស៊ុម Background កាត Stand
     if (themeBg === "#ffffff") {
       doc.setDrawColor(200, 200, 200);
       doc.setLineWidth(0.5);
@@ -6217,21 +6001,18 @@ window.c360DownloadQRPDF = async function (
       doc.setTextColor(255, 255, 255);
     }
 
-    // 🏷️ ដាក់ឈ្មោះហាង (Shop Name) ធំច្បាស់ល្អ
     doc.setFont("helvetica", "bold");
     doc.setFontSize(22);
     doc.text(name.toUpperCase(), pageWidth / 2, cardY + 25, {
       align: "center",
     });
 
-    // 🔖 លេខ MID និង Currency Badge
     doc.setFontSize(10);
     doc.setFont("helvetica", "normal");
-    doc.text(`MID: ${mid}  •  ${curr}`, pageWidth / 2, cardY + 34, {
+    doc.text(`MID: ${mid}  •${curr}`, pageWidth / 2, cardY + 34, {
       align: "center",
     });
 
-    // 📥 ទាញយករូប QR Code មកដាក់បញ្ចូល
     let accounts = JSON.parse(decodeURIComponent(strAccountsStr));
     let activeAcc = curr === "USD" ? accounts.USD : accounts.KHR;
     if (!activeAcc) activeAcc = accounts.USD || accounts.KHR || "";
@@ -6249,16 +6030,14 @@ window.c360DownloadQRPDF = async function (
 
     const qrImgBase64 = await getBase64Image(qrDataUrl);
 
-    // ⬜ ប្រអប់ពណ៌សទ្រទ្រង់ QR Code (ទំហំធំល្មមស្អាត 90x90mm)
     doc.setFillColor(255, 255, 255);
     doc.roundedRect(pageWidth / 2 - 45, cardY + 45, 90, 90, 6, 6, "F");
     doc.addImage(qrImgBase64, "PNG", pageWidth / 2 - 41, cardY + 49, 82, 82);
 
-    // 💳 លេខគណនីខាងក្រោម QR Code (ពណ៌លឿងខ្ចី ឬពណ៌ទឹកសមុទ្រ ធំច្បាស់ល្អ)
     if (themeBg === "#ffffff") {
       doc.setTextColor(15, 118, 110);
     } else {
-      doc.setTextColor(254, 240, 138); // #fef08a
+      doc.setTextColor(254, 240, 138);
     }
 
     doc.setFont("helvetica", "bold");
@@ -6280,10 +6059,6 @@ window.c360DownloadQRPDF = async function (
     Swal.fire("Error", "មិនអាចបង្កើតឯកសារ PDF បានទេ", "error");
   }
 };
-
-// =========================================
-// Refund
-//==========================================
 
 window.c360AdminRefundTrx = async function (refId, amount, currency) {
   const { value: reason } = await Swal.fire({
@@ -6329,11 +6104,7 @@ window.c360AdminRefundTrx = async function (refId, amount, currency) {
           showConfirmButton: false,
           customClass: { popup: "kh-text premium-swal" },
         });
-        if (typeof c360RefreshData === "function") {
-          c360RefreshData();
-        } else {
-          renderMerchantTab(currentC360User);
-        }
+        c360RefreshData();
       } else {
         Swal.fire({
           icon: "error",
@@ -6417,10 +6188,9 @@ window.deleteMerchantByAdmin = async function (id) {
   });
 };
 
-// មុខងារ កែប្រែ ហាងដោយ Admin (UI Upgraded & Styled)
 window.editMerchantByAdmin = async function (id) {
   const mData = c360CurrentMerchantsList.find(
-    (m) => m._id === id || m.id === id,
+    (m) => String(m._id) === String(id) || String(m.id) === String(id),
   );
   if (!mData) return Swal.fire("Error", "រកទិន្នន័យហាងមិនឃើញទេ!", "error");
 
@@ -6470,8 +6240,6 @@ window.editMerchantByAdmin = async function (id) {
       '<h3 style="margin: 0 0 5px 0; color: var(--secondary); font-size: 1.4rem; font-weight: 800; font-family: \'Kantumruy Pro\', sans-serif;"><i class="fa-solid fa-gear"></i> កែប្រែព័ត៌មានហាង</h3>',
     html: `
             <div style="text-align: left; margin-top: 10px; display: flex; flex-direction: column; gap: 14px; font-family: 'Kantumruy Pro', sans-serif;">
-                
-                <!-- ផ្នែកព័ត៌មានហាង -->
                 <div style="background: #f8fafc; padding: 18px; border-radius: 14px; border: 1px solid #e2e8f0; box-shadow: 0 2px 6px rgba(0,0,0,0.01);">
                     <div style="margin-bottom: 12px;">
                         <label style="font-size: 0.85rem; font-weight: 700; color: #475569; margin-bottom: 6px; display: block;">ឈ្មោះហាងថ្មី (Shop Name) <span style="color:red">*</span></label>
@@ -6495,7 +6263,6 @@ window.editMerchantByAdmin = async function (id) {
                     </div>
                 </div>
 
-                <!-- ផ្នែកជ្រើសរើសគណនីទទួលប្រាក់ -->
                 <div style="background: #f0fdfa; padding: 18px; border-radius: 14px; border: 1px dashed #5eead4; box-shadow: 0 2px 6px rgba(0,0,0,0.01);">
                     <h4 style="margin: 0 0 12px; color: #0f766e; font-size: 0.95rem; font-weight: 800; display: flex; align-items: center; gap: 6px;"><i class="fa-solid fa-link"></i> ប្តូរគណនីទទួលប្រាក់</h4>
                     
@@ -6551,6 +6318,7 @@ window.editMerchantByAdmin = async function (id) {
   });
 
   if (formValues && formValues.name) {
+    const canonicalId = c360GetCanonicalId(currentC360User);
     try {
       Swal.fire({
         title: "កំពុងរក្សាទុក...",
@@ -6563,6 +6331,8 @@ window.editMerchantByAdmin = async function (id) {
         headers: getAuthHeaders(),
         body: JSON.stringify({
           id: mData._id || mData.id,
+          userId: canonicalId,
+          username: currentC360User.username,
           name: formValues.name,
           category: formValues.category,
           linkedAccount:
@@ -6574,7 +6344,6 @@ window.editMerchantByAdmin = async function (id) {
           linkedAccUSD: formValues.linkedAccUSD,
           linkedAccKHR: formValues.linkedAccKHR,
           merchantId: mData.merchantId,
-          username: currentC360User.username,
         }),
       });
       const data = await res.json();
@@ -6596,38 +6365,6 @@ window.editMerchantByAdmin = async function (id) {
   }
 };
 
-// 🇰🇭 បញ្ជីរាជធានី-ខេត្តទាំង ២៥ របស់ប្រទេសកម្ពុជា
-const cambodiaProvinces = [
-  "Phnom Penh",
-  "Banteay Meanchey",
-  "Battambang",
-  "Kampong Cham",
-  "Kampong Chhnang",
-  "Kampong Speu",
-  "Kampong Thom",
-  "Kampot",
-  "Kandal",
-  "Kep",
-  "Kratie",
-  "Mondulkiri",
-  "Oddar Meanchey",
-  "Pailin",
-  "Sihanoukville",
-  "Preah Vihear",
-  "Prey Veng",
-  "Pursat",
-  "Ratanakiri",
-  "Siem Reap",
-  "Stung Treng",
-  "Svay Rieng",
-  "Takeo",
-  "Tbong Khmum",
-  "Kandal",
-];
-
-// ==========================================
-// បង្កើតហាងថ្មីដោយ Admin (មាន Dropdown ខេត្ត-ក្រុងទាំង ២៥ ស្រស់ស្អាត)
-// ==========================================
 window.c360RegisterMerchant = async function () {
   if (!currentC360User)
     return Swal.fire("Error", "សូមជ្រើសរើសអតិថិជនជាមុនសិន", "error");
@@ -6656,7 +6393,6 @@ window.c360RegisterMerchant = async function () {
     });
   }
 
-  // 🌟 បង្កើត Option សម្រាប់ខេត្ត-ក្រុងទាំង ២៥
   let provinceOptions = cambodiaProvinces
     .map(
       (prov) =>
@@ -6669,8 +6405,6 @@ window.c360RegisterMerchant = async function () {
       '<h3 style="margin: 0 0 5px 0; color: var(--secondary); font-size: 1.4rem; font-weight: 800; font-family: \'Kantumruy Pro\', sans-serif;"><i class="fa-solid fa-store"></i> បង្កើតហាងថ្មី (Admin)</h3>',
     html: `
             <div style="text-align: left; margin-top: 10px; display: flex; flex-direction: column; gap: 14px; font-family: 'Kantumruy Pro', sans-serif;">
-                
-                <!-- ផ្នែកព័ត៌មានហាង -->
                 <div style="background: #f8fafc; padding: 18px; border-radius: 14px; border: 1px solid #e2e8f0; box-shadow: 0 2px 6px rgba(0,0,0,0.01);">
                     <div style="margin-bottom: 12px;">
                         <label style="font-size: 0.85rem; font-weight: 700; color: #475569; margin-bottom: 6px; display: block;">ឈ្មោះហាង (Shop Name) <span style="color:red">*</span></label>
@@ -6698,7 +6432,6 @@ window.c360RegisterMerchant = async function () {
                     </div>
                 </div>
 
-                <!-- ផ្នែកជ្រើសរើសគណនីទទួលប្រាក់ -->
                 <div style="background: #f0fdfa; padding: 18px; border-radius: 14px; border: 1px dashed #5eead4; box-shadow: 0 2px 6px rgba(0,0,0,0.01);">
                     <h4 style="margin: 0 0 12px; color: #0f766e; font-size: 0.95rem; font-weight: 800; display: flex; align-items: center; gap: 6px;"><i class="fa-solid fa-link"></i> ជ្រើសរើសគណនីទទួលប្រាក់</h4>
                     
@@ -6757,11 +6490,14 @@ window.c360RegisterMerchant = async function () {
       didOpen: () => Swal.showLoading(),
       customClass: { popup: "premium-swal kh-text" },
     });
+    const canonicalId = c360GetCanonicalId(currentC360User);
     try {
       const response = await fetch("/api/admin/create-merchant", {
         method: "POST",
         headers: getAuthHeaders(),
         body: JSON.stringify({
+          _id: canonicalId,
+          userId: canonicalId,
           username: currentC360User.username,
           ...formValues,
         }),
@@ -6797,7 +6533,6 @@ window.c360RegisterMerchant = async function () {
   }
 };
 
-// 🟢 មុខងារ Admin ចុចដោះ Hold (Approve Trx) ឱ្យហាងភ្លាមៗ
 window.c360AdminReleaseHold = async function (refId, amount, currency) {
   const { isConfirmed } = await Swal.fire({
     title:
@@ -6835,11 +6570,7 @@ window.c360AdminReleaseHold = async function (refId, amount, currency) {
           showConfirmButton: false,
           customClass: { popup: "kh-text premium-swal" },
         });
-        if (typeof c360RefreshData === "function") {
-          c360RefreshData();
-        } else {
-          renderMerchantTab(currentC360User);
-        }
+        c360RefreshData();
       } else {
         Swal.fire({
           icon: "error",
@@ -6854,16 +6585,22 @@ window.c360AdminReleaseHold = async function (refId, amount, currency) {
   }
 };
 
-// =======================================================
-// ➡️ TAB 8: Admin Logs (Upgraded UI + Search + Date Range Filter + Pagination)
-// =======================================================
+// ============================================================================
+// 📋 ជំពូកទី ១០៖ ផ្ទាំងទី ៨ - កំណត់ត្រាសកម្មភាព ADMIN លើអតិថិជនតាម `_id` (TAB 8: AUDIT LOGS)
+// ============================================================================
 let c360CachedUserLogs = [];
 let c360CurrentLogPage = 1;
-const c360LogsPerPage = 5; // កំណត់ឱ្យបង្ហាញតែ ៥ ក្នុងមួយទំព័រ
+const c360LogsPerPage = 5;
+let c360FilteredLogsForPage = [];
 
+/**
+ * 🔹 ១០.១ ទាញយក និងគូរផ្ទាំងកំណត់ត្រាសកម្មភាព (Audit Logs) របស់អតិថិជនតាមរយៈ MongoDB `_id`
+ */
 async function renderLogsTab(user) {
   const container = document.getElementById("c360-tab-logs");
   if (!container) return;
+
+  const canonicalId = c360GetCanonicalId(user);
 
   container.innerHTML = `
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; border-bottom: 2px solid var(--border); padding-bottom: 15px; flex-wrap: wrap; gap: 15px;">
@@ -6871,7 +6608,6 @@ async function renderLogsTab(user) {
                 <i class="fa-solid fa-list-check" style="color: #8b5cf6;"></i> កំណត់ត្រាការកែប្រែ (Audit Logs)
             </h2>
             
-            <!-- 🟢 ផ្នែកស្វែងរក និង Filter ថ្ងៃខែ -->
             <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
                 <div style="display: flex; align-items: center; gap: 6px; background: var(--bg-body); border: 1px solid var(--border); padding: 4px 10px; border-radius: 10px;">
                     <span style="font-size: 0.75rem; color: var(--text-muted); font-weight: bold;">ពី៖</span>
@@ -6891,7 +6627,6 @@ async function renderLogsTab(user) {
             <div style="text-align: center; padding: 40px;"><i class="fa-solid fa-circle-notch fa-spin fa-2x" style="color: var(--text-muted);"></i><br><br><span class="kh-text" style="color: var(--text-muted); font-size: 0.9rem;">កំពុងទាញយកកំណត់ត្រា...</span></div>
         </div>
 
-        <!-- 🟢 Pagination Footer -->
         <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 20px; padding-top: 15px; border-top: 1px dashed var(--border);">
             <button id="c360-btn-log-prev" class="c360-page-btn kh-text" onclick="c360ChangeLogPage(-1)" disabled><i class="fa-solid fa-chevron-left"></i> ថយក្រោយ</button>
             <span id="c360-log-page-info" class="kh-text" style="font-weight: bold; color: var(--text-main);">ទំព័រ 1 នៃ 1</span>
@@ -6900,9 +6635,13 @@ async function renderLogsTab(user) {
     `;
 
   try {
-    const res = await fetch(`/api/admin/logs/${user.username}`, {
-      headers: getAuthHeaders(),
-    });
+    // 🎯 បោះ MongoDB `_id` ទៅកាន់ `/api/admin/logs/:identifier`
+    const res = await fetch(
+      `/api/admin/logs/${encodeURIComponent(canonicalId || user.username)}`,
+      {
+        headers: getAuthHeaders(),
+      },
+    );
     const data = await res.json();
 
     if (data.success && data.logs && data.logs.length > 0) {
@@ -6915,7 +6654,7 @@ async function renderLogsTab(user) {
                 <div style="text-align: center; padding: 60px 20px; color: var(--text-muted); font-family: 'Kantumruy Pro'; background: var(--bg-body); border-radius: 16px; border: 1px dashed var(--border);">
                     <i class="fa-solid fa-shield-cat" style="font-size: 3rem; opacity: 0.3; margin-bottom: 12px; display: block;"></i>
                     <h4 style="margin: 0 0 5px; color: var(--text-main);">គ្មានកំណត់ត្រា (No Logs Found)</h4>
-                    <p style="margin: 0; font-size: 0.85rem;">មិនមានប្រវត្តិកត់ត្រាសកម្មភាពរបស់ Admin លើគណនីនេះទេ។</p>
+                    <p style="margin: 0; font-size: 0.85rem;">មិនមានប្រវត្តិកត់ត្រាសកម្មភាពរបស់មន្ត្រីប្រតិបត្តិលើគណនីនេះទេ។</p>
                 </div>`;
       document.getElementById("c360-log-page-info").innerText = "ទំព័រ 0 នៃ 0";
       document.getElementById("c360-btn-log-prev").disabled = true;
@@ -6927,7 +6666,9 @@ async function renderLogsTab(user) {
   }
 }
 
-// 🟢 អនុគមន៍ជំនួយបម្លែងទម្រង់កាលបរិច្ឆេទសម្រាប់ Filter
+/**
+ * 🔹 ១០.២ ការបែងចែកទំព័រ និងចម្រាញ់កំណត់ត្រា Audit Logs តាមកាលបរិច្ឆេទ និងពាក្យគន្លឹះ
+ */
 function c360ParseLogDate(dateStr) {
   if (!dateStr) return null;
   let d = new Date(dateStr);
@@ -6936,9 +6677,6 @@ function c360ParseLogDate(dateStr) {
   }
   return isNaN(d.getTime()) ? null : d;
 }
-
-// 🟢 មុខងារគូរទំព័រ Logs តាម Pagination (៥ ក្នុង១ទំព័រ)
-let c360FilteredLogsForPage = [];
 
 function c360RenderLogPage(logsArray) {
   c360FilteredLogsForPage = logsArray;
@@ -7002,6 +6740,11 @@ function c360RenderLogPage(logsArray) {
       actionIcon = "fa-pen";
     }
 
+    const cleanAdminName = String(l.admin || "ប្រព័ន្ធស្វ័យប្រវត្តិ").replace(
+      /^@/,
+      "",
+    );
+
     html += `
             <div class="c360-log-card">
                 <div style="display: flex; align-items: center; gap: 15px;">
@@ -7009,9 +6752,9 @@ function c360RenderLogPage(logsArray) {
                         <i class="fa-solid ${actionIcon}"></i>
                     </div>
                     <div>
-                        <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 4px;">
+                        <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 4px; flex-wrap: wrap;">
                             <span class="kh-text" style="font-weight: 800; color: var(--text-main); font-size: 0.95rem;">${l.action}</span>
-                            <span style="font-size: 0.7rem; padding: 2px 8px; background: rgba(139, 92, 246, 0.1); color: #8b5cf6; border-radius: 6px; font-weight: bold;">Admin: ${l.admin}</span>
+                            <span style="font-size: 0.7rem; padding: 2px 8px; background: rgba(139, 92, 246, 0.1); color: #8b5cf6; border-radius: 6px; font-weight: bold;">មន្ត្រីប្រតិបត្តិ៖ ${cleanAdminName}</span>
                         </div>
                         <div class="kh-text" style="font-size: 0.85rem; color: var(--text-muted); line-height: 1.4;">${l.details || "គ្មានព័ត៌មានលម្អិត"}</div>
                     </div>
@@ -7031,13 +6774,11 @@ function c360RenderLogPage(logsArray) {
   if (btnNext) btnNext.disabled = c360CurrentLogPage === totalPages;
 }
 
-// 🟢 មុខងារប្តូរទំព័រ Logs
 window.c360ChangeLogPage = function (step) {
   c360CurrentLogPage += step;
   c360RenderLogPage(c360FilteredLogsForPage);
 };
 
-// 🟢 មុខងារ Search & Date Range Filter ក្នុង Logs ព្រមគ្នា
 window.c360FilterUserLogs = function () {
   const keyword = document
     .getElementById("c360-log-search")
@@ -7046,10 +6787,9 @@ window.c360FilterUserLogs = function () {
   const startDateStr = document.getElementById("c360-log-date-start").value;
   const endDateStr = document.getElementById("c360-log-date-end").value;
 
-  c360CurrentLogPage = 1; // ពេល Filter ឡើងមកទំព័រទី ១ វិញ
+  c360CurrentLogPage = 1;
 
   let filtered = c360CachedUserLogs.filter((l) => {
-    // 1. Filter by Keyword
     const matchKeyword =
       !keyword ||
       (l.action && l.action.toLowerCase().includes(keyword)) ||
@@ -7059,7 +6799,6 @@ window.c360FilterUserLogs = function () {
 
     if (!matchKeyword) return false;
 
-    // 2. Filter by Date Range
     if (startDateStr || endDateStr) {
       const logDate = c360ParseLogDate(l.date);
       if (!logDate) return true;
@@ -7075,13 +6814,18 @@ window.c360FilterUserLogs = function () {
   c360RenderLogPage(filtered);
 };
 
-// =======================================================
-// ➡️ TAB 9: Physical Cards & NFC Command Center (100% Fixed & Pro Flow)
-// =======================================================
+// ============================================================================
+// 💳 ជំពូកទី ១១៖ ផ្ទាំងទី ៩ - កាតរូបវ័ន្ត, ការដឹកជញ្ជូន និងឈីប NFC តាម `_id` (TAB 9: PHYSICAL CARDS & NFC)
+// ============================================================================
+
+/**
+ * 🔹 ១១.១ គូរផ្ទាំងគ្រប់គ្រងកាតរូបវ័ន្ត (PVC Cards), ដំណាក់កាលដឹកជញ្ជូនទាំង ៥ និងការភ្ជាប់ NFC
+ */
 function renderPhysicalCardsTab(user) {
   const container = document.getElementById("c360-tab-physical");
   if (!container) return;
 
+  const canonicalId = c360GetCanonicalId(user);
   const allCards = user.virtualCards || [];
   const physicalCards = allCards.filter(
     (c) =>
@@ -7102,7 +6846,6 @@ function renderPhysicalCardsTab(user) {
     ),
   ).length;
 
-  // ៥ ដំណាក់កាលតាមលំដាប់លំដោយ (Step-by-Step)
   const stepsOrder = [
     {
       key: "Requested",
@@ -7133,7 +6876,7 @@ function renderPhysicalCardsTab(user) {
       label: "៥. ភ្ញៀវបើកប្រើ",
       icon: "fa-circle-check",
       allowAdminClick: false,
-    }, // 🛑 ហាម Admin ចុច
+    },
   ];
 
   const getThemeClass = (type) => {
@@ -7158,22 +6901,11 @@ function renderPhysicalCardsTab(user) {
       .c360-kh-swal, .c360-kh-swal button, .c360-kh-swal input, .c360-kh-swal select, .c360-kh-swal .swal2-title, .c360-kh-swal .swal2-html-container {
         font-family: 'Kantumruy Pro', 'Inter', sans-serif !important;
       }
-      /* រូបរាងកាតពិតប្រាកដតាមម៉ូដដែលអតិថិជនរើសទិញ */
       .phy-card-preview {
-        width: 215px;
-        height: 130px;
-        border-radius: 16px;
-        color: #ffffff;
-        padding: 15px 16px;
-        display: flex;
-        flex-direction: column;
-        justify-content: space-between;
-        box-shadow: 0 12px 24px rgba(0,0,0,0.18);
-        position: relative;
-        overflow: hidden;
-        flex-shrink: 0;
-        border: 1px solid rgba(255,255,255,0.2);
-        box-sizing: border-box;
+        width: 215px; height: 130px; border-radius: 16px; color: #ffffff;
+        padding: 15px 16px; display: flex; flex-direction: column; justify-content: space-between;
+        box-shadow: 0 12px 24px rgba(0,0,0,0.18); position: relative; overflow: hidden;
+        flex-shrink: 0; border: 1px solid rgba(255,255,255,0.2); box-sizing: border-box;
       }
       .phy-card-preview.theme-standard { background: linear-gradient(135deg, #149a83 0%, #004d40 100%) !important; }
       .phy-card-preview.theme-fifa { background: linear-gradient(rgba(0,0,0,0.35), rgba(0,0,0,0.75)), url("https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQwH-pP-2EY5Ap18poVEhGeFe-THx0TOhEvgFqALyZhJZLzu2V67xpXNOi7&s=10") center/cover no-repeat !important; }
@@ -7185,78 +6917,23 @@ function renderPhysicalCardsTab(user) {
       .phy-card-preview.theme-platinum { background: linear-gradient(135deg, #000000 0%, #1e293b 60%, #090d16 100%) !important; }
       .phy-card-preview.theme-animal { background: linear-gradient(rgba(0,0,0,0.3), rgba(0,0,0,0.8)), url("https://images.unsplash.com/photo-1474511320723-9a56873867b5?auto=format&fit=crop&w=600&q=80") center/cover no-repeat !important; }
       .phy-card-preview.theme-custom { background: linear-gradient(rgba(0,0,0,0.45), rgba(0,0,0,0.85)) center/cover no-repeat !important; }
-
-      /* Stepper UI ថ្មីស្អាត និងបង្ហាញជំហានបន្ទាប់ច្បាស់ៗ */
-      .phy-step-node {
-        flex: 1;
-        text-align: center;
-        position: relative;
-        z-index: 2;
-        user-select: none;
-        transition: 0.25s;
-      }
-      .phy-step-circle {
-        width: 38px;
-        height: 38px;
-        border-radius: 50%;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        margin: 0 auto 8px;
-        font-size: 0.9rem;
-        transition: all 0.25s ease;
-      }
-      .phy-step-node.done .phy-step-circle {
-        background: #0d9488;
-        color: #ffffff;
-        border: 2px solid #0d9488;
-      }
-      .phy-step-node.current .phy-step-circle {
-        background: #0f766e;
-        color: #ffffff;
-        border: 2px solid #ffffff;
-        box-shadow: 0 0 0 4px rgba(13, 148, 136, 0.28);
-        transform: scale(1.08);
-      }
-      .phy-step-node.next-available {
-        cursor: pointer;
-      }
-      .phy-step-node.next-available .phy-step-circle {
-        background: #f0fdfa;
-        color: #0d9488;
-        border: 2px dashed #0d9488;
-        animation: pulseNextStep 1.8s infinite;
-      }
-      .phy-step-node.next-available:hover .phy-step-circle {
-        background: #0d9488;
-        color: #ffffff;
-        transform: scale(1.12);
-      }
-      .phy-step-node.locked-step {
-        cursor: not-allowed;
-        opacity: 0.55;
-      }
-      .phy-step-node.locked-step .phy-step-circle {
-        background: #f1f5f9;
-        color: #94a3b8;
-        border: 2px solid #e2e8f0;
-      }
+      .phy-step-node { flex: 1; text-align: center; position: relative; z-index: 2; user-select: none; transition: 0.25s; }
+      .phy-step-circle { width: 38px; height: 38px; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 8px; font-size: 0.9rem; transition: all 0.25s ease; }
+      .phy-step-node.done .phy-step-circle { background: #0d9488; color: #ffffff; border: 2px solid #0d9488; }
+      .phy-step-node.current .phy-step-circle { background: #0f766e; color: #ffffff; border: 2px solid #ffffff; box-shadow: 0 0 0 4px rgba(13, 148, 136, 0.28); transform: scale(1.08); }
+      .phy-step-node.next-available { cursor: pointer; }
+      .phy-step-node.next-available .phy-step-circle { background: #f0fdfa; color: #0d9488; border: 2px dashed #0d9488; animation: pulseNextStep 1.8s infinite; }
+      .phy-step-node.next-available:hover .phy-step-circle { background: #0d9488; color: #ffffff; transform: scale(1.12); }
+      .phy-step-node.locked-step { cursor: not-allowed; opacity: 0.55; }
+      .phy-step-node.locked-step .phy-step-circle { background: #f1f5f9; color: #94a3b8; border: 2px solid #e2e8f0; }
       @keyframes pulseNextStep {
         0% { box-shadow: 0 0 0 0 rgba(13, 148, 136, 0.35); }
         70% { box-shadow: 0 0 0 7px rgba(13, 148, 136, 0); }
         100% { box-shadow: 0 0 0 0 rgba(13, 148, 136, 0); }
       }
       .phy-action-btn {
-        padding: 9px 14px;
-        border-radius: 10px;
-        font-size: 0.82rem;
-        font-weight: 700;
-        cursor: pointer;
-        display: inline-flex;
-        align-items: center;
-        gap: 6px;
-        transition: 0.2s;
-        font-family: 'Kantumruy Pro', sans-serif !important;
+        padding: 9px 14px; border-radius: 10px; font-size: 0.82rem; font-weight: 700; cursor: pointer;
+        display: inline-flex; align-items: center; gap: 6px; transition: 0.2s; font-family: 'Kantumruy Pro', sans-serif !important;
       }
       .phy-action-btn:hover { transform: translateY(-1px); }
     </style>
@@ -7294,14 +6971,12 @@ function renderPhysicalCardsTab(user) {
           stepsOrder.findIndex((s) => s.key === currentStepKey),
         );
 
-        // 🎨 រូបរាងកាតតាមម៉ូដដែលអតិថិជនបានជ្រើសរើសទិញ
         const themeClass = getThemeClass(c.type);
         let customBgStyle = "";
         if (c.type === "custom" && c.customBgUrl) {
           customBgStyle = `style="background: linear-gradient(rgba(0,0,0,0.35), rgba(0,0,0,0.85)), url('${c.customBgUrl}') center/cover no-repeat !important;"`;
         }
 
-        // 🟢 គូរ Stepper ៥ ដំណាក់កាល (អនុញ្ញាតឱ្យចុចបានតែជំហានបន្ទាប់ ១ គត់)
         const stepperHtml = stepsOrder
           .map((step, idx) => {
             const isDone = idx < currentStepIdx;
@@ -7347,7 +7022,6 @@ function renderPhysicalCardsTab(user) {
         const cardDisplayName =
           c.name && c.name.trim() !== "" ? c.name : c.type.toUpperCase();
 
-        // ផ្លាកបង្ហាញស្ថានភាពបច្ចុប្បន្នយ៉ាងស្រស់ស្អាត
         const statusBadgesMap = {
           Requested: {
             text: "📝 ស្នើសុំផលិត",
@@ -7387,7 +7061,6 @@ function renderPhysicalCardsTab(user) {
           <div style="background: var(--bg-card); border: 1px solid var(--border); border-radius: 20px; padding: 22px; margin-bottom: 22px; box-shadow: 0 6px 18px rgba(0,0,0,0.03);">
             <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 20px; flex-wrap: wrap; padding-bottom: 18px; border-bottom: 1px solid var(--border);">
               
-              <!-- 💳 កាត Preview ខាងឆ្វេង (បង្ហាញរូបតាមម៉ូដដែលភ្ញៀវរើសទិញពិតៗ) -->
               <div style="display: flex; align-items: center; gap: 18px; flex-wrap: wrap;">
                 <div class="phy-card-preview ${themeClass}" ${customBgStyle}>
                   <div style="display: flex; justify-content: space-between; align-items: center; z-index: 2;">
@@ -7408,7 +7081,6 @@ function renderPhysicalCardsTab(user) {
                   </div>
                 </div>
 
-                <!-- 📋 ព័ត៌មានលម្អិតរបស់កាត -->
                 <div>
                   <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 10px; flex-wrap: wrap;">
                     <h3 style="margin: 0; font-size: 1.1rem; font-weight: 800; color: var(--text-main);">
@@ -7441,7 +7113,6 @@ function renderPhysicalCardsTab(user) {
                 </div>
               </div>
 
-              <!-- 🔘 ប៊ូតុងបញ្ជា (Action Buttons ជាភាសាខ្មែរស្អាត) -->
               <div style="display: flex; gap: 8px; flex-wrap: wrap;">
                 <button onclick="c360ScanAndBindSpecificCard('${c.id}')" class="phy-action-btn" style="background: #eff6ff; color: #2563eb; border: 1px solid #bfdbfe;">
                   <i class="fa-solid fa-wifi"></i> ${hasUid ? "ប្តូរឈីប NFC ថ្មី" : "ស្កេនភ្ជាប់ NFC"}
@@ -7449,12 +7120,12 @@ function renderPhysicalCardsTab(user) {
                 <button onclick="c360OpenPhysicalDeliveryModal('${c.id}')" class="phy-action-btn" style="background: #f0fdfa; color: #0f766e; border: 1px solid #99f6e4;">
                   <i class="fa-solid fa-truck-fast"></i> ព័ត៌មានដឹកជញ្ជូន
                 </button>
-                <button onclick="c360ResetPhysicalCardPin('${user.username}', '${c.id}')" class="phy-action-btn" style="background: #f8fafc; color: #475569; border: 1px solid #cbd5e1;">
+                <button onclick="c360ResetPhysicalCardPin('${canonicalId}', '${c.id}')" class="phy-action-btn" style="background: #f8fafc; color: #475569; border: 1px solid #cbd5e1;">
                   <i class="fa-solid fa-key"></i> កំណត់កូដ PIN
                 </button>
                 ${
                   hasUid
-                    ? `<button onclick="c360AdminUnbindPhysicalCard('${user.username}', '${c.id}')" class="phy-action-btn" style="background: #fef2f2; color: #ef4444; border: 1px solid #fca5a5;">
+                    ? `<button onclick="c360AdminUnbindPhysicalCard('${canonicalId}', '${c.id}')" class="phy-action-btn" style="background: #fef2f2; color: #ef4444; border: 1px solid #fca5a5;">
                          <i class="fa-solid fa-link-slash"></i> ផ្តាច់ NFC
                        </button>`
                     : ""
@@ -7462,7 +7133,6 @@ function renderPhysicalCardsTab(user) {
               </div>
             </div>
 
-            <!-- 🚚 5-Step Fulfillment Progress Bar (ចុចតាមលំដាប់ជំហានបន្ទាប់) -->
             <div style="margin-top: 20px; position: relative; padding: 0 10px;">
               <div style="position: absolute; top: 19px; left: 10%; right: 10%; height: 4px; background: #e2e8f0; z-index: 1; border-radius: 4px;">
                 <div style="height: 100%; width: ${progressPercent}%; background: linear-gradient(90deg, #0d9488, #10b981); transition: width 0.4s ease; border-radius: 4px;"></div>
@@ -7490,7 +7160,6 @@ function renderPhysicalCardsTab(user) {
         </button>
       </div>
 
-      <!-- 📊 3 KPI Summary Boxes -->
       <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 14px; margin-bottom: 22px;">
         <div style="background: var(--bg-body); border: 1px solid var(--border); border-radius: 14px; padding: 15px 18px; display: flex; justify-content: space-between; align-items: center;">
           <div>
@@ -7528,9 +7197,9 @@ function renderPhysicalCardsTab(user) {
   `;
 }
 
-// =======================================================
-// 🟢 ១. មុខងាររក្សាទុកស្ថានភាពដឹកជញ្ជូនទៅកាន់ Server API
-// =======================================================
+/**
+ * 🔹 ១១.២ ការធ្វើបច្ចុប្បន្នភាពដំណាក់កាលដឹកជញ្ជូន, ភ្ជាប់ NFC និងកំណត់កូដ PIN តាមរយៈ MongoDB `_id`
+ */
 async function c360SavePhysicalDeliveryData(payload) {
   Swal.fire({
     title: "កំពុងរក្សាទុកទិន្នន័យ...",
@@ -7539,11 +7208,14 @@ async function c360SavePhysicalDeliveryData(payload) {
     customClass: { popup: "premium-swal kh-text c360-kh-swal" },
   });
 
+  const canonicalId = c360GetCanonicalId(currentC360User);
   try {
     const res = await fetch("/api/admin/cards/physical-status", {
       method: "POST",
       headers: getAuthHeaders(),
       body: JSON.stringify({
+        _id: canonicalId,
+        userId: canonicalId,
         username: currentC360User.username,
         ...payload,
       }),
@@ -7577,9 +7249,6 @@ async function c360SavePhysicalDeliveryData(payload) {
   }
 }
 
-// =======================================================
-// 🟢 ២. មុខងារបង្កើតលេខ Tracking អូតូតាមក្រុមហ៊ុនដឹកជញ្ជូន
-// =======================================================
 window.c360GenerateTrackingCode = function (method) {
   const rand8 = Math.floor(10000000 + Math.random() * 90000000);
   if (method === "Virak Buntham") return `VET-${rand8}`;
@@ -7588,13 +7257,9 @@ window.c360GenerateTrackingCode = function (method) {
   return "យកផ្ទាល់នៅសាខា (Branch Pickup)";
 };
 
-// =======================================================
-// 🟢 ៣. មុខងារចុចលើ Stepper Icon (ចាក់សោឱ្យចុចតាមលំដាប់ ១ ជំហានម្ដង និងឆែក NFC)
-// =======================================================
 window.c360QuickUpdateStep = async function (cardId, targetStatus) {
   if (!currentC360User) return;
 
-  // 🛑 ហាមដាច់ខាតមិនឱ្យ Admin ចុចប្តូរទៅជា Activated ទុកអោយ User អ្នកចុចខ្លួនឯង
   if (targetStatus === "Activated") {
     return Swal.fire({
       icon: "info",
@@ -7633,10 +7298,8 @@ window.c360QuickUpdateStep = async function (cardId, targetStatus) {
   const curIdx = stepsIndex[currentStatus] ?? 0;
   const targetIdx = stepsIndex[targetStatus] ?? 0;
 
-  // ១. បើចុចលើជំហានបច្ចុប្បន្ន មិនបាច់ធ្វើអ្វីទេ
   if (targetIdx === curIdx) return;
 
-  // ២. ហាមចុចត្រឡប់ថយក្រោយលេង
   if (targetIdx < curIdx) {
     return Swal.fire({
       icon: "info",
@@ -7648,7 +7311,6 @@ window.c360QuickUpdateStep = async function (cardId, targetStatus) {
     });
   }
 
-  // ៣. ហាមចុចផ្លោះរំលងដំណាក់កាល (ត្រូវចុចតាមលំដាប់ ១ ជំហានម្ដង)
   if (targetIdx > curIdx + 1) {
     const nextRequiredKey = Object.keys(stepsIndex).find(
       (k) => stepsIndex[k] === curIdx + 1,
@@ -7663,7 +7325,6 @@ window.c360QuickUpdateStep = async function (cardId, targetStatus) {
     });
   }
 
-  // 🛡️ ៤. លក្ខខណ្ឌតឹងរឹង៖ បើកាតមិនទាន់ស្កេនភ្ជាប់ NFC ទេ មិនឱ្យឆ្លងទៅជំហាន "កំពុងដឹកជញ្ជូន (Shipped)" ឬខ្ពស់ជាងនេះដាច់ខាត!
   if (targetIdx >= 2 && !hasUid) {
     return Swal.fire({
       icon: "warning",
@@ -7675,7 +7336,6 @@ window.c360QuickUpdateStep = async function (cardId, targetStatus) {
     });
   }
 
-  // 🚚 ៥. បើចុចដល់ជំហាន "៣. កំពុងដឹកជញ្ជូន (Shipped)" លោតផ្ទាំងតូចឱ្យរើសក្រុមហ៊ុនដឹកជញ្ជូន និងលេខ Tracking អូតូភ្លាមៗ
   if (targetStatus === "Shipped") {
     const initMethod =
       c.deliveryMethod && c.deliveryMethod !== "None"
@@ -7732,7 +7392,6 @@ window.c360QuickUpdateStep = async function (cardId, targetStatus) {
     return;
   }
 
-  // ៦. សម្រាប់ជំហានផ្សេងៗ (Printing, Delivered, Activated) លោតផ្ទាំងតូចសួរបញ្ជាក់
   const confirm = await Swal.fire({
     title: `<span class="kh-text" style="color: #0f766e; font-size: 1.15rem;">បញ្ជាក់ជំហានបន្ទាប់?</span>`,
     html: `<div class="kh-text" style="font-size: 0.92rem; color: #475569; line-height: 1.5;">តើអ្នកពិតជាបានបញ្ចប់ដំណាក់កាលមុន ហើយចង់ប្តូរទៅជា<br><b style="color: #0d9488; font-size: 1rem;">[${statusNames[targetStatus]}]</b> មែនទេ?</div>`,
@@ -7758,9 +7417,6 @@ window.c360QuickUpdateStep = async function (cardId, targetStatus) {
   }
 };
 
-// =======================================================
-// 🟢 ៤. បើកផ្ទាំងកែប្រែព័ត៌មានដឹកជញ្ជូន (អាសយដ្ឋាន, លេខទូរស័ព្ទ និងសេវាដឹកជញ្ជូន)
-// =======================================================
 window.c360OpenPhysicalDeliveryModal = async function (cardId) {
   if (!currentC360User) return;
   const c = (currentC360User.virtualCards || []).find(
@@ -7827,9 +7483,6 @@ window.c360OpenPhysicalDeliveryModal = async function (cardId) {
   }
 };
 
-// =======================================================
-// 🟢 ៥. មុខងារស្កេនភ្ជាប់ NFC, កំណត់កូដ PIN និងផ្តាច់ NFC
-// =======================================================
 window.c360ScanAndBindSpecificCard = async function (cardId) {
   if (!currentC360User) return;
   const idx = (currentC360User.virtualCards || []).findIndex(
@@ -7838,6 +7491,8 @@ window.c360ScanAndBindSpecificCard = async function (cardId) {
   if (idx === -1) return;
 
   const card = currentC360User.virtualCards[idx];
+  const canonicalId = c360GetCanonicalId(currentC360User);
+
   if (card.uid && card.uid !== "") {
     const ask = await Swal.fire({
       title:
@@ -7856,7 +7511,12 @@ window.c360ScanAndBindSpecificCard = async function (cardId) {
     await fetch("/api/admin/cards/unbind-nfc", {
       method: "POST",
       headers: getAuthHeaders(),
-      body: JSON.stringify({ username: currentC360User.username, cardId }),
+      body: JSON.stringify({
+        _id: canonicalId,
+        userId: canonicalId,
+        username: currentC360User.username,
+        cardId,
+      }),
     });
     card.uid = null;
   }
@@ -7865,7 +7525,7 @@ window.c360ScanAndBindSpecificCard = async function (cardId) {
   if (typeof c360ToggleCardNFC === "function") c360ToggleCardNFC();
 };
 
-window.c360ResetPhysicalCardPin = async function (username, cardId) {
+window.c360ResetPhysicalCardPin = async function (identifier, cardId) {
   const { value: newPin } = await Swal.fire({
     title:
       '<span class="kh-text" style="font-size: 1.2rem;">កំណត់លេខកូដ POS PIN (៤ខ្ទង់)</span>',
@@ -7893,10 +7553,17 @@ window.c360ResetPhysicalCardPin = async function (username, cardId) {
       didOpen: () => Swal.showLoading(),
       customClass: { popup: "premium-swal kh-text c360-kh-swal" },
     });
+    const canonicalId = c360GetCanonicalId(currentC360User) || identifier;
     const res = await fetch("/api/admin/cards/update-pin", {
       method: "POST",
       headers: getAuthHeaders(),
-      body: JSON.stringify({ username, cardId, newPin }),
+      body: JSON.stringify({
+        _id: canonicalId,
+        userId: canonicalId,
+        username: currentC360User ? currentC360User.username : identifier,
+        cardId,
+        newPin,
+      }),
     });
     const data = await res.json();
     if (data.success) {
@@ -7918,7 +7585,7 @@ window.c360ResetPhysicalCardPin = async function (username, cardId) {
   }
 };
 
-window.c360AdminUnbindPhysicalCard = async function (username, cardId) {
+window.c360AdminUnbindPhysicalCard = async function (identifier, cardId) {
   const confirm = await Swal.fire({
     title:
       '<span class="kh-text" style="color: #ef4444;">បញ្ជាក់ការផ្តាច់កាត NFC?</span>',
@@ -7933,10 +7600,16 @@ window.c360AdminUnbindPhysicalCard = async function (username, cardId) {
   });
 
   if (confirm.isConfirmed) {
+    const canonicalId = c360GetCanonicalId(currentC360User) || identifier;
     const res = await fetch("/api/admin/cards/unbind-nfc", {
       method: "POST",
       headers: getAuthHeaders(),
-      body: JSON.stringify({ username, cardId }),
+      body: JSON.stringify({
+        _id: canonicalId,
+        userId: canonicalId,
+        username: currentC360User ? currentC360User.username : identifier,
+        cardId,
+      }),
     });
     const data = await res.json();
     if (data.success) {
@@ -7952,40 +7625,28 @@ window.c360AdminUnbindPhysicalCard = async function (username, cardId) {
   }
 };
 
-// =======================================================
-// ➡️ TAB 10: Support Tickets & Disputes (Pro Banking Report UI - 100% Complete)
-// =======================================================
+// ============================================================================
+// 🎫 ជំពូកទី ១២៖ ផ្ទាំងទី ១០ - របាយការណ៍សំណូមពរ និងការឆ្លើយតបតាម `_id` (TAB 10: SUPPORT TICKETS)
+// ============================================================================
 let c360CachedTickets = [];
 let c360TicketFilter = "all"; // 'all', 'pending', 'answered'
 
-// 🟢 អនុគមន៍ជំនួយ៖ ចាប់យក @username របស់ Admin ដែលកំពុង Login ផ្ទាល់
+/**
+ * 🔹 ១២.១ ទាញយកឈ្មោះពេញរបស់មន្ត្រីប្រតិបត្តិដែលកំពុង Login
+ */
 function c360GetCurrentAdminUsername() {
-  try {
-    const adminStr =
-      localStorage.getItem("admin") ||
-      sessionStorage.getItem("admin") ||
-      localStorage.getItem("user");
-    if (adminStr) {
-      const parsed = JSON.parse(adminStr);
-      if (parsed.username) return parsed.username;
-    }
-    const token =
-      localStorage.getItem("token") ||
-      sessionStorage.getItem("token") ||
-      localStorage.getItem("adminToken");
-    if (token && token.includes(".")) {
-      const payload = JSON.parse(atob(token.split(".")[1]));
-      if (payload.username) return payload.username;
-    }
-  } catch (e) {
-    console.warn("Could not parse admin username:", e);
-  }
-  return "admin";
+  const ident = c360GetActiveAdminIdentity();
+  return ident.fullName || ident.username || "មន្ត្រីប្រតិបត្តិ U-Pay";
 }
 
+/**
+ * 🔹 ១២.២ ទាញយក និងគូរផ្ទាំងរបាយការណ៍សំណូមពររបស់អតិថិជនតាមរយៈ MongoDB `_id` (`/api/admin/user-tickets/:id`)
+ */
 async function renderTicketsTab(user) {
   const container = document.getElementById("c360-tab-tickets");
   if (!container) return;
+
+  const canonicalId = c360GetCanonicalId(user);
 
   container.innerHTML = `
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; border-bottom: 2px solid var(--border); padding-bottom: 15px; flex-wrap: wrap; gap: 10px;">
@@ -8002,9 +7663,13 @@ async function renderTicketsTab(user) {
     `;
 
   try {
-    const res = await fetch(`/api/admin/user-tickets/${user.username}`, {
-      headers: getAuthHeaders(),
-    });
+    // 🎯 បោះ MongoDB `_id` ទៅកាន់ `/api/admin/user-tickets/:identifier`
+    const res = await fetch(
+      `/api/admin/user-tickets/${encodeURIComponent(canonicalId || user.username)}`,
+      {
+        headers: getAuthHeaders(),
+      },
+    );
     const data = await res.json();
     const mainContent = document.getElementById("c360-tickets-main-content");
 
@@ -8031,7 +7696,9 @@ async function renderTicketsTab(user) {
   }
 }
 
-// 🎨 មុខងារគូរផ្ទាំង Summary, Filter និងបញ្ជីកាត Tickets បែបរបាយការណ៍
+/**
+ * 🔹 ១២.៣ គូរស្ថិតិ KPI, តារាងកាតសំណូមពរ និងការឆ្លើយតបតាមរយៈ MongoDB `_id`
+ */
 function c360RenderTicketsUI() {
   const mainContent = document.getElementById("c360-tickets-main-content");
   if (!mainContent) return;
@@ -8051,19 +7718,15 @@ function c360RenderTicketsUI() {
             .c360-tck-stat-box { background: var(--bg-body); border: 1px solid var(--border); border-radius: 12px; padding: 14px 16px; display: flex; align-items: center; justify-content: space-between; cursor: pointer; transition: 0.2s; }
             .c360-tck-stat-box:hover { transform: translateY(-2px); box-shadow: 0 4px 10px rgba(0,0,0,0.03); }
             .c360-tck-stat-box.active-filter { border-width: 2px; border-color: var(--secondary); background: rgba(16, 185, 129, 0.04); }
-            
             .c360-tck-card { background: var(--bg-card); border: 1px solid var(--border); border-radius: 16px; padding: 20px; margin-bottom: 16px; transition: 0.2s; position: relative; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.02); font-family: 'Kantumruy Pro', sans-serif; }
             .c360-tck-card:hover { border-color: #cbd5e1; box-shadow: 0 6px 16px rgba(0,0,0,0.05); }
-            
             .c360-msg-bubble-user { background: var(--bg-body); border: 1px solid var(--border); border-radius: 0 14px 14px 14px; padding: 14px 16px; color: var(--text-main); font-size: 0.9rem; line-height: 1.5; flex: 1; }
             .c360-msg-bubble-admin { background: #f0fdfa; border: 1px solid #99f6e4; border-radius: 14px 0 14px 14px; padding: 14px 16px; color: #0f172a; font-size: 0.9rem; line-height: 1.5; flex: 1; }
-            
             @media (max-width: 650px) {
                 .c360-tck-stats { grid-template-columns: 1fr; }
             }
         </style>
 
-        <!-- 📊 ១. របារស្ថិតិរបាយការណ៍ (Summary Pills - ចុចដើម្បី Filter បាន) -->
         <div class="c360-tck-stats">
             <div class="c360-tck-stat-box ${c360TicketFilter === "all" ? "active-filter" : ""}" onclick="c360SetTicketFilter('all')">
                 <div>
@@ -8096,13 +7759,11 @@ function c360RenderTicketsUI() {
             </div>
         </div>
 
-        <!-- 🔍 ២. ប្រអប់ស្វែងរក (Search Bar) -->
         <div style="position: relative; margin-bottom: 18px;">
             <i class="fa-solid fa-magnifying-glass" style="position: absolute; left: 14px; top: 50%; transform: translateY(-50%); color: var(--text-muted); font-size: 0.9rem;"></i>
-            <input type="text" id="c360-tck-search-input" class="kh-text" placeholder="ស្វែងរកតាមលេខកូដ TCK, ប្រធានបទ, @username អ្នកឆ្លើយ ឬខ្លឹមសារ..." oninput="c360RenderTicketsList()" style="width: 100%; padding: 11px 15px 11px 40px; border-radius: 12px; border: 1px solid var(--border); background: var(--bg-body); font-size: 0.9rem; outline: none; box-sizing: border-box; font-family: 'Kantumruy Pro'; color: var(--text-main);">
+            <input type="text" id="c360-tck-search-input" class="kh-text" placeholder="ស្វែងរកតាមលេខកូដ TCK, ប្រធានបទ, ឈ្មោះមន្ត្រីឆ្លើយតប ឬខ្លឹមសារ..." oninput="c360RenderTicketsList()" style="width: 100%; padding: 11px 15px 11px 40px; border-radius: 12px; border: 1px solid var(--border); background: var(--bg-body); font-size: 0.9rem; outline: none; box-sizing: border-box; font-family: 'Kantumruy Pro'; color: var(--text-main);">
         </div>
 
-        <!-- 📋 ៣. បញ្ជីកាតសំណូមពរ -->
         <div id="c360-tickets-cards-wrapper"></div>
     `;
 
@@ -8150,6 +7811,10 @@ function c360RenderTicketsList() {
     return;
   }
 
+  const canonicalId = c360GetCanonicalId(currentC360User);
+  const custFullName =
+    currentC360User.fullName || currentC360User.username || "អតិថិជន U-Pay";
+
   wrapper.innerHTML = filtered
     .map((t) => {
       const tId = t.ticketId || t._id || "N/A";
@@ -8173,13 +7838,12 @@ function c360RenderTicketsList() {
         ? `<span style="background: #fee2e2; color: #ef4444; padding: 3px 10px; border-radius: 6px; font-size: 0.72rem; font-weight: 800; display: inline-flex; align-items: center; gap: 4px;"><i class="fa-solid fa-triangle-exclamation"></i> High Priority</span>`
         : `<span style="background: #f1f5f9; color: #475569; padding: 3px 10px; border-radius: 6px; font-size: 0.72rem; font-weight: 700; display: inline-flex; align-items: center; gap: 4px;"><i class="fa-solid fa-file-lines"></i> Normal</span>`;
 
-      const adminUsername = (
-        t.repliedBy || c360GetCurrentAdminUsername()
+      const adminDisplayName = String(
+        t.repliedBy || c360GetCurrentAdminUsername(),
       ).replace(/^@/, "");
 
       return `
                 <div class="c360-tck-card" style="border-left: 5px solid ${accentColor};">
-                    <!-- ផ្នែកក្បាលរបាយការណ៍ (Header: Ticket ID, Subject, Priority & Status) -->
                     <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; flex-wrap: wrap; margin-bottom: 14px; padding-bottom: 12px; border-bottom: 1px solid var(--border);">
                         <div style="display: flex; align-items: flex-start; gap: 12px;">
                             <div style="width: 42px; height: 42px; border-radius: 10px; background: ${isAnswered ? "#f0fdfa" : "#fffbeb"}; color: ${accentColor}; border: 1px solid ${isAnswered ? "#99f6e4" : "#fde68a"}; display: flex; align-items: center; justify-content: center; font-size: 1.2rem; flex-shrink: 0;">
@@ -8204,9 +7868,7 @@ function c360RenderTicketsList() {
                         </span>
                     </div>
 
-                    <!-- 💬 ផ្នែកសន្ទនាបែបរបាយការណ៍ (Report Thread: User Request & Admin Official Response) -->
                     <div style="display: flex; flex-direction: column; gap: 12px; margin-bottom: 15px;">
-                        <!-- សំណើរបស់អតិថិជន -->
                         <div style="display: flex; align-items: flex-start; gap: 10px;">
                             <div style="width: 36px; height: 36px; border-radius: 10px; background: #f1f5f9; color: #475569; border: 1px solid #cbd5e1; display: flex; align-items: center; justify-content: center; font-size: 0.95rem; flex-shrink: 0;" title="សំណើអតិថិជន">
                                 <i class="fa-solid fa-clipboard-question"></i>
@@ -8214,17 +7876,13 @@ function c360RenderTicketsList() {
                             <div class="c360-msg-bubble-user">
                                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px; border-bottom: 1px dashed var(--border); padding-bottom: 4px;">
                                     <span style="font-size: 0.74rem; font-weight: 800; color: #475569;">
-                                        <i class="fa-solid fa-user-pen"></i> សំណើពីអតិថិជន (${currentC360User.fullName || currentC360User.username})
-                                    </span>
-                                    <span style="font-size: 0.7rem; font-family: 'JetBrains Mono', monospace; color: var(--text-muted); font-weight: bold;">
-                                        @${currentC360User.username}
+                                        <i class="fa-solid fa-user-pen"></i> សំណើពីអតិថិជន (${custFullName})
                                     </span>
                                 </div>
                                 <div style="white-space: pre-wrap; word-break: break-word; color: var(--text-main);">${t.description || t.message || "គ្មានខ្លឹមសារ"}</div>
                             </div>
                         </div>
 
-                        <!-- របាយការណ៍ឆ្លើយតបរបស់ Admin (បង្ហាញ @username ច្បាស់ៗ) -->
                         ${
                           t.adminReply
                             ? `
@@ -8237,12 +7895,12 @@ function c360RenderTicketsList() {
                                     <span style="font-size: 0.75rem; font-weight: 800; color: #0f766e; display: inline-flex; align-items: center; gap: 5px;">
                                         <i class="fa-solid fa-clipboard-check"></i> ការឆ្លើយតបពីក្រុមការងារ (Official Report)
                                     </span>
-                                    <span style="font-size: 0.72rem; font-weight: 800; background: #ccfbf1; color: #0f766e; padding: 2px 8px; border-radius: 6px; font-family: 'JetBrains Mono', monospace;">
-                                        <i class="fa-solid fa-user-shield"></i> @${adminUsername}
+                                    <span style="font-size: 0.72rem; font-weight: 800; background: #ccfbf1; color: #0f766e; padding: 2px 8px; border-radius: 6px;">
+                                        <i class="fa-solid fa-user-shield"></i> ${adminDisplayName}
                                     </span>
                                 </div>
                                 <div style="white-space: pre-wrap; word-break: break-word; font-size: 0.9rem; color: #1e293b;">
-                                    <strong style="color: #0f766e; font-family: 'JetBrains Mono', monospace;">@${adminUsername}:</strong>${t.adminReply}
+                                    <strong style="color: #0f766e;">${adminDisplayName}:</strong>${t.adminReply}
                                 </div>
                                 ${t.repliedAt ? `<div style="font-size: 0.68rem; color: #64748b; text-align: right; margin-top: 5px; font-family: monospace;"><i class="fa-regular fa-clock"></i> ឆ្លើយតបនៅ៖ ${t.repliedAt}</div>` : ""}
                             </div>
@@ -8251,12 +7909,11 @@ function c360RenderTicketsList() {
                         }
                     </div>
 
-                    <!-- 🛠️ ផ្នែកប៊ូតុងខាងក្រោម (Footer Actions) -->
                     <div style="display: flex; justify-content: flex-end; align-items: center; gap: 8px; padding-top: 10px; border-top: 1px dashed var(--border);">
-                        <button onclick="c360ViewUserMessage('${currentC360User.username}', '${tId}')" class="kh-text" style="padding: 7px 14px; background: var(--bg-body); color: var(--text-main); border: 1px solid var(--border); border-radius: 8px; font-size: 0.8rem; font-weight: 700; cursor: pointer; transition: 0.2s; display: inline-flex; align-items: center; gap: 6px;">
+                        <button onclick="c360ViewUserMessage('${canonicalId}', '${tId}')" class="kh-text" style="padding: 7px 14px; background: var(--bg-body); color: var(--text-main); border: 1px solid var(--border); border-radius: 8px; font-size: 0.8rem; font-weight: 700; cursor: pointer; transition: 0.2s; display: inline-flex; align-items: center; gap: 6px;">
                             <i class="fa-solid fa-file-magnifying-glass" style="color: #0d9488;"></i> មើលរបាយការណ៍
                         </button>
-                        <button onclick="c360AdminReplyTicket('${currentC360User.username}', '${tId}')" class="kh-text" style="padding: 7px 16px; background: ${isAnswered ? "#0f766e" : "#2563eb"}; color: white; border: none; border-radius: 8px; font-size: 0.8rem; font-weight: 700; cursor: pointer; transition: 0.2s; display: inline-flex; align-items: center; gap: 6px; box-shadow: 0 3px 8px rgba(15, 118, 110, 0.2);">
+                        <button onclick="c360AdminReplyTicket('${canonicalId}', '${tId}')" class="kh-text" style="padding: 7px 16px; background: ${isAnswered ? "#0f766e" : "#2563eb"}; color: white; border: none; border-radius: 8px; font-size: 0.8rem; font-weight: 700; cursor: pointer; transition: 0.2s; display: inline-flex; align-items: center; gap: 6px; box-shadow: 0 3px 8px rgba(15, 118, 110, 0.2);">
                             <i class="fa-solid ${isAnswered ? "fa-pen-to-square" : "fa-file-pen"}"></i> ${isAnswered ? "កែប្រែរបាយការណ៍ឆ្លើយតប" : "សរសេររបាយការណ៍ឆ្លើយតប"}
                         </button>
                     </div>
@@ -8266,8 +7923,7 @@ function c360RenderTicketsList() {
     .join("");
 }
 
-// 🟢 មុខងារមើលរបាយការណ៍សំណូមពរលម្អិត (Popup View Report Modal)
-window.c360ViewUserMessage = function (username, ticketId) {
+window.c360ViewUserMessage = function (identifier, ticketId) {
   const ticketsList =
     c360CachedTickets.length > 0
       ? c360CachedTickets
@@ -8279,9 +7935,12 @@ window.c360ViewUserMessage = function (username, ticketId) {
 
   const isAnswered =
     ticket.status === "Answered" || ticket.status === "Resolved";
-  const adminUsername = (
-    ticket.repliedBy || c360GetCurrentAdminUsername()
+  const adminDisplayName = String(
+    ticket.repliedBy || c360GetCurrentAdminUsername(),
   ).replace(/^@/, "");
+  const custFullName = currentC360User
+    ? currentC360User.fullName || currentC360User.username
+    : identifier;
 
   Swal.fire({
     title: `<span class="kh-text" style="font-size: 1.2rem; color: #004d40;"><i class="fa-solid fa-file-contract"></i> របាយការណ៍សំបុត្រ #${ticket.ticketId || "N/A"}</span>`,
@@ -8294,7 +7953,7 @@ window.c360ViewUserMessage = function (username, ticketId) {
                     </div>
                     <div style="font-size: 1rem; font-weight: 800; color: #0f172a; margin-bottom: 12px;">${ticket.subject || "N/A"}</div>
                     
-                    <div style="font-size: 0.75rem; color: #64748b; font-weight: bold; margin-bottom: 4px;">ខ្លឹមសារសំណើពី @${username}៖</div>
+                    <div style="font-size: 0.75rem; color: #64748b; font-weight: bold; margin-bottom: 4px;">ខ្លឹមសារសំណើពី ${custFullName}៖</div>
                     <div style="font-size: 0.95rem; color: #1e293b; line-height: 1.6; background: white; padding: 12px; border-radius: 10px; border: 1px solid #e2e8f0;">
                         ${ticket.description || ticket.message || ""}
                     </div>
@@ -8306,17 +7965,17 @@ window.c360ViewUserMessage = function (username, ticketId) {
                 <div style="background: #f0fdfa; padding: 14px; border-radius: 14px; border: 1px solid #99f6e4; margin-bottom: 12px;">
                     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
                         <span style="font-size: 0.78rem; color: #0f766e; font-weight: 800;"><i class="fa-solid fa-file-signature"></i> របាយការណ៍ឆ្លើយតបពីក្រុមការងារ៖</span>
-                        <span style="font-size: 0.75rem; background: #ccfbf1; color: #0f766e; padding: 2px 8px; border-radius: 6px; font-weight: bold; font-family: 'JetBrains Mono', monospace;">@${adminUsername}</span>
+                        <span style="font-size: 0.75rem; background: #ccfbf1; color: #0f766e; padding: 2px 8px; border-radius: 6px; font-weight: bold;">${adminDisplayName}</span>
                     </div>
                     <div style="font-size: 0.92rem; color: #0f172a; line-height: 1.5;">
-                        <strong style="color: #0f766e; font-family: 'JetBrains Mono', monospace;">@${adminUsername}:</strong>${ticket.adminReply}
+                        <strong style="color: #0f766e;">${adminDisplayName}:</strong>${ticket.adminReply}
                     </div>
                 </div>`
                     : ""
                 }
 
                 <div style="font-size: 0.78rem; color: #94a3b8; display: flex; justify-content: space-between;">
-                    <span><i class="fa-solid fa-user"></i> អតិថិជន: @${username}</span>
+                    <span><i class="fa-solid fa-user"></i> អតិថិជន៖ ${custFullName}</span>
                     <span><i class="fa-regular fa-clock"></i> ${ticket.date || ticket.createdAt || "N/A"}</span>
                 </div>
             </div>
@@ -8330,13 +7989,12 @@ window.c360ViewUserMessage = function (username, ticketId) {
     customClass: { popup: "modal-radius kh-text premium-swal" },
   }).then((res) => {
     if (res.isConfirmed) {
-      c360AdminReplyTicket(username, ticketId);
+      c360AdminReplyTicket(identifier, ticketId);
     }
   });
 };
 
-// 🟢 មុខងារឆ្លើយតបសំណូមពរ (ភ្ជាប់ជាមួយ Quick Reply Templates និងកត់ត្រា @username)
-window.c360AdminReplyTicket = async function (username, ticketId) {
+window.c360AdminReplyTicket = async function (identifier, ticketId) {
   const ticketsList =
     c360CachedTickets.length > 0
       ? c360CachedTickets
@@ -8345,7 +8003,14 @@ window.c360AdminReplyTicket = async function (username, ticketId) {
     (t) => t.ticketId === ticketId || t._id?.toString() === ticketId,
   );
 
-  const activeAdminUsername = c360GetCurrentAdminUsername().replace(/^@/, "");
+  const activeAdminName = String(c360GetCurrentAdminUsername()).replace(
+    /^@/,
+    "",
+  );
+  const canonicalId = c360GetCanonicalId(currentC360User) || identifier;
+  const custFullName = currentC360User
+    ? currentC360User.fullName || currentC360User.username
+    : identifier;
 
   const { value: replyText } = await Swal.fire({
     title: `<span class="kh-text" style="font-size: 1.25rem; color: #0f172a;"><i class="fa-solid fa-file-signature" style="color: #0d9488;"></i> របាយការណ៍ឆ្លើយតបសំណូមពរ</span>`,
@@ -8353,7 +8018,7 @@ window.c360AdminReplyTicket = async function (username, ticketId) {
             <div style="text-align: left; font-family: 'Kantumruy Pro', sans-serif; margin-top: 8px;">
                 <div style="display: flex; justify-content: space-between; align-items: center; background: #f0fdfa; padding: 8px 12px; border-radius: 10px; border: 1px solid #99f6e4; margin-bottom: 12px; font-size: 0.8rem;">
                     <span style="color: #0f766e; font-weight: 700;"><i class="fa-solid fa-user-shield"></i> មន្ត្រីឆ្លើយតប (Admin):</span>
-                    <span style="font-family: 'JetBrains Mono', monospace; font-weight: 800; color: #0f766e; background: #ccfbf1; padding: 2px 8px; border-radius: 6px;">@${activeAdminUsername}</span>
+                    <span style="font-weight: 800; color: #0f766e; background: #ccfbf1; padding: 2px 8px; border-radius: 6px;">${activeAdminName}</span>
                 </div>
 
                 ${
@@ -8373,7 +8038,7 @@ window.c360AdminReplyTicket = async function (username, ticketId) {
                     <span onclick="document.getElementById('swal-c360-reply-box').value='សួស្តីបង! ករណីនេះត្រូវបានបញ្ជូនទៅកាន់ផ្នែកបច្ចេកទេសជាន់ខ្ពស់ដើម្បីផ្ទៀងផ្ទាត់ជូនបងហើយ។'" style="font-size: 0.75rem; background: #eff6ff; color: #2563eb; border: 1px solid #bfdbfe; padding: 4px 10px; border-radius: 20px; cursor: pointer; font-weight: 700;">📋 បញ្ជូនទៅផ្នែកបច្ចេកទេស</span>
                 </div>
 
-                <label style="font-size: 0.8rem; font-weight: 700; color: #475569; display: block; margin-bottom: 6px;">ខ្លឹមសាររបាយការណ៍ឆ្លើយតបទៅកាន់ @${username} <span style="color:red">*</span></label>
+                <label style="font-size: 0.8rem; font-weight: 700; color: #475569; display: block; margin-bottom: 6px;">ខ្លឹមសាររបាយការណ៍ឆ្លើយតបទៅកាន់ ${custFullName} <span style="color:red">*</span></label>
                 <textarea id="swal-c360-reply-box" class="swal2-textarea kh-text" placeholder="វាយបញ្ចូលរបាយការណ៍ឆ្លើយតបនៅទីនេះ..." style="width: 100%; min-height: 110px; margin: 0; font-size: 0.92rem; padding: 12px; border-radius: 12px; box-sizing: border-box; font-family: 'Kantumruy Pro', sans-serif;">${ticket?.adminReply || ""}</textarea>
             </div>
         `,
@@ -8408,10 +8073,11 @@ window.c360AdminReplyTicket = async function (username, ticketId) {
         method: "POST",
         headers: getAuthHeaders(),
         body: JSON.stringify({
-          username,
+          _id: canonicalId,
+          userId: canonicalId,
+          username: currentC360User ? currentC360User.username : identifier,
           ticketId,
           replyMessage: replyText,
-          adminUsername: activeAdminUsername,
         }),
       });
       const data = await res.json();
@@ -8420,7 +8086,7 @@ window.c360AdminReplyTicket = async function (username, ticketId) {
         Swal.fire({
           icon: "success",
           title: "បានបញ្ជូនរបាយការណ៍ជោគជ័យ!",
-          text: `ឆ្លើយតបដោយ @${activeAdminUsername} ទៅកាន់ប្រអប់សារអតិថិជនរួចរាល់។`,
+          text: `ឆ្លើយតបដោយ ${activeAdminName} ទៅកាន់ប្រអប់សារអតិថិជនរួចរាល់។`,
           timer: 1800,
           showConfirmButton: false,
           customClass: { popup: "premium-swal kh-text" },

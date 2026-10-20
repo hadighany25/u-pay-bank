@@ -1,8 +1,12 @@
-// ========================================================================
+// ============================================================================
 // ឯកសារ: js/admin-dashboard.js (100% Real-Data Executive Analytics Engine)
 // អត្ថន័យ: គ្រប់គ្រងផ្ទាំង Dashboard ធំ, Date Range Filter, ក្រាហ្វពីរផ្ទាំង, Live Stream & Leaderboards
-// ========================================================================
+// ស្តង់ដារថ្មី: ចាប់ទិន្នន័យអតិថិជនតាម MongoDB `_id` សុទ្ធសាធ + បង្ហាញឈ្មោះពេញ (fullName)
+// ============================================================================
 
+// ============================================================================
+// 🧭 ជំពូកទី ១៖ អថេរសកល និងការកំណត់ចន្លោះកាលបរិច្ឆេទ (GLOBAL STATE & DATE PRESETS)
+// ============================================================================
 let adashMainChart = null;
 let adashChannelChart = null;
 let adashRawPayload = null;
@@ -10,7 +14,9 @@ let adashCurrentPreset = "7D";
 let adashChartMode = "volume"; // 'volume' | 'count'
 let adashLeaderboardMode = "users"; // 'users' | 'merchants'
 
-// ១. កំណត់កាលបរិច្ឆេទតាមប៊ូតុងជ្រើសរើសរហ័ស (TODAY, 7D, 30D, YEAR, ALL)
+/**
+ * 🔹 ១.១ កំណត់កាលបរិច្ឆេទតាមប៊ូតុងជ្រើសរើសរហ័ស (TODAY, 7D, 30D, YEAR, ALL)
+ */
 window.setDashboardDatePreset = function (preset) {
   adashCurrentPreset = preset;
   document.querySelectorAll(".adash-preset-btn[data-range]").forEach((btn) => {
@@ -57,6 +63,9 @@ window.setDashboardDatePreset = function (preset) {
   refreshAdminDashboard(false);
 };
 
+/**
+ * 🔹 ១.២ អនុវត្តការចម្រាញ់ទិន្នន័យតាមថ្ងៃចាប់ផ្តើម និងថ្ងៃបញ្ចប់ដែល Admin ជ្រើសរើសផ្ទាល់
+ */
 window.applyCustomDashboardDates = function () {
   document.querySelectorAll(".adash-preset-btn[data-range]").forEach((btn) => {
     btn.classList.remove("active");
@@ -70,7 +79,13 @@ window.applyCustomDashboardDates = function () {
   refreshAdminDashboard(false);
 };
 
-// ២. ទាញយកទិន្នន័យពិតពី Server (គាំទ្រទាំង /api/admin/dashboard-analytics និង Fallback គណនាផ្ទាល់)
+// ============================================================================
+// 🔄 ជំពូកទី ២៖ ម៉ាស៊ីនទាញយកទិន្នន័យវិភាគពី SERVER និង FALLBACK តាម `_id` (DATA ENGINE)
+// ============================================================================
+
+/**
+ * 🔹 ២.១ ទាញយកទិន្នន័យពិតពី `/api/admin/dashboard-analytics`
+ */
 window.refreshAdminDashboard = async function (showToast = false) {
   const spin = document.getElementById("adash-refresh-spin");
   if (spin) spin.classList.add("fa-spin");
@@ -81,7 +96,7 @@ window.refreshAdminDashboard = async function (showToast = false) {
   try {
     let analyticsData = null;
 
-    // ២.១ សាកល្បងទាញពី API ថ្មី (/api/admin/dashboard-analytics)
+    // ២.១.១ សាកល្បងទាញពី API ស្នូល (/api/admin/dashboard-analytics)
     try {
       const q = new URLSearchParams();
       if (startDate) q.set("startDate", startDate);
@@ -96,7 +111,7 @@ window.refreshAdminDashboard = async function (showToast = false) {
       }
     } catch (e) {}
 
-    // ២.២ ប្រសិនបើមិនទាន់បានបន្ថែម Route ថ្មីក្នុង server.js ទេ គណនាទិន្នន័យពិតពី API ដែលមានស្រាប់ភ្លាមៗ!
+    // ២.១.២ ប្រសិនបើមានបញ្ហាបណ្តាញបណ្តោះអាសន្ន គណនាទិន្នន័យពិតពី API រងដោយភ្ជាប់តាម `_id`
     if (!analyticsData) {
       analyticsData = await buildClientSideAnalyticsFallback(
         startDate,
@@ -126,7 +141,9 @@ window.refreshAdminDashboard = async function (showToast = false) {
   }
 };
 
-// 🛡️ អនុគមន៍ Fallback គណនាទិន្នន័យពិត ១០០% ប្រសិនបើមិនទាន់ថែម Route ក្នុង Backend
+/**
+ * 🔹 ២.២ អនុគមន៍ Fallback គណនាទិន្នន័យពិត ១០០% ដោយភ្ជាប់តាម MongoDB `_id` និង `fullName`
+ */
 async function buildClientSideAnalyticsFallback(startDate, endDate) {
   const [userRes, extraRes, cardsRes, sysRes, fxRes] = await Promise.all([
     fetch("/api/users", { headers: getAuthHeaders() }),
@@ -139,12 +156,13 @@ async function buildClientSideAnalyticsFallback(startDate, endDate) {
     fetch("/api/admin/system-status", { headers: getAuthHeaders() }).catch(
       () => null,
     ),
-    fetch("/api/admin/fx-rates", { headers: getAuthHeaders() }).catch(
+    fetch("/api/admin/fx/rates", { headers: getAuthHeaders() }).catch(
       () => null,
     ),
   ]);
 
-  const users = (await userRes.json()) || [];
+  const rawUsers = (await userRes.json()) || [];
+  const users = Array.isArray(rawUsers) ? rawUsers : rawUsers.users || [];
   const extra = extraRes && extraRes.ok ? await extraRes.json() : {};
   const cardsObj = cardsRes && cardsRes.ok ? await cardsRes.json() : {};
   const sysObj = sysRes && sysRes.ok ? await sysRes.json() : {};
@@ -177,6 +195,9 @@ async function buildClientSideAnalyticsFallback(startDate, endDate) {
   const allTrxs = [];
 
   clients.forEach((u) => {
+    const canonicalId = String(u._id || u.id || "");
+    const fullName = u.fullName || u.name || u.username;
+
     if (u.isOnline) activeOnlineUsers++;
     if (u.isFrozen) frozenUsersCount++;
     const kyc = String(u.kycStatus || "").toLowerCase();
@@ -190,8 +211,10 @@ async function buildClientSideAnalyticsFallback(startDate, endDate) {
     let uKhr = Number(u.mainAccounts?.KHR?.balance || 0);
     if (Array.isArray(u.subAccounts)) {
       u.subAccounts.forEach((s) => {
-        if (s.currency === "KHR") uKhr += Number(s.balance || 0);
-        else uUsd += Number(s.balance || 0);
+        if (s.accountType !== "junior") {
+          if (s.currency === "KHR") uKhr += Number(s.balance || 0);
+          else uUsd += Number(s.balance || 0);
+        }
       });
     }
     if (Array.isArray(u.deposits)) {
@@ -206,15 +229,20 @@ async function buildClientSideAnalyticsFallback(startDate, endDate) {
     }
     if (Array.isArray(u.transactions)) {
       u.transactions.forEach((t) =>
-        allTrxs.push({ ...t, username: u.username }),
+        allTrxs.push({
+          ...t,
+          userId: canonicalId,
+          senderName: t.senderName || fullName,
+        }),
       );
     }
 
     totalClientUSD += uUsd;
     totalClientKHR += uKhr;
     topUsers.push({
+      _id: canonicalId,
       username: u.username,
-      fullName: u.fullName || u.username,
+      fullName: fullName,
       profileImage: u.profileImage || "",
       usdBalance: uUsd,
       khrBalance: uKhr,
@@ -285,9 +313,8 @@ async function buildClientSideAnalyticsFallback(startDate, endDate) {
 
   const liveStream = (extra.activities || []).map((a) => ({
     refId: a.refId || "TRX",
-    username: a.user || "User",
-    senderName: a.user || "User",
-    receiverName: a.receiver || "System",
+    senderName: a.user || "អតិថិជន U-Pay",
+    receiverName: a.receiver || "ប្រព័ន្ធធនាគារ",
     amount: Number(a.amount || 0),
     currency: "USD",
     type: a.type || "Transfer",
@@ -349,10 +376,13 @@ async function buildClientSideAnalyticsFallback(startDate, endDate) {
   };
 }
 
-// ========================================================================
-// 🎨 SECTION 3: RENDER ALL WIDGETS, CHARTS & LIVE STREAM
-// ========================================================================
+// ============================================================================
+// 📊 ជំពូកទី ៣៖ ការបង្ហាញតួលេខ KPI ទាំង ១៥ និងក្រាហ្វវិភាគទាំង ២ (KPI WIDGETS & CHARTS)
+// ============================================================================
 
+/**
+ * 🔹 ៣.១ អនុគមន៍បម្លែងទឹកប្រាក់ដុល្លារឱ្យមានទម្រង់ស្តង់ដារធនាគារ ($0.00)
+ */
 function formatUsdMoney(val) {
   return (
     "$" +
@@ -363,11 +393,14 @@ function formatUsdMoney(val) {
   );
 }
 
+/**
+ * 🔹 ៣.២ បង្ហាញទិន្នន័យលើគ្រប់កាត Hero, កាត KPI ទាំង ១២, ក្រាហ្វទាំង ២ និងតារាងខាងក្រោម
+ */
 function renderAllDashboardWidgets(data) {
   const k = data.kpis || {};
   const sys = data.system || {};
 
-  // ១. ស្ថានភាពប្រព័ន្ធ (System Freeze Badge)
+  // ៣.២.១ ផ្លាកស្ថានភាពប្រព័ន្ធ (System Freeze Badge)
   const sysBadge = document.getElementById("adash-sys-status-badge");
   if (sysBadge) {
     if (sys.isFrozen) {
@@ -383,12 +416,12 @@ function renderAllDashboardWidgets(data) {
     }
   }
 
-  // ២. Hero Cards ទាំង ៣ ខាងលើ
   const setTxt = (id, txt) => {
     const el = document.getElementById(id);
     if (el) el.innerText = txt;
   };
 
+  // ៣.២.២ Hero Cards ទាំង ៣ ខាងលើ
   setTxt("d-balance", formatUsdMoney(k.totalSystemLiquidityUSD));
   setTxt("adash-hero-usd", formatUsdMoney(k.totalClientUSD));
   setTxt(
@@ -407,7 +440,7 @@ function renderAllDashboardWidgets(data) {
   );
   setTxt("adash-hero-escrow", formatUsdMoney(k.totalMerchantEscrowUSD));
 
-  // ៣. KPI Cards ទាំង ១២
+  // ៣.២.៣ KPI Cards ទាំង ១២
   setTxt("d-users", Number(k.totalUsers || 0).toLocaleString());
   setTxt("adash-sub-kyc-ok", `${k.verifiedKycCount || 0} នាក់`);
 
@@ -448,14 +481,16 @@ function renderAllDashboardWidgets(data) {
     Number(k.openSupportTickets || 0).toLocaleString(),
   );
 
-  // ៤. គូរក្រាហ្វទាំង ២ និងតារាងខាងក្រោម
+  // ៣.២.៤ គូរក្រាហ្វទាំង ២ និងតារាងខាងក្រោម
   renderMainCashflowChart();
   renderChannelDoughnutChart();
   renderDashboardLiveStream();
   renderDashboardLeaderboard();
 }
 
-// 📈 ក្រាហ្វទី ១៖ លំហូរសាច់ប្រាក់ចូល/ចេញ និងចំនួនប្រតិបត្តិការ
+/**
+ * 🔹 ៣.៣ ក្រាហ្វទី ១៖ លំហូរសាច់ប្រាក់ចូល/ចេញ និងចំនួនប្រតិបត្តិការប្រចាំថ្ងៃ (Line Chart)
+ */
 window.switchMainChartMode = function (mode) {
   adashChartMode = mode;
   document
@@ -538,7 +573,9 @@ function renderMainCashflowChart() {
   });
 }
 
-// 🍩 ក្រាហ្វទី ២៖ សមាមាត្រប្រភេទប្រតិបត្តិការ (Doughnut Chart)
+/**
+ * 🔹 ៣.៤ ក្រាហ្វទី ២៖ សមាមាត្រប្រភេទប្រតិបត្តិការទាំង ៥ (Channel Doughnut Chart)
+ */
 function renderChannelDoughnutChart() {
   const canvas = document.getElementById("adashChannelChart");
   if (!canvas || !adashRawPayload) return;
@@ -597,7 +634,13 @@ function renderChannelDoughnutChart() {
   }
 }
 
-// ⚡ ផ្ទាំងតាមដានប្រតិបត្តិការផ្ទាល់ (Live Transaction Stream)
+// ============================================================================
+// ⚡ ជំពូកទី ៤៖ ការតាមដានប្រតិបត្តិការផ្ទាល់ និងតារាងកំពូលតាម `_id` (LIVE STREAM & LEADERBOARD BY `_id`)
+// ============================================================================
+
+/**
+ * 🔹 ៤.១ គូរតារាងប្រតិបត្តិការផ្ទាល់ (Live Transaction Stream) ដោយបង្ហាញឈ្មោះពេញ
+ */
 window.renderDashboardLiveStream = function () {
   const box = document.getElementById("activity-feed");
   if (!box || !adashRawPayload) return;
@@ -627,7 +670,6 @@ window.renderDashboardLiveStream = function () {
   box.innerHTML = filtered
     .map((act) => {
       const isPositive = Number(act.amount) >= 0;
-      const sym = act.currency === "KHR" ? "៛" : "$";
       const amtFormatted =
         act.currency === "KHR"
           ? Math.abs(act.amount).toLocaleString("en-US") + " ៛"
@@ -689,7 +731,9 @@ window.renderDashboardLiveStream = function () {
     .join("");
 };
 
-// 🏆 តារាងកំពូលអតិថិជន និងកំពូលហាងទំនិញ (Top Leaderboards)
+/**
+ * 🔹 ៤.២ តារាងកំពូលអតិថិជន និងកំពូលហាងទំនិញ (Top Leaderboards) ដោយចាប់តាម `_id` សុទ្ធសាធ!
+ */
 window.switchLeaderboardTab = function (mode) {
   adashLeaderboardMode = mode;
   document
@@ -712,33 +756,35 @@ function renderDashboardLeaderboard() {
       return;
     }
     box.innerHTML = list
-      .map(
-        (u, idx) => `
-        <div class="adash-stream-item" onclick="openCustomer360FromDashboard('${u.username}')">
-          <div style="display:flex; align-items:center; gap:10px;">
-            <div style="width:28px; height:28px; border-radius:8px; background:${idx === 0 ? "#fef3c7" : "#f1f5f9"}; color:${idx === 0 ? "#d97706" : "#64748b"}; display:flex; align-items:center; justify-content:center; font-weight:900; font-size:0.78rem;">
-              #${idx + 1}
-            </div>
-            <div>
-              <div style="font-weight:800; font-size:0.85rem; color:var(--text-main); text-transform:uppercase;">
-                ${u.fullName}
+      .map((u, idx) => {
+        // 🎯 ប្រើប្រាស់ MongoDB `_id` របស់អតិថិជនសម្រាប់លោតទៅ Customer 360°
+        const targetId = String(u._id || u.id || u.username);
+        return `
+          <div class="adash-stream-item" onclick="openCustomer360FromDashboard('${targetId}')" title="ចុចដើម្បីបើកមើលក្នុង Customer 360°">
+            <div style="display:flex; align-items:center; gap:10px;">
+              <div style="width:28px; height:28px; border-radius:8px; background:${idx === 0 ? "#fef3c7" : "#f1f5f9"}; color:${idx === 0 ? "#d97706" : "#64748b"}; display:flex; align-items:center; justify-content:center; font-weight:900; font-size:0.78rem;">
+                #${idx + 1}
               </div>
-              <div style="font-size:0.72rem; color:var(--text-muted); font-weight:700;">
-                @${u.username} • ${Number(u.khrBalance || 0).toLocaleString()} ៛
+              <div>
+                <div style="font-weight:800; font-size:0.85rem; color:var(--text-main); text-transform:uppercase;">
+                  ${u.fullName || u.username}
+                </div>
+                <div style="font-size:0.72rem; color:var(--text-muted); font-weight:700;">
+                  សមតុល្យរៀល៖ ${Number(u.khrBalance || 0).toLocaleString()} ៛
+                </div>
+              </div>
+            </div>
+            <div style="text-align:right;">
+              <div style="font-family:'JetBrains Mono',monospace; font-weight:900; font-size:0.9rem; color:#10b981;">
+                ${formatUsdMoney(u.usdBalance)}
+              </div>
+              <div style="font-size:0.68rem; color:var(--text-muted); font-weight:700;">
+                សរុប ≈ ${formatUsdMoney(u.totalUsdEq)}
               </div>
             </div>
           </div>
-          <div style="text-align:right;">
-            <div style="font-family:'JetBrains Mono',monospace; font-weight:900; font-size:0.9rem; color:#10b981;">
-              ${formatUsdMoney(u.usdBalance)}
-            </div>
-            <div style="font-size:0.68rem; color:var(--text-muted); font-weight:700;">
-              សរុប ≈ ${formatUsdMoney(u.totalUsdEq)}
-            </div>
-          </div>
-        </div>
-      `,
-      )
+        `;
+      })
       .join("");
   } else {
     const mList = adashRawPayload.topMerchants || [];
@@ -759,7 +805,7 @@ function renderDashboardLeaderboard() {
                 ${m.name}
               </div>
               <div style="font-size:0.72rem; color:var(--text-muted); font-weight:700;">
-                MID: ${m.merchantId} • @${m.owner}
+                MID: #${m.merchantId} • ${m.category || "General"}
               </div>
             </div>
           </div>
@@ -778,13 +824,22 @@ function renderDashboardLeaderboard() {
   }
 }
 
-// 🧭 មុខងារចុចលោតពីកាត ឬតារាងក្នុង Dashboard ទៅកាន់ Menu ពាក់ព័ន្ធផ្ទាល់
+// ============================================================================
+// 🧭 ជំពូកទី ៥៖ ការលោតឆ្លងម៉ឺនុយតាម `_id`, ទាញយក CSV និងការចាប់ផ្តើមស្វ័យប្រវត្តិ (NAVIGATION & EXPORT)
+// ============================================================================
+
+/**
+ * 🔹 ៥.១ លោតពីកាត KPI ក្នុង Dashboard ទៅកាន់ម៉ឺនុយពាក់ព័ន្ធផ្ទាល់
+ */
 window.navigateFromDashboard = function (sectionId) {
   if (typeof showSection === "function") {
     showSection(sectionId);
   }
 };
 
+/**
+ * 🔹 ៥.២ លោតទៅពិនិត្យវិក្កយបត្រលម្អិតក្នុងម៉ឺនុយ Trx Check
+ */
 window.inspectTrxFromDashboard = function (refId) {
   if (!refId || refId === "N/A") return;
   if (typeof showSection === "function") {
@@ -799,19 +854,31 @@ window.inspectTrxFromDashboard = function (refId) {
   }
 };
 
-window.openCustomer360FromDashboard = function (username) {
-  if (!username) return;
+/**
+ * 🔹 ៥.៣ លោតទៅកាន់ទំព័រ Customer 360° តាមរយៈ MongoDB `_id` របស់អតិថិជនផ្ទាល់!
+ */
+window.openCustomer360FromDashboard = function (targetUserId) {
+  if (!targetUserId) return;
+  if (typeof goToCustomer360 === "function") {
+    goToCustomer360(targetUserId);
+    return;
+  }
   if (typeof showSection === "function") {
     showSection("customer-360");
     setTimeout(() => {
-      const inp = document.getElementById("c360SearchInput");
-      if (inp) inp.value = username;
-      if (typeof searchCustomer360 === "function") searchCustomer360(username);
+      const inp =
+        document.getElementById("searchC360") ||
+        document.getElementById("c360SearchInput");
+      if (inp) inp.value = targetUserId;
+      if (typeof searchCustomer360 === "function")
+        searchCustomer360(targetUserId);
     }, 150);
   }
 };
 
-// 📥 មុខងារទាញយករបាយការណ៍សង្ខេបពី Dashboard ជាឯកសារ CSV
+/**
+ * 🔹 ៥.៤ ទាញយករបាយការណ៍សង្ខេបពី Dashboard ជាឯកសារ CSV
+ */
 window.exportDashboardExecutiveCSV = function () {
   if (!adashRawPayload || !adashRawPayload.kpis) return;
   const k = adashRawPayload.kpis;
@@ -847,7 +914,9 @@ window.exportDashboardExecutiveCSV = function () {
   URL.revokeObjectURL(url);
 };
 
-// ចាប់ផ្តើមដំណើរការ Dashboard ដោយស្វ័យប្រវត្តិ និងធ្វើបច្ចុប្បន្នភាពរៀងរាល់ ១៥ វិនាទីម្ដង (តែពេលកំពុងបើកផ្ទាំង Dashboard ប៉ុណ្ណោះ!)
+/**
+ * 🔹 ៥.៥ ចាប់ផ្តើមដំណើរការ Dashboard ដោយស្វ័យប្រវត្តិ និងធ្វើបច្ចុប្បន្នភាពរៀងរាល់ ១៥ វិនាទីម្ដង
+ */
 document.addEventListener("DOMContentLoaded", () => {
   setDashboardDatePreset("7D");
 

@@ -1,8 +1,12 @@
-// ========================================================================
-// ឯកសារ: admin-fx.js (100% Pro 4-Card Carousel + NBC Weekly Auto-Sync)
+// ============================================================================
+// ឯកសារ: js/admin-fx.js (100% Pro 4-Card Carousel + NBC Weekly Auto-Sync)
 // អត្ថន័យ: គ្រប់គ្រងអត្រាប្តូរប្រាក់ USD ⇄ KHR, តារាងរូបិយប័ណ្ណអន្តរជាតិ និង NBC Sync
-// ========================================================================
+// ស្តង់ដារថ្មី: រៀបចំតាមជំពូកធំៗ និងចំណុចរងតូចៗ (Sub-sections) យ៉ាងមានរបៀបដូចក្នុង Backend
+// ============================================================================
 
+// ============================================================================
+// 🌐 ជំពូកទី ១៖ អថេរសកល, តារាងរូបិយប័ណ្ណស្តង់ដារ និងមុខងារទង់ជាតិ (GLOBAL FX STATE & FLAGS)
+// ============================================================================
 window.currentFXRates = {
   usdToKhrBuy: 4050,
   usdToKhrSell: 4100,
@@ -11,7 +15,9 @@ window.currentFXRates = {
   multiCurrencies: [],
 };
 
-// តារាងរូបិយប័ណ្ណអន្តរជាតិស្តង់ដារទាំង ៨ (ប្រើកូដប្រទេស c1, c2 សម្រាប់ទាញរូបទង់ជាតិ HD)
+/**
+ * 🔹 ១.១ តារាងរូបិយប័ណ្ណអន្តរជាតិស្តង់ដារទាំង ៨ ប្រទេស
+ */
 const DEFAULT_MULTI_CURRENCIES = [
   {
     code: "USD/KHR",
@@ -117,8 +123,11 @@ let activeMultiCurrencies = JSON.parse(
 );
 let currentCarouselGroup = 0; // 0 = ក្រុមទី ១ (កាត 1-4), 1 = ក្រុមទី ២ (កាត 5-8)
 let fxCarouselTimer = null;
+let isFlippingCarousel = false;
 
-// បង្កើត HTML រូបទង់ជាតិភ្លោះច្បាស់ៗ (HD Flag Pair)
+/**
+ * 🔹 ១.២ បង្កើត HTML រូបទង់ជាតិភ្លោះច្បាស់ៗ (HD Flag Pair)
+ */
 function renderFlagPairHtml(c1 = "us", c2 = "kh") {
   const code1 = String(c1 || "us").toLowerCase();
   const code2 = String(c2 || "kh").toLowerCase();
@@ -130,7 +139,9 @@ function renderFlagPairHtml(c1 = "us", c2 = "kh") {
   `;
 }
 
-// ភ្ជាប់កូដប្រទេសសម្រាប់ទិន្នន័យចាស់ដែលមិនទាន់មាន c1, c2
+/**
+ * 🔹 ១.៣ ភ្ជាប់កូដប្រទេសសម្រាប់ទិន្នន័យចាស់ដែលមិនទាន់មាន c1, c2
+ */
 function normalizeCurrencyFlags(list) {
   const flagMap = {
     "USD/KHR": ["us", "kh"],
@@ -152,10 +163,13 @@ function normalizeCurrencyFlags(list) {
   });
 }
 
-// ========================================================================
-// 🔄 SECTION 1: FETCH & SYNC FX RATES FROM SERVER
-// ========================================================================
+// ============================================================================
+// 🔄 ជំពូកទី ២៖ ការទាញយក និងធ្វើសមកាលកម្មអត្រាប្តូរប្រាក់ពីធនាគារជាតិ (FETCH & NBC SYNC)
+// ============================================================================
 
+/**
+ * 🔹 ២.១ ទាញយកអត្រាប្តូរប្រាក់បច្ចុប្បន្នពី Server (`/api/admin/fx/rates`)
+ */
 window.fetchFXRates = async function (showToast = false) {
   const spinIcon = document.getElementById("afx-refresh-icon");
   if (spinIcon) spinIcon.classList.add("fa-spin");
@@ -198,7 +212,6 @@ window.fetchFXRates = async function (showToast = false) {
         activeMultiCurrencies[0].sell = sellVal;
       }
 
-      // បង្ហាញកាលបរិច្ឆេទ Sync ចុងក្រោយលើផ្លាក
       const metaBadge = document.getElementById("afx-sync-meta-badge");
       if (metaBadge) {
         if (data.rates.lastNbcSyncAt) {
@@ -234,7 +247,9 @@ window.fetchFXRates = async function (showToast = false) {
   }
 };
 
-// 🏦 ប៊ូតុងចុចទាញអត្រាប្តូរប្រាក់ពីធនាគារជាតិភ្លាមៗ (Sync NBC Now)
+/**
+ * 🔹 ២.២ ប៊ូតុងចុចទាញអត្រាប្តូរប្រាក់ពីធនាគារជាតិភ្លាមៗ (Sync NBC Now)
+ */
 window.syncFromNationalBank = async function () {
   const icon = document.getElementById("afx-nbc-sync-icon");
   if (icon) icon.classList.add("fa-bounce");
@@ -277,10 +292,13 @@ window.syncFromNationalBank = async function () {
   }
 };
 
-// ========================================================================
-// 🎨 SECTION 2: 4-CARD ROTATING CAROUSEL & MULTI-CURRENCY BOARD
-// ========================================================================
+// ============================================================================
+// 🎨 ជំពូកទី ៣៖ ការបង្ហាញកាតរង្វិល ៤ ផ្ទាំង និងតារាងរូបិយប័ណ្ណអន្តរជាតិ (CAROUSEL & TABLE UI)
+// ============================================================================
 
+/**
+ * 🔹 ៣.១ គណនា និងបង្ហាញតួលេខ KPI ទាំង ៤ ខាងលើ (ទិញចូល, លក់ចេញ, Spread, អត្រាមធ្យម)
+ */
 function renderFxDashboardUI() {
   const buyVal =
     parseFloat(document.getElementById("fxBuy")?.value) ||
@@ -317,7 +335,9 @@ function renderFxDashboardUI() {
   runFxSimulator();
 }
 
-// ✈️ បង្ហាញម្ដង ៤ កាតពេញទទឹង ១០០% ជាមួយចលនាទឹករលកព្រលានយន្តហោះ (Airport Wave Flip)
+/**
+ * 🔹 ៣.២ បង្ហាញម្ដង ៤ កាតពេញទទឹង ១០០% ជាមួយចលនាទឹករលកព្រលានយន្តហោះ (Airport Wave Flip)
+ */
 function render4CardCarousel(animateWave = false) {
   const track = document.getElementById("afx-live-ticker-track");
   if (!track) return;
@@ -341,7 +361,6 @@ function render4CardCarousel(animateWave = false) {
         : "rgba(239, 68, 68, 0.15)";
       const trendIcon = isUp ? "fa-caret-up" : "fa-caret-down";
 
-      // 🌊 កំណត់ Delay ជាទឹករលកពីកាតទី ១ ដល់កាតទី ៤ (0ms, 95ms, 190ms, 285ms)
       const waveClass = animateWave ? "wave-flip-in" : "";
       const waveDelayStyle = animateWave
         ? `animation-delay: ${idx * 95}ms;`
@@ -368,14 +387,14 @@ function render4CardCarousel(animateWave = false) {
     .join("");
 }
 
-// 🌊 ប្តូររវាងក្រុមទី ១ និងក្រុមទី ២ ដោយលោតបាត់អាចាស់ម្ដងមួយៗជាទឹករលក រួចលោតអាថ្មីមកជំនួស
-let isFlippingCarousel = false;
+/**
+ * 🔹 ៣.៣ ប្តូររវាងក្រុមកាតទី ១ និងក្រុមកាតទី ២ ដោយប្រើចលនាទឹករលក (Wave Flip Transition)
+ */
 window.switchFxCarouselPage = function (groupIndex) {
   const track = document.getElementById("afx-live-ticker-track");
   if (!track || isFlippingCarousel) return;
   isFlippingCarousel = true;
 
-  // ១. ឱ្យកាតចាស់ទាំង ៤ បង្វិលបាត់ទៅខាងលើជាទឹករលក (ពីឆ្វេងទៅស្តាំ ម្ដងមួយៗ)
   const currentCards = track.querySelectorAll(".afx-ticker-card");
   currentCards.forEach((card, idx) => {
     card.classList.remove("wave-flip-in");
@@ -383,7 +402,6 @@ window.switchFxCarouselPage = function (groupIndex) {
     card.classList.add("wave-flip-out");
   });
 
-  // ២. គ្រាន់តែកាតចាស់បង្វិលផុតភ្លាម បញ្ចូលកាតថ្មីទាំង ៤ ឱ្យបង្វិលលោតចេញមកជាទឹករលកបន្តកន្ទុយគ្នា!
   setTimeout(() => {
     currentCarouselGroup = groupIndex;
     render4CardCarousel(true);
@@ -393,6 +411,9 @@ window.switchFxCarouselPage = function (groupIndex) {
   }, 460);
 };
 
+/**
+ * 🔹 ៣.៤ គូរតារាងអត្រាប្តូរប្រាក់រូបិយប័ណ្ណអន្តរជាតិទាំង ៨ ប្រទេស
+ */
 function renderMultiCurrencyTable() {
   const tbody = document.getElementById("afxMultiCurrencyBody");
   if (!tbody) return;
@@ -444,10 +465,13 @@ function renderMultiCurrencyTable() {
     .join("");
 }
 
-// ========================================================================
-// ⚡ SECTION 3: INTERACTIVE CONTROLS, SIMULATOR & LIVE PULSE ANIMATION
-// ========================================================================
+// ============================================================================
+// ⚡ ជំពូកទី ៤៖ ប៊ូតុងបញ្ជារហ័ស, ឧបករណ៍សាកល្បងគណនា និងការរក្សាទុក (SIMULATOR & SAVE)
+// ============================================================================
 
+/**
+ * 🔹 ៤.១ ប៊ូតុងដំឡើង/បន្ថយអត្រាប្តូរប្រាក់ និងការជ្រើសរើសអត្រារហ័ស (Presets)
+ */
 window.stepCoreFxRate = function (inputId, delta) {
   const el = document.getElementById(inputId);
   if (!el) return;
@@ -479,6 +503,9 @@ window.onMultiCurrencyCellEdit = function (index, field, val) {
   }
 };
 
+/**
+ * 🔹 ៤.២ សាកល្បងចលនាទីផ្សារប្តូរប្រាក់ផ្ទាល់ (Live Market Pulse Animation)
+ */
 window.simulateLiveMarketPulse = function () {
   activeMultiCurrencies.forEach((c) => {
     const isUp = Math.random() > 0.42;
@@ -503,6 +530,9 @@ window.simulateLiveMarketPulse = function () {
   }
 };
 
+/**
+ * 🔹 ៤.៣ ឧបករណ៍សាកល្បងគណនាការប្តូរប្រាក់រវាងរូបិយប័ណ្ណទាំងអស់ (Live FX Simulator)
+ */
 window.runFxSimulator = function () {
   const fromCurr = document.getElementById("afxSimFrom")?.value || "USD";
   const toCurr = document.getElementById("afxSimTo")?.value || "KHR";
@@ -557,10 +587,9 @@ window.runFxSimulator = function () {
   subEl.innerText = `អត្រាគណនា៖ 1 ${fromCurr} ≈ ${effRate > 10 ? effRate.toFixed(2) : effRate.toFixed(4)} ${toCurr}`;
 };
 
-// ========================================================================
-// 💾 SECTION 4: SAVE FX RATES TO SERVER
-// ========================================================================
-
+/**
+ * 🔹 ៤.៤ រក្សាទុកអត្រាប្តូរប្រាក់ថ្មីទៅកាន់ Server (`/api/admin/fx/update`)
+ */
 window.updateFX = async function () {
   const buy = parseFloat(document.getElementById("fxBuy")?.value) || 0;
   const sell = parseFloat(document.getElementById("fxSell")?.value) || 0;
@@ -624,7 +653,9 @@ window.updateFX = async function () {
   }
 };
 
-// Auto-Rotate ម្ដង ៤ កាត រៀងរាល់ ៥ វិនាទីម្ដង
+// ============================================================================
+// 🎬 ជំពូកទី ៥៖ ការចាប់ផ្តើមដំណើរការ និងបង្វិលកាតស្វ័យប្រវត្តិ (AUTO-INIT & CAROUSEL TIMER)
+// ============================================================================
 document.addEventListener("DOMContentLoaded", () => {
   fetchFXRates();
 

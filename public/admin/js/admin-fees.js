@@ -1,16 +1,26 @@
-// ========================================================================
-// ឯកសារ: admin-fees.js (100% Pro Redesign - Tiered Fee & Limit Policy Engine)
+// ============================================================================
+// ឯកសារ: js/admin-fees.js (100% Pro Redesign - Tiered Fee & Limit Policy Engine)
 // អត្ថន័យ: គ្រប់គ្រងកម្រៃសេវា និងដែនកំណត់ផ្ទេរប្រាក់ (Bi-Directional USD ⇄ KHR + Simulator)
-// ========================================================================
+// ស្តង់ដារថ្មី: រៀបចំតាមជំពូក និងលេខរៀង Comment ស្តង់ដារដូចក្នុង Backend
+// ============================================================================
 
+// ============================================================================
+// ⚙️ ជំពូកទី ១៖ អថេរសកល និងការទាញយកការកំណត់ថ្លៃសេវា (STATE & SETTINGS LOADER)
+// ============================================================================
 let feeTiersList = [];
 
+/**
+ * 🔹 ១.១ ទាញយកអត្រាប្តូរប្រាក់លក់ចេញបច្ចុប្បន្ន (USD -> KHR)
+ */
 function getCurrentFXRate() {
   return window.currentFXRates && window.currentFXRates.usdToKhrSell
     ? parseFloat(window.currentFXRates.usdToKhrSell)
     : 4100;
 }
 
+/**
+ * 🔹 ១.២ ទាញយកការកំណត់ដែនកំណត់ប្រចាំថ្ងៃ និងតារាងថ្លៃសេវាពី Server
+ */
 window.loadFeeSettings = async function (showToast = false) {
   const spinIcon = document.getElementById("afees-refresh-icon");
   if (spinIcon) spinIcon.classList.add("fa-spin");
@@ -43,6 +53,10 @@ window.loadFeeSettings = async function (showToast = false) {
   }
 };
 
+// ============================================================================
+// 🔢 ជំពូកទី ២៖ ការគណនាស្ថិតិ KPI និងការបម្លែងរូបិយប័ណ្ណទ្វេទិស (KPI & BI-DIRECTIONAL FX SYNC)
+// ============================================================================
+
 window.formatDecimal = function (input) {
   let val = String(input.value || "").replace(/,/g, ".");
   val = val.replace(/[^0-9.]/g, "");
@@ -66,6 +80,9 @@ window.setQuickDailyLimit = function (usdAmount) {
   }
 };
 
+/**
+ * 🔹 ២.២ ធ្វើបច្ចុប្បន្នភាពកាតសង្ខេប KPI ខាងលើតារាងថ្លៃសេវា
+ */
 function updateFeePolicyKpis() {
   const limitUsd =
     parseFloat(document.getElementById("dailyTrxLimit")?.value) || 0;
@@ -98,6 +115,9 @@ function updateFeePolicyKpis() {
   }
 }
 
+/**
+ * 🔹 ២.៣ បម្លែងតម្លៃរវាង USD និង KHR ដោយស្វ័យប្រវត្តិពេល Admin វាយបញ្ចូលក្នុងប្រអប់ណាមួយ
+ */
 window.syncCurrency = function (element, type, index, field) {
   const exchangeRate = getCurrentFXRate();
   let value = parseFloat(element.value) || 0;
@@ -117,6 +137,10 @@ window.syncCurrency = function (element, type, index, field) {
   updateFeePolicyKpis();
   runLiveFeeSimulator();
 };
+
+// ============================================================================
+// 📋 ជំពូកទី ៣៖ ការគូរតារាងកម្រិតថ្លៃសេវា និងការគ្រប់គ្រងជួរ (FEE TIERS TABLE MANAGEMENT)
+// ============================================================================
 
 window.renderFeeTiers = function () {
   const tbody = document.getElementById("feeTiersBody");
@@ -151,14 +175,12 @@ window.renderFeeTiers = function () {
 
       return `
         <tr style="border-bottom: 1px solid var(--border, #e2e8f0); transition: 0.15s;" onmouseover="this.style.background='rgba(15, 23, 42, 0.015)'" onmouseout="this.style.background='transparent'">
-          <!-- ១. លេខរៀងកម្រិត -->
           <td style="padding: 14px 12px;">
             <span style="background: rgba(13, 148, 136, 0.12); color: #0d9488; border: 1px solid rgba(13, 148, 136, 0.3); padding: 4px 10px; border-radius: 8px; font-weight: 900; font-size: 0.78rem; font-family: 'JetBrains Mono', monospace;">
               TIER #${index + 1}
             </span>
           </td>
 
-          <!-- ២. ចាប់ពីចំនួន (Min USD & KHR) -->
           <td style="padding: 14px 12px;">
             <div class="afees-dual-input-pair">
               <div class="afees-curr-box">
@@ -172,7 +194,6 @@ window.renderFeeTiers = function () {
             </div>
           </td>
 
-          <!-- ៣. រហូតដល់ចំនួន (Max USD & KHR) -->
           <td style="padding: 14px 12px;">
             <div class="afees-dual-input-pair">
               <div class="afees-curr-box">
@@ -186,7 +207,6 @@ window.renderFeeTiers = function () {
             </div>
           </td>
 
-          <!-- ៤. ថ្លៃសេវា (Fee USD & KHR) -->
           <td style="padding: 14px 12px;">
             <div class="afees-dual-input-pair">
               <div class="afees-curr-box" style="border-color: rgba(245, 158, 11, 0.45);">
@@ -200,7 +220,6 @@ window.renderFeeTiers = function () {
             </div>
           </td>
 
-          <!-- ៥. ប៊ូតុងលុប -->
           <td style="padding: 14px 12px; text-align: right;">
             <button type="button" onclick="removeTier(${index})" title="លុបកម្រិតនេះ" style="background: rgba(239, 68, 68, 0.12); color: #ef4444; border: 1px solid rgba(239, 68, 68, 0.3); width: 36px; height: 36px; border-radius: 10px; cursor: pointer; transition: 0.2s;">
               <i class="fa-solid fa-trash-can"></i>
@@ -238,7 +257,10 @@ window.sortAndCleanFeeTiers = function () {
   renderFeeTiers();
 };
 
-// ឧបករណ៍សាកល្បងគណនាថ្លៃសេវាផ្ទាល់ (Live Fee Simulator)
+// ============================================================================
+// 🧪 ជំពូកទី ៤៖ ឧបករណ៍សាកល្បងគណនាថ្លៃសេវា និងការរក្សាទុក (LIVE SIMULATOR & SAVE)
+// ============================================================================
+
 window.runLiveFeeSimulator = function () {
   const testAmt =
     parseFloat(document.getElementById("afeesSimAmount")?.value) || 0;
@@ -368,6 +390,9 @@ window.saveFeeSettings = async function () {
   }
 };
 
+// ============================================================================
+// 🎬 ជំពូកទី ៥៖ ការចាប់ផ្តើមដំណើរការតារាងថ្លៃសេវាដោយស្វ័យប្រវត្តិ (AUTO-INIT HOOK)
+// ============================================================================
 document.addEventListener("DOMContentLoaded", () => {
   setTimeout(loadFeeSettings, 900);
 });

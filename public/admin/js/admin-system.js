@@ -1,8 +1,12 @@
 // ============================================================================
 // ឯកសារ: js/admin-system.js (Pro Automated Scheduler + Auto-Freeze & Auto-Resume)
 // អត្ថន័យ: គ្រប់គ្រងការកំណត់ម៉ោងបិទ/បើកប្រព័ន្ធស្វ័យប្រវត្តិ, ផ្ញើសារជូនដំណឹង & របាយការណ៍
+// ស្តង់ដារថ្មី: បង្ហាញឈ្មោះពេញរបស់មន្ត្រីប្រតិបត្តិ (fullName) និងរៀបចំជំពូកស្តង់ដារ
 // ============================================================================
 
+// ============================================================================
+// ⏰ ជំពូកទី ១៖ អថេរសកល និងការកំណត់ម៉ោងថែទាំដំបូង (GLOBAL STATE & DEFAULT TIMERS)
+// ============================================================================
 let globalSystemStatusData = {
   isSystemFrozen: false,
   maintenanceMeta: {},
@@ -11,11 +15,17 @@ let globalSystemStatusData = {
 let systemOutageInterval = null;
 let systemAutoPollInterval = null;
 
+/**
+ * 🔹 ១.១ បម្លែង Date Object ឱ្យទៅជាទម្រង់សម្រាប់ប្រអប់ `<input type="datetime-local">`
+ */
 function formatLocalDatetimeInput(dateObj) {
   const pad = (n) => String(n).padStart(2, "0");
   return `${dateObj.getFullYear()}-${pad(dateObj.getMonth() + 1)}-${pad(dateObj.getDate())}T${pad(dateObj.getHours())}:${pad(dateObj.getMinutes())}`;
 }
 
+/**
+ * 🔹 ១.២ កំណត់ម៉ោងចាប់ផ្តើម និងម៉ោងបញ្ចប់លំនាំដើម (ឥឡូវនេះ + ១ ម៉ោង)
+ */
 function initSystemDefaultTimes() {
   const startEl = document.getElementById("asysStartTime");
   const endEl = document.getElementById("asysExpectedEnd");
@@ -25,6 +35,9 @@ function initSystemDefaultTimes() {
   if (endEl && !endEl.value) endEl.value = formatLocalDatetimeInput(plus1Hour);
 }
 
+/**
+ * 🔹 ១.៣ បំពេញមូលហេតុ និងរយៈពេលថែទាំដោយស្វ័យប្រវត្តិ (Quick Presets)
+ */
 window.applySystemReasonPreset = function (presetKey) {
   const reasonEl = document.getElementById("asysReasonInput");
   const typeEl = document.getElementById("asysFreezeType");
@@ -63,6 +76,13 @@ window.applySystemReasonPreset = function (presetKey) {
   }
 };
 
+// ============================================================================
+// 🔄 ជំពូកទី ២៖ ការទាញយកស្ថានភាពប្រព័ន្ធ និងបង្ហាញផ្ទាំងបញ្ជា (LOAD & RENDER UI)
+// ============================================================================
+
+/**
+ * 🔹 ២.១ ទាញយកស្ថានភាពប្រព័ន្ធ និងប្រវត្តិថែទាំពី `/api/admin/system-status`
+ */
 window.loadSystemControlHub = async function (showSpin = false) {
   const spinIcon = document.getElementById("asys-refresh-icon");
   if (showSpin && spinIcon) spinIcon.classList.add("fa-spin");
@@ -99,6 +119,9 @@ function formatCountdownHMS(msLeft) {
   return `${h}:${m}:${s}`;
 }
 
+/**
+ * 🔹 ២.២ គូរផ្ទាំងបញ្ជាប្រព័ន្ធ (Hero Banner, KPI Cards, Service Impact & Countdown Timer)
+ */
 function renderSystemControlUI() {
   const isFrozen = globalSystemStatusData.isSystemFrozen;
   const meta = globalSystemStatusData.maintenanceMeta || {};
@@ -118,7 +141,7 @@ function renderSystemControlUI() {
   const submitBtn = document.getElementById("asysSubmitActionBtn");
   const formHeaderTitle = document.getElementById("asysFormHeaderTitle");
 
-  // ១. អាប់ដេត Hero Banner តាមស្ថានភាពទាំង ៣ (ONLINE, SCHEDULED, FROZEN)
+  // ២.២.១ អាប់ដេត Hero Banner តាមស្ថានភាពទាំង ៣ (ONLINE, SCHEDULED, FROZEN)
   if (banner) {
     if (isFrozen) {
       banner.className = "asys-hero-banner state-frozen";
@@ -201,7 +224,7 @@ function renderSystemControlUI() {
       : "១. កំណត់ម៉ោងបិទ-បើកប្រព័ន្ធស្វ័យប្រវត្តិ និងជូនដំណឹងអតិថិជន (Auto-Schedule & Freeze Setup)";
   }
 
-  // ២. អាប់ដេត KPI Cards
+  // ២.២.២ អាប់ដេត KPI Cards ទាំង ៤ (បង្ហាញឈ្មោះពេញរបស់មន្ត្រីប្រតិបត្តិ)
   const kpiState = document.getElementById("asys-kpi-state");
   const kpiCount = document.getElementById("asys-kpi-count");
   const kpiEta = document.getElementById("asys-kpi-eta");
@@ -234,11 +257,11 @@ function renderSystemControlUI() {
         (history[0].resumedBy !== "-"
           ? history[0].resumedBy
           : history[0].frozenBy)) ||
-      "admin";
-    kpiOp.innerText = `@${String(lastActor).replace(/^@/, "")}`;
+      "គណៈគ្រប់គ្រងប្រព័ន្ធ";
+    kpiOp.innerText = String(lastActor).replace(/^@/, "");
   }
 
-  // ៣. អាប់ដេត Service Impact Pills
+  // ២.២.៣ អាប់ដេត Service Impact Pills
   document.querySelectorAll(".asys-svc-pill").forEach((pill) => {
     pill.innerText = isFrozen
       ? "ត្រូវបានផ្អាក (Blocked 🛑)"
@@ -252,7 +275,7 @@ function renderSystemControlUI() {
         : "#10b981";
   });
 
-  // ៤. នាឡិការាប់ថយក្រោយ និឹងបាញ់ទៅ Server អូតូពេលដល់ម៉ោងគត់!
+  // ២.២.៤ នាឡិការាប់ថយក្រោយដោយស្វ័យប្រវត្តិ
   if (systemOutageInterval) clearInterval(systemOutageInterval);
   const timerBadge = document.getElementById("asysTimerBadge");
 
@@ -305,6 +328,13 @@ function renderSystemControlUI() {
   renderSystemHistoryTable();
 }
 
+// ============================================================================
+// 📋 ជំពូកទី ៣៖ តារាងប្រវត្តិថែទាំប្រព័ន្ធ និងសកម្មភាពបញ្ជា (HISTORY TABLE & ACTIONS)
+// ============================================================================
+
+/**
+ * 🔹 ៣.១ គូរតារាងប្រវត្តិរបាយការណ៍ថែទាំប្រព័ន្ធ (បង្ហាញឈ្មោះពេញរបស់មន្ត្រីប្រតិបត្តិ)
+ */
 window.renderSystemHistoryTable = function () {
   const tbody = document.getElementById("asysHistoryTableBody");
   if (!tbody) return;
@@ -359,6 +389,14 @@ window.renderSystemHistoryTable = function () {
         badgeHtml = `<span style="background:rgba(148,163,184,0.15); color:#64748b; border:1px solid rgba(148,163,184,0.35); padding:4px 10px; border-radius:20px; font-size:0.74rem; font-weight:800">🚫 បានបោះបង់</span>`;
       }
 
+      const frozenByFullName = String(
+        item.frozenBy || "គណៈគ្រប់គ្រងប្រព័ន្ធ",
+      ).replace(/^@/, "");
+      const resumedByFullName =
+        item.resumedBy && item.resumedBy !== "-"
+          ? String(item.resumedBy).replace(/^@/, "")
+          : "-";
+
       return `
         <tr>
           <td>
@@ -384,8 +422,8 @@ window.renderSystemHistoryTable = function () {
             }
           </td>
           <td style="font-size:0.8rem">
-            <div>បិទដោយ៖ <b>@${item.frozenBy || "admin"}</b></div>
-            <div>បើកដោយ៖ <b>${item.resumedBy && item.resumedBy !== "-" ? item.resumedBy : "-"}</b></div>
+            <div>បិទដោយ៖ <b>${frozenByFullName}</b></div>
+            <div>បើកដោយ៖ <b>${resumedByFullName}</b></div>
           </td>
           <td style="text-align:right">${badgeHtml}</td>
         </tr>
@@ -394,6 +432,9 @@ window.renderSystemHistoryTable = function () {
     .join("");
 };
 
+/**
+ * 🔹 ៣.២ បោះបង់ការកំណត់ម៉ោងថែទាំប្រព័ន្ធដែលបានដាក់ទុកមុន
+ */
 window.cancelScheduledSystemFreeze = async function () {
   const confirmRes = await Swal.fire({
     title: "បោះបង់ការកំណត់ម៉ោងថែទាំ?",
@@ -428,6 +469,9 @@ window.cancelScheduledSystemFreeze = async function () {
   }
 };
 
+/**
+ * 🔹 ៣.៣ អនុវត្តការបញ្ជាបិទភ្លាមៗ, កំណត់ម៉ោងបិទ/បើកអូតូ, ឬបើកប្រព័ន្ធវិញ
+ */
 window.triggerSystemActionFromForm = async function (forcedActionMode = null) {
   const isCurrentlyFrozen = globalSystemStatusData.isSystemFrozen;
   const freezeType =
@@ -548,6 +592,9 @@ window.triggerSystemActionFromForm = async function (forcedActionMode = null) {
   }
 };
 
+/**
+ * 🔹 ៣.៤ ទាញយកប្រវត្តិរបាយការណ៍ថែទាំប្រព័ន្ធជាឯកសារ CSV
+ */
 window.exportSystemMaintenanceCSV = function () {
   const list = globalSystemStatusData.maintenanceHistory || [];
   if (list.length === 0) {
@@ -582,8 +629,8 @@ window.exportSystemMaintenanceCSV = function () {
     item.durationText || "",
     `"${String(item.reason || "").replace(/"/g, '""')}"`,
     `"${String(item.resolutionNote || "").replace(/"/g, '""')}"`,
-    item.frozenBy || "",
-    item.resumedBy || "",
+    String(item.frozenBy || "").replace(/^@/, ""),
+    String(item.resumedBy || "").replace(/^@/, ""),
     item.status || "",
   ]);
 
@@ -602,7 +649,9 @@ window.toggleSystemFreeze = function () {
   showSection("system", sysBtn);
 };
 
-// ឆែកស្ថានភាពប្រព័ន្ធរៀងរាល់ ១៥ វិនាទីម្ដង ពេលបើកផ្ទាំង System Control
+// ============================================================================
+// 🎬 ជំពូកទី ៤៖ ការឆែកស្ថានភាពប្រព័ន្ធដោយស្វ័យប្រវត្តិរៀងរាល់ ១៥ វិនាទី (AUTO-POLLING)
+// ============================================================================
 if (!systemAutoPollInterval) {
   systemAutoPollInterval = setInterval(() => {
     const activeSec = sessionStorage.getItem("activeSection");

@@ -1,40 +1,75 @@
-// ========================================================================
-// ឯកសារ: admin-tickets.js (100% Fixed & Clean Enterprise Helpdesk Logic)
+// ============================================================================
+// ឯកសារ: js/admin-tickets.js (100% Fixed & Clean Enterprise Helpdesk Logic)
 // អត្ថន័យ: គ្រប់គ្រងសំបុត្រសំណូមពរ និងការឆ្លើយតបបញ្ហាអតិថិជន (Support Tickets Hub)
-// ========================================================================
+// ស្តង់ដារថ្មី: ចាប់ទិន្នន័យម្ចាស់សំបុត្រតាម MongoDB `_id` សុទ្ធសាធ + បង្ហាញឈ្មោះពេញ (fullName)
+// ============================================================================
 
+// ============================================================================
+// 🎫 ជំពូកទី ១៖ អថេរសកល និងអត្តសញ្ញាណមន្ត្រីឆ្លើយតប (GLOBAL STATE & ADMIN IDENTITY)
+// ============================================================================
 let globalSupportTicketsList = [];
 let filteredSupportTicketsList = [];
 let currentMainTicketPage = 1;
 const mainTicketsPerPage = 8;
 
-// 🟢 ១. ចាប់យក @username របស់បុគ្គលិក Admin ដែលកំពុង Login
-function getActiveAdminUsername() {
-  if (typeof c360GetCurrentAdminUsername === "function") {
-    return c360GetCurrentAdminUsername();
-  }
-  try {
-    const adminStr =
-      localStorage.getItem("admin") ||
-      sessionStorage.getItem("admin") ||
-      localStorage.getItem("user");
-    if (adminStr) {
-      const parsed = JSON.parse(adminStr);
-      if (parsed.username) return parsed.username;
-    }
-    const token =
-      localStorage.getItem("token") ||
-      sessionStorage.getItem("token") ||
-      localStorage.getItem("adminToken");
-    if (token && token.includes(".")) {
-      const payload = JSON.parse(atob(token.split(".")[1]));
-      if (payload.username) return payload.username;
-    }
-  } catch (e) {}
-  return "admin";
+/**
+ * 🔹 ១.១ ទាញយកឈ្មោះពេញរបស់បុគ្គលិក Admin ដែលកំពុង Login (សម្រាប់បង្ហាញលើរបាយការណ៍ឆ្លើយតប)
+ */
+function getActiveAdminDisplayName() {
+  const domName = document
+    .getElementById("adminNameDisplay")
+    ?.innerText?.trim();
+  if (domName) return domName.replace(/^@/, "");
+  const sessionName = sessionStorage.getItem("adminFullName");
+  if (sessionName) return sessionName.replace(/^@/, "");
+  return "មន្ត្រីផ្នែកជំនួយអតិថិជន U-Pay";
 }
 
-// 🟢 ២. ទាញយកទិន្នន័យសំបុត្រទាំងអស់ពី API ថ្មី (/api/admin/all-tickets)
+/**
+ * 🔹 ១.២ ស្វែងរកសំបុត្រតាមរយៈ `userId` (`_id`) និង `ticketId`
+ */
+function findSupportTicketRecord(ownerIdentifier, ticketId) {
+  const cleanOwner = String(ownerIdentifier || "").trim();
+  const cleanTckId = String(ticketId || "").trim();
+
+  let ticket = globalSupportTicketsList.find(
+    (t) =>
+      (String(t.ticketId) === cleanTckId || String(t._id) === cleanTckId) &&
+      (String(t.userId) === cleanOwner || String(t.username) === cleanOwner),
+  );
+
+  if (!ticket) {
+    ticket = globalSupportTicketsList.find(
+      (t) => String(t.ticketId) === cleanTckId || String(t._id) === cleanTckId,
+    );
+  }
+
+  if (!ticket && typeof globalUsersData !== "undefined") {
+    const targetUser = (globalUsersData || []).find(
+      (u) => String(u._id || u.id) === cleanOwner || u.username === cleanOwner,
+    );
+    ticket = targetUser?.tickets?.find(
+      (t) => String(t.ticketId) === cleanTckId || String(t._id) === cleanTckId,
+    );
+    if (ticket && targetUser) {
+      ticket = {
+        ...ticket,
+        userId: String(targetUser._id || targetUser.id),
+        username: targetUser.username,
+        fullName: targetUser.fullName || targetUser.username,
+      };
+    }
+  }
+  return ticket || null;
+}
+
+// ============================================================================
+// 🔄 ជំពូកទី ២៖ ការទាញយកសំបុត្រជំនួយទាំងអស់ និងគណនាស្ថិតិ KPI (FETCH & KPI STATS)
+// ============================================================================
+
+/**
+ * 🔹 ២.១ ទាញយកទិន្នន័យសំបុត្រទាំងអស់ពី API (`/api/admin/all-tickets`)
+ */
 window.fetchAllSupportTickets = async function (showToast = false) {
   const tbody = document.getElementById("ticketTableBody");
   const refreshIcon = document.getElementById("tck-hub-refresh-icon");
@@ -85,7 +120,9 @@ window.fetchAllSupportTickets = async function (showToast = false) {
   }
 };
 
-// អនុគមន៍ជំនួយ Fallback ទាញចេញពី globalUsersData បើចាំបាច់
+/**
+ * 🔹 ២.២ អនុគមន៍ជំនួយ Fallback ទាញចេញពី `globalUsersData` ដោយភ្ជាប់ `userId: _id`
+ */
 function extractTicketsFromGlobalUsers() {
   let list = [];
   if (
@@ -93,15 +130,17 @@ function extractTicketsFromGlobalUsers() {
     Array.isArray(globalUsersData)
   ) {
     globalUsersData.forEach((u) => {
+      const canonicalId = String(u._id || u.id || "");
       if (Array.isArray(u.tickets)) {
         u.tickets.forEach((t) => {
           list.push({
             ...t,
+            userId: canonicalId,
+            userCustomId: canonicalId,
             username: u.username,
             fullName: u.fullName || u.username,
             phone: u.phone || "N/A",
             profileImage: u.profileImage || "../images/default-avatar.png",
-            userCustomId: u.userId || "N/A",
           });
         });
       }
@@ -114,7 +153,9 @@ function extractTicketsFromGlobalUsers() {
   );
 }
 
-// 🟢 ៣. គណនា និងបង្ហាញតួលេខលើប្រអប់ KPI ទាំង ៤
+/**
+ * 🔹 ២.៣ គណនា និងបង្ហាញតួលេខលើប្រអប់ KPI ទាំង ៤
+ */
 function updateMainTicketKPIs() {
   const total = globalSupportTicketsList.length;
   const answered = globalSupportTicketsList.filter(
@@ -139,7 +180,13 @@ function updateMainTicketKPIs() {
   if (elAnswered) elAnswered.innerText = answered;
 }
 
-// 🟢 ៤. មុខងារចុចជ្រើសរើសលើប្រអប់ KPI (Quick Filter)
+// ============================================================================
+// 🔍 ជំពូកទី ៣៖ ការចម្រាញ់ទិន្នន័យ និងគូរតារាងសំបុត្រតាម `_id` (FILTERING & TABLE RENDERING BY `_id`)
+// ============================================================================
+
+/**
+ * 🔹 ៣.១ ចុចជ្រើសរើសលើប្រអប់ KPI ដើម្បីចម្រាញ់រហ័ស (Quick Filter)
+ */
 window.setMainTicketQuickFilter = function (mode) {
   document
     .querySelectorAll(".tck-hub-kpi-card")
@@ -169,7 +216,9 @@ window.setMainTicketQuickFilter = function (mode) {
   filterMainTicketsTable(true);
 };
 
-// 🟢 ៥. មុខងារចម្រាញ់ទិន្នន័យ (Search + Priority + Status)
+/**
+ * 🔹 ៣.២ ចម្រាញ់សំបុត្រតាមពាក្យគន្លឹះ, កម្រិតអាទិភាព និងស្ថានភាព
+ */
 window.filterMainTicketsTable = function (resetPage = false) {
   if (resetPage) currentMainTicketPage = 1;
 
@@ -199,6 +248,9 @@ window.filterMainTicketsTable = function (resetPage = false) {
 
     if (keyword) {
       const matchId = (t.ticketId || "").toLowerCase().includes(keyword);
+      const matchOwnerId = String(t.userId || "")
+        .toLowerCase()
+        .includes(keyword);
       const matchUser = (t.username || "").toLowerCase().includes(keyword);
       const matchName = (t.fullName || "").toLowerCase().includes(keyword);
       const matchSub = (t.subject || "").toLowerCase().includes(keyword);
@@ -207,7 +259,13 @@ window.filterMainTicketsTable = function (resetPage = false) {
         .includes(keyword);
       const matchAdmin = (t.repliedBy || "").toLowerCase().includes(keyword);
       return (
-        matchId || matchUser || matchName || matchSub || matchMsg || matchAdmin
+        matchId ||
+        matchOwnerId ||
+        matchUser ||
+        matchName ||
+        matchSub ||
+        matchMsg ||
+        matchAdmin
       );
     }
 
@@ -217,7 +275,9 @@ window.filterMainTicketsTable = function (resetPage = false) {
   renderMainTicketsTableRows();
 };
 
-// 🟢 ៦. គូរជួរដេកក្នុងតារាង (Render Table Rows)
+/**
+ * 🔹 ៣.៣ គូរជួរដេកក្នុងតារាងសំបុត្រដោយចាប់តាម `ownerId` (`_id`) និងបង្ហាញតែឈ្មោះពេញ (`fullName`)
+ */
 function renderMainTicketsTableRows() {
   const tbody = document.getElementById("ticketTableBody");
   const prevBtn = document.getElementById("tck-hub-prev-btn");
@@ -259,14 +319,19 @@ function renderMainTicketsTableRows() {
   tbody.innerHTML = pageItems
     .map((t) => {
       const tId = t.ticketId || t._id || "N/A";
+      const ownerKey = String(t.userId || t.userCustomId || t.username || "");
+      const customerFullName = t.fullName || t.username || "អតិថិជន U-Pay";
+
       const isAnswered =
         t.status === "Answered" ||
         t.status === "Resolved" ||
         t.status === "Closed";
       const isHigh = (t.priority || "").toLowerCase() === "high";
       const msgPreview = t.description || t.message || "គ្មានខ្លឹមសារ";
-      const responder = t.repliedBy ? "@" + t.repliedBy.replace(/^@/, "") : "";
-      const responderDisplay = responder ? responder : "@admin";
+      const responderName = t.repliedBy
+        ? String(t.repliedBy).replace(/^@/, "")
+        : "";
+      const responderDisplay = responderName || "មន្ត្រីធនាគារ";
 
       const priorityHtml = isHigh
         ? `<span style="background: #fee2e2; color: #ef4444; padding: 4px 10px; border-radius: 8px; font-size: 0.75rem; font-weight: 800; display: inline-flex; align-items: center; gap: 5px;"><i class="fa-solid fa-fire"></i> High</span>`
@@ -278,8 +343,8 @@ function renderMainTicketsTableRows() {
                <i class="fa-solid fa-file-circle-check"></i> Answered
              </span>
              ${
-               responder
-                 ? `<span style="font-size: 0.7rem; color: #0f766e; font-family: 'JetBrains Mono', monospace; font-weight: 700; padding-left: 4px;"><i class="fa-solid fa-user-shield"></i> ${responder}</span>`
+               responderName
+                 ? `<span style="font-size: 0.7rem; color: #0f766e; font-weight: 700; padding-left: 4px;"><i class="fa-solid fa-user-shield"></i> ${responderName}</span>`
                  : ""
              }
            </div>`
@@ -299,13 +364,13 @@ function renderMainTicketsTableRows() {
             </div>
           </td>
 
-          <!-- 2. Customer (ចុចលោតទៅ Customer 360° បាន) -->
+          <!-- 2. Customer (ចុចលោតទៅ Customer 360° តាម _id បាន) -->
           <td>
-            <div class="tck-user-pill" onclick="jumpFromTicketToCustomer360('${t.username}')" title="ចុចដើម្បីបើកមើលក្នុង Customer 360°">
+            <div class="tck-user-pill" onclick="jumpFromTicketToCustomer360('${ownerKey}')" title="ចុចដើម្បីបើកមើលក្នុង Customer 360° តាម _id">
               <img src="${t.profileImage || "../images/default-avatar.png"}" onerror="this.src='../images/default-avatar.png'" style="width: 32px; height: 32px; border-radius: 50%; object-fit: cover;">
               <div>
-                <div style="font-weight: 800; font-size: 0.85rem; color: var(--text-main); line-height: 1.2;">${t.fullName || t.username}</div>
-                <div style="font-size: 0.72rem; color: #0d9488; font-family: 'JetBrains Mono', monospace; font-weight: 700;">@${t.username} <i class="fa-solid fa-arrow-up-right-from-square" style="font-size: 0.6rem;"></i></div>
+                <div style="font-weight: 800; font-size: 0.86rem; color: var(--text-main); line-height: 1.2;">${customerFullName}</div>
+                <div style="font-size: 0.72rem; color: #0d9488; font-weight: 700;">មើល 360° <i class="fa-solid fa-arrow-up-right-from-square" style="font-size: 0.6rem;"></i></div>
               </div>
             </div>
           </td>
@@ -321,7 +386,7 @@ function renderMainTicketsTableRows() {
             ${
               t.adminReply
                 ? `<div class="kh-text" style="font-size: 0.75rem; color: #0f766e; background: #f0fdfa; padding: 3px 8px; border-radius: 6px; margin-top: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; border-left: 3px solid #0d9488;">
-                     <b>${responderDisplay}:</b> ${t.adminReply}
+                     <b>${responderDisplay}:</b>${t.adminReply}
                    </div>`
                 : ""
             }
@@ -335,10 +400,10 @@ function renderMainTicketsTableRows() {
 
           <!-- 6. Actions -->
           <td style="text-align: right; white-space: nowrap;">
-            <button onclick="viewUserMessage('${t.username}', '${tId}')" class="kh-text" style="padding: 7px 12px; border-radius: 8px; border: 1px solid var(--border, #cbd5e1); background: var(--bg-body, #f8fafc); color: var(--text-main); font-weight: 700; font-size: 0.8rem; cursor: pointer; margin-right: 6px; transition: 0.2s;" title="មើលរបាយការណ៍លម្អិត">
+            <button onclick="viewUserMessage('${ownerKey}', '${tId}')" class="kh-text" style="padding: 7px 12px; border-radius: 8px; border: 1px solid var(--border, #cbd5e1); background: var(--bg-body, #f8fafc); color: var(--text-main); font-weight: 700; font-size: 0.8rem; cursor: pointer; margin-right: 6px; transition: 0.2s;" title="មើលរបាយការណ៍លម្អិត">
               <i class="fa-solid fa-file-magnifying-glass" style="color: #0d9488;"></i> មើលសារ
             </button>
-            <button onclick="replyTicket('${t.username}', '${tId}')" class="kh-text" style="padding: 7px 14px; border-radius: 8px; border: none; background: ${isAnswered ? "#0f766e" : "#2563eb"}; color: white; font-weight: 700; font-size: 0.8rem; cursor: pointer; transition: 0.2s; box-shadow: 0 3px 8px rgba(37, 99, 235, 0.18);">
+            <button onclick="replyTicket('${ownerKey}', '${tId}')" class="kh-text" style="padding: 7px 14px; border-radius: 8px; border: none; background: ${isAnswered ? "#0f766e" : "#2563eb"}; color: white; font-weight: 700; font-size: 0.8rem; cursor: pointer; transition: 0.2s; box-shadow: 0 3px 8px rgba(37, 99, 235, 0.18);">
               <i class="fa-solid ${isAnswered ? "fa-pen-to-square" : "fa-reply"}"></i> ${isAnswered ? "កែចម្លើយ" : "ឆ្លើយតប"}
             </button>
           </td>
@@ -358,8 +423,14 @@ window.changeMainTicketPage = function (step) {
   renderMainTicketsTableRows();
 };
 
-// 🟢 ៧. មុខងារលោតពីតារាង Ticket ទៅបើក Customer 360° របស់អតិថិជននោះភ្លាមៗ
-window.jumpFromTicketToCustomer360 = function (username) {
+// ============================================================================
+// 🔎 ជំពូកទី ៤៖ ការមើលសំបុត្រលម្អិត និងការឆ្លើយតបតាម `_id` (VIEW & REPLY MODAL BY `_id`)
+// ============================================================================
+
+/**
+ * 🔹 ៤.១ លោតពីតារាង Ticket ទៅបើក Customer 360° តាមរយៈ MongoDB `_id` របស់អតិថិជន
+ */
+window.jumpFromTicketToCustomer360 = function (ownerId) {
   const c360MenuBtn = document.getElementById("menu-customer-360");
   if (typeof showSection === "function") {
     showSection("customer-360", c360MenuBtn);
@@ -367,7 +438,7 @@ window.jumpFromTicketToCustomer360 = function (username) {
 
   const searchInput = document.getElementById("searchC360");
   if (searchInput && typeof searchCustomer360 === "function") {
-    searchInput.value = username;
+    searchInput.value = ownerId;
     searchCustomer360().then(() => {
       if (typeof switchC360Tab === "function") {
         switchC360Tab("tickets");
@@ -376,28 +447,20 @@ window.jumpFromTicketToCustomer360 = function (username) {
   }
 };
 
-// 🟢 ៨. មុខងារមើលរបាយការណ៍សំណូមពរលម្អិត (View Report Modal)
-window.viewUserMessage = function (username, ticketId) {
-  let ticket = globalSupportTicketsList.find(
-    (t) =>
-      t.username === username &&
-      (t.ticketId === ticketId || t._id?.toString() === ticketId),
-  );
-
-  if (!ticket && typeof globalUsersData !== "undefined") {
-    const targetUser = globalUsersData.find((u) => u.username === username);
-    ticket = targetUser?.tickets?.find(
-      (t) => t.ticketId === ticketId || t._id?.toString() === ticketId,
-    );
-  }
+/**
+ * 🔹 ៤.២ មើលរបាយការណ៍សំណូមពរលម្អិតតាមរយៈ `ownerId` (`_id`) និងបង្ហាញឈ្មោះពេញ
+ */
+window.viewUserMessage = function (ownerId, ticketId) {
+  const ticket = findSupportTicketRecord(ownerId, ticketId);
   if (!ticket) return;
 
   const isAnswered =
     ticket.status === "Answered" || ticket.status === "Resolved";
-  const adminName = (ticket.repliedBy || getActiveAdminUsername()).replace(
-    /^@/,
-    "",
-  );
+  const customerFullName =
+    ticket.fullName || ticket.username || "អតិថិជន U-Pay";
+  const adminFullName = String(
+    ticket.repliedBy || getActiveAdminDisplayName(),
+  ).replace(/^@/, "");
 
   Swal.fire({
     title: `<span class="kh-text" style="color:#004d40; font-size: 1.2rem;"><i class="fa-solid fa-file-contract"></i> របាយការណ៍សំបុត្រ #${ticket.ticketId || "N/A"}</span>`,
@@ -405,7 +468,7 @@ window.viewUserMessage = function (username, ticketId) {
       <div style="text-align: left; font-family: 'Kantumruy Pro', sans-serif; margin-top: 8px;">
         <div style="margin-bottom: 12px; padding: 16px; background: #f8fafc; border-radius: 14px; border: 1px solid #e2e8f0;">
           <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
-            <span style="font-size: 0.78rem; color: #64748b; font-weight: 800;"><i class="fa-solid fa-user-pen"></i> សំណើពីអតិថិជន៖ @${username}</span>
+            <span style="font-size: 0.78rem; color: #64748b; font-weight: 800;"><i class="fa-solid fa-user-pen"></i> សំណើពីអតិថិជន៖ ${customerFullName}</span>
             <span style="font-size: 0.75rem; font-weight: 800; padding: 2px 9px; border-radius: 12px; background: ${isAnswered ? "#dcfce7" : "#fef9c3"}; color: ${isAnswered ? "#059669" : "#d97706"};">${ticket.status || "Pending"}</span>
           </div>
           <div style="font-size: 0.98rem; font-weight: 800; color: #0f172a; margin-bottom: 8px;">ប្រធានបទ៖ ${ticket.subject || "N/A"}</div>
@@ -419,10 +482,10 @@ window.viewUserMessage = function (username, ticketId) {
             ? `<div style="margin-bottom: 12px; padding: 14px; background: #f0fdfa; border-radius: 14px; border: 1px solid #99f6e4;">
                  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
                    <span style="font-size: 0.78rem; color: #0f766e; font-weight: 800;"><i class="fa-solid fa-file-signature"></i> របាយការណ៍ឆ្លើយតបផ្លូវការ៖</span>
-                   <span style="font-size: 0.74rem; background: #ccfbf1; color: #0f766e; padding: 2px 8px; border-radius: 6px; font-weight: 800; font-family: 'JetBrains Mono', monospace;">@${adminName}</span>
+                   <span style="font-size: 0.74rem; background: #ccfbf1; color: #0f766e; padding: 2px 8px; border-radius: 6px; font-weight: 800;">${adminFullName}</span>
                  </div>
                  <p style="margin: 0; font-size: 0.92rem; color: #0f172a; line-height: 1.5;">
-                   <strong style="color: #0f766e; font-family: 'JetBrains Mono', monospace;">@${adminName}:</strong> ${ticket.adminReply}
+                   <strong style="color: #0f766e;">${adminFullName}:</strong>${ticket.adminReply}
                  </p>
                </div>`
             : ""
@@ -443,26 +506,23 @@ window.viewUserMessage = function (username, ticketId) {
     customClass: { popup: "modal-radius kh-text premium-swal" },
   }).then((res) => {
     if (res.isConfirmed) {
-      replyTicket(username, ticketId);
+      replyTicket(ownerId, ticketId);
     }
   });
 };
 
-// 🟢 ៩. មុខងារឆ្លើយតបសំណូមពរ (Reply Ticket Modal ជាមួយ Quick Templates & @username)
-window.replyTicket = async function (username, ticketId) {
-  let ticket = globalSupportTicketsList.find(
-    (t) =>
-      t.username === username &&
-      (t.ticketId === ticketId || t._id?.toString() === ticketId),
-  );
-  if (!ticket && typeof globalUsersData !== "undefined") {
-    const targetUser = globalUsersData.find((u) => u.username === username);
-    ticket = targetUser?.tickets?.find(
-      (t) => t.ticketId === ticketId || t._id?.toString() === ticketId,
-    );
-  }
-
-  const activeAdmin = getActiveAdminUsername().replace(/^@/, "");
+/**
+ * 🔹 ៤.៣ ឆ្លើយតបសំបុត្រជំនួយតាមរយៈ MongoDB `_id` របស់អតិថិជន (បង្ហាញឈ្មោះពេញ `fullName`)
+ */
+window.replyTicket = async function (ownerId, ticketId) {
+  const ticket = findSupportTicketRecord(ownerId, ticketId);
+  const canonicalOwnerId = ticket
+    ? String(ticket.userId || ticket.userCustomId || ownerId)
+    : String(ownerId).trim();
+  const customerFullName = ticket
+    ? ticket.fullName || ticket.username
+    : String(ownerId);
+  const activeAdminName = getActiveAdminDisplayName();
 
   const { value: text } = await Swal.fire({
     title: `<span class="kh-text" style="font-size: 1.25rem; color: #0f172a;"><i class="fa-solid fa-file-signature" style="color: #0d9488;"></i> របាយការណ៍ឆ្លើយតបសំណូមពរ</span>`,
@@ -470,13 +530,13 @@ window.replyTicket = async function (username, ticketId) {
       <div style="text-align: left; font-family: 'Kantumruy Pro', sans-serif; margin-top: 8px;">
         <div style="display: flex; justify-content: space-between; align-items: center; background: #f0fdfa; padding: 8px 12px; border-radius: 10px; border: 1px solid #99f6e4; margin-bottom: 12px; font-size: 0.8rem;">
           <span style="color: #0f766e; font-weight: 700;"><i class="fa-solid fa-user-shield"></i> មន្ត្រីឆ្លើយតប (Admin):</span>
-          <span style="font-family: 'JetBrains Mono', monospace; font-weight: 800; color: #0f766e; background: #ccfbf1; padding: 2px 8px; border-radius: 6px;">@${activeAdmin}</span>
+          <span style="font-weight: 800; color: #0f766e; background: #ccfbf1; padding: 2px 8px; border-radius: 6px;">${activeAdminName}</span>
         </div>
 
         ${
           ticket
             ? `<div style="background: #f8fafc; padding: 12px 14px; border-radius: 12px; border-left: 4px solid #f59e0b; margin-bottom: 14px; font-size: 0.85rem;">
-                 <div style="font-weight: 800; color: #0f172a; margin-bottom: 3px;">ប្រធានបទ៖ ${ticket.subject} (@${username})</div>
+                 <div style="font-weight: 800; color: #0f172a; margin-bottom: 3px;">ប្រធានបទ៖ ${ticket.subject} (${customerFullName})</div>
                  <div style="color: #475569;">"${ticket.description || ticket.message || ""}"</div>
                </div>`
             : ""
@@ -489,7 +549,7 @@ window.replyTicket = async function (username, ticketId) {
           <span onclick="document.getElementById('swal-main-tck-reply').value='សួស្តីបង! ករណីនេះត្រូវបានបញ្ជូនទៅកាន់ផ្នែកបច្ចេកទេសជាន់ខ្ពស់ដើម្បីផ្ទៀងផ្ទាត់ជូនបងហើយ។'" style="font-size: 0.75rem; background: #eff6ff; color: #2563eb; border: 1px solid #bfdbfe; padding: 4px 10px; border-radius: 20px; cursor: pointer; font-weight: 700;">📋 បញ្ជូនទៅផ្នែកបច្ចេកទេស</span>
         </div>
 
-        <label style="font-size: 0.8rem; font-weight: 700; color: #475569; display: block; margin-bottom: 6px;">ខ្លឹមសាររបាយការណ៍ឆ្លើយតបទៅកាន់ @${username} <span style="color:red">*</span></label>
+        <label style="font-size: 0.8rem; font-weight: 700; color: #475569; display: block; margin-bottom: 6px;">ខ្លឹមសាររបាយការណ៍ឆ្លើយតបទៅកាន់ ${customerFullName} <span style="color:red">*</span></label>
         <textarea id="swal-main-tck-reply" class="swal2-textarea kh-text" placeholder="វាយបញ្ចូលរបាយការណ៍ឆ្លើយតបនៅទីនេះ..." style="width: 100%; min-height: 110px; margin: 0; font-size: 0.92rem; padding: 12px; border-radius: 12px; box-sizing: border-box; font-family: 'Kantumruy Pro', sans-serif;">${ticket?.adminReply || ""}</textarea>
       </div>
     `,
@@ -524,10 +584,11 @@ window.replyTicket = async function (username, ticketId) {
         method: "POST",
         headers: getAuthHeaders(),
         body: JSON.stringify({
-          username,
+          _id: canonicalOwnerId,
+          userId: canonicalOwnerId,
+          username: ticket ? ticket.username : ownerId,
           ticketId,
           replyMessage: text,
-          adminUsername: activeAdmin,
         }),
       });
       const data = await res.json();
@@ -537,7 +598,7 @@ window.replyTicket = async function (username, ticketId) {
         Swal.fire({
           icon: "success",
           title: "បានបញ្ជូនរបាយការណ៍ជោគជ័យ!",
-          text: `ឆ្លើយតបដោយ @${activeAdmin} ទៅកាន់ @${username} រួចរាល់។`,
+          text: `ឆ្លើយតបដោយ ${activeAdminName} ទៅកាន់ ${customerFullName} រួចរាល់។`,
           timer: 1700,
           showConfirmButton: false,
           customClass: { popup: "premium-swal kh-text" },
@@ -551,7 +612,9 @@ window.replyTicket = async function (username, ticketId) {
   }
 };
 
-// 🟢 ១០. ហៅទាញទិន្នន័យស្វ័យប្រវត្តិនៅពេលទំព័រដំណើរការ
+// ============================================================================
+// 🎬 ជំពូកទី ៥៖ ការចាប់ផ្តើមដំណើរការតារាងសំបុត្រជំនួយដោយស្វ័យប្រវត្តិ (AUTO-INIT HOOK)
+// ============================================================================
 document.addEventListener("DOMContentLoaded", () => {
   setTimeout(() => {
     if (document.getElementById("ticketTableBody")) {

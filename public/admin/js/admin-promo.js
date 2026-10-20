@@ -1,15 +1,21 @@
-// ========================================================================
-// ឯកសារ: admin-promo.js (100% Pro Redesign - Marketing & Voucher Hub)
+// ============================================================================
+// ឯកសារ: js/admin-promo.js (100% Pro Redesign - Marketing & Voucher Hub)
 // អត្ថន័យ: គ្រប់គ្រងលេខកូដប្រូម៉ូសិន (Promo Codes), ស្ថិតិ KPI, បង្កើតកូដឆ្លាតវៃ និង Pagination
-// ========================================================================
+// ស្តង់ដារថ្មី: ចាប់ទិន្នន័យកូដតាម MongoDB `_id` + រៀបចំជំពូក និងចំណុចរងតូចៗយ៉ាងមានរបៀប
+// ============================================================================
 
+// ============================================================================
+// 🎫 ជំពូកទី ១៖ អថេរសកល និងម៉ាស៊ីនពិនិត្យស្ថានភាពកូដប្រូម៉ូសិន (STATE & VOUCHER ANALYZER)
+// ============================================================================
 let allPromoCodes = [];
 let filteredPromoCodes = [];
 let currentPromoPage = 1;
-const PROMO_PER_PAGE = 6; // បង្ហាញ ៦ កូដក្នុង ១ ទំព័រឱ្យមើលទៅស្រឡះស្អាត
+const PROMO_PER_PAGE = 6; // បង្ហាញ ៦ កូដក្នុង ១ ទំព័រ
 let apromoCurrentStatusFilter = "ALL"; // 'ALL', 'ACTIVE', 'DEPLETED', 'EXPIRED', 'INACTIVE'
 
-// 🔍 ១. ពិនិត្យស្ថានភាពលម្អិតរបស់កូដប្រូម៉ូសិននីមួយៗ
+/**
+ * 🔹 ១.១ ពិនិត្យស្ថានភាពលម្អិតរបស់កូដប្រូម៉ូសិននីមួយៗ (Active, Disabled, Expired, ឬ Depleted)
+ */
 function getPromoCodeState(p) {
   const used = Number(p.usedCount || 0);
   const max = Math.max(1, Number(p.maxUsage || 100));
@@ -73,10 +79,13 @@ function getPromoCodeState(p) {
   };
 }
 
-// ========================================================================
-// ✨ SECTION 2: SMART VOUCHER CREATOR MODAL (SweetAlert2 Pro UI)
-// ========================================================================
+// ============================================================================
+// ✨ ជំពូកទី ២៖ ផ្ទាំងបង្កើតកូដប្រូម៉ូសិនឆ្លាតវៃ (SMART VOUCHER CREATOR MODAL)
+// ============================================================================
 
+/**
+ * 🔹 ២.១ បង្កើតអក្សរកូដប្រូម៉ូសិនចៃដន្យដោយស្វ័យប្រវត្តិ (ឧ. UPAY-8K9X2)
+ */
 window.generateRandomPromoCode = function () {
   const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
   let suffix = "";
@@ -87,6 +96,9 @@ window.generateRandomPromoCode = function () {
   if (input) input.value = `UPAY-${suffix}`;
 };
 
+/**
+ * 🔹 ២.២ បើកផ្ទាំង Modal សម្រាប់បង្កើតកូដប្រូម៉ូសិនថ្មី
+ */
 window.openPromoModal = async function () {
   const { value: formValues } = await Swal.fire({
     title: `<span style="font-family:'Kantumruy Pro',sans-serif; font-size:1.22rem; font-weight:800; color:var(--text-main,#0f172a);"><i class="fa-solid fa-ticket" style="color:#0d9488;"></i> បង្កើតកូដប្រូម៉ូសិនថ្មី (Create Voucher)</span>`,
@@ -174,6 +186,9 @@ window.openPromoModal = async function () {
   }
 };
 
+/**
+ * 🔹 ២.៣ បញ្ជូនទិន្នន័យកូដប្រូម៉ូសិនថ្មីទៅកាន់ Server (`/api/admin/promo/create`)
+ */
 async function executeCreatePromoCode(payload) {
   Swal.fire({
     title: "កំពុងបង្កើតកូដប្រូម៉ូសិន...",
@@ -218,7 +233,6 @@ async function executeCreatePromoCode(payload) {
   }
 }
 
-// រក្សាទុកអនុគមន៍ចាស់ការពារករណីមានការហៅពី HTML Modal ចាស់
 window.savePromoCode = async function () {
   const code = document.getElementById("prmCode")?.value.trim();
   const reward = document.getElementById("prmReward")?.value;
@@ -233,10 +247,13 @@ window.savePromoCode = async function () {
   });
 };
 
-// ========================================================================
-// 🔄 SECTION 3: LOAD DATA, KPI STATS & FILTERING
-// ========================================================================
+// ============================================================================
+// 🔄 ជំពូកទី ៣៖ ការទាញយកទិន្នន័យ, ស្ថិតិ KPI និងការចម្រាញ់ (LOAD DATA & KPI FILTERING)
+// ============================================================================
 
+/**
+ * 🔹 ៣.១ ទាញយកបញ្ជីកូដប្រូម៉ូសិនទាំងអស់ពី Server (`/api/admin/promos`)
+ */
 window.loadPromoCodes = async function (showToast = false) {
   const spinIcon = document.getElementById("apromo-refresh-icon");
   if (spinIcon) spinIcon.classList.add("fa-spin");
@@ -271,6 +288,9 @@ window.loadPromoCodes = async function (showToast = false) {
   }
 };
 
+/**
+ * 🔹 ៣.២ គណនា និងបង្ហាញស្ថិតិ KPI ទាំង ៥ ខាងលើតារាង
+ */
 function updatePromoKpiStats() {
   let activeCount = 0;
   let inactiveOrExpiredCount = 0;
@@ -304,6 +324,9 @@ function updatePromoKpiStats() {
   setTxt("apromo-stat-inactive", inactiveOrExpiredCount);
 }
 
+/**
+ * 🔹 ៣.៣ ចម្រាញ់កូដប្រូម៉ូសិនតាមស្ថានភាព និងពាក្យស្វែងរក
+ */
 window.apromoSetStatusFilter = function (filterKey) {
   apromoCurrentStatusFilter = filterKey;
   currentPromoPage = 1;
@@ -350,10 +373,13 @@ window.filterPromoCodes = function () {
   renderPromoCodes();
 };
 
-// ========================================================================
-// 📋 SECTION 4: TABLE RENDERING & PAGINATION
-// ========================================================================
+// ============================================================================
+// 📋 ជំពូកទី ៤៖ ការគូរតារាងកូដប្រូម៉ូសិន និងការបែងចែកទំព័រតាម `_id` (TABLE & PAGINATION BY `_id`)
+// ============================================================================
 
+/**
+ * 🔹 ៤.១ គូរតារាងកូដប្រូម៉ូសិន និងរបារ Progress Bar នៃការប្រើប្រាស់
+ */
 window.renderPromoCodes = function (customList = null) {
   if (Array.isArray(customList)) {
     filteredPromoCodes = customList;
@@ -390,6 +416,7 @@ window.renderPromoCodes = function (customList = null) {
 
   tbody.innerHTML = pageItems
     .map((p) => {
+      const promoId = String(p._id || p.id || "");
       const st = getPromoCodeState(p);
       const pct = Math.min(100, Math.round((st.used / st.max) * 100));
       const barColor =
@@ -406,7 +433,6 @@ window.renderPromoCodes = function (customList = null) {
 
       return `
         <tr style="border-bottom: 1px solid var(--border, #e2e8f0); transition: 0.15s;" onmouseover="this.style.background='rgba(15, 23, 42, 0.015)'" onmouseout="this.style.background='transparent'">
-          <!-- ១. ឈ្មោះកូដ (Voucher Chip + Copy) -->
           <td style="padding: 14px 12px;">
             <div class="apromo-voucher-chip" onclick="copyPromoCodeText('${p.code}')" title="ចុចដើម្បីចម្លងកូដ (Copy Code)">
               <i class="fa-solid fa-ticket-simple"></i>
@@ -415,7 +441,6 @@ window.renderPromoCodes = function (customList = null) {
             </div>
           </td>
 
-          <!-- ២. ទឹកប្រាក់រង្វាន់ & ចំណាយសរុប -->
           <td style="padding: 14px 12px;">
             <div style="font-family: 'JetBrains Mono', monospace; font-weight: 900; font-size: 1.08rem; color: #10b981;">
               $${st.reward.toFixed(2)} <span style="font-size: 0.72rem; color: var(--text-muted); font-family: 'Kantumruy Pro', sans-serif; font-weight: 700;">/ ១នាក់</span>
@@ -425,7 +450,6 @@ window.renderPromoCodes = function (customList = null) {
             </div>
           </td>
 
-          <!-- ៣. ចំនួនអ្នកប្រើប្រាស់ + Progress Bar -->
           <td style="padding: 14px 12px;">
             <div style="display: flex; justify-content: space-between; max-width: 190px; font-size: 0.82rem; font-weight: 800; color: var(--text-main);">
               <span>${st.used} / ${st.max} នាក់</span>
@@ -436,7 +460,6 @@ window.renderPromoCodes = function (customList = null) {
             </div>
           </td>
 
-          <!-- ៤. ថ្ងៃផុតកំណត់ -->
           <td style="padding: 14px 12px;">
             <div style="font-size: 0.84rem; font-weight: 800; color: ${st.isExpired ? "#ef4444" : "var(--text-main)"};">
               <i class="fa-regular fa-calendar-days" style="color: ${st.isExpired ? "#ef4444" : "#0d9488"}; margin-right: 4px;"></i>
@@ -444,7 +467,6 @@ window.renderPromoCodes = function (customList = null) {
             </div>
           </td>
 
-          <!-- ៥. ស្ថានភាពកូដ -->
           <td style="padding: 14px 12px;">
             <span class="apromo-status-badge ${st.badgeClass}">
               <i class="fa-solid ${st.icon}"></i>
@@ -452,10 +474,9 @@ window.renderPromoCodes = function (customList = null) {
             </span>
           </td>
 
-          <!-- ៦. កុងតាក់ បិទ/បើក -->
           <td style="padding: 14px 12px; text-align: right;">
             <label class="switch" title="${p.isActive ? "ចុចដើម្បីបិទកូដនេះ" : "ចុចដើម្បីបើកដំណើរការកូដនេះវិញ"}">
-              <input type="checkbox" ${p.isActive ? "checked" : ""} onchange="togglePromoStatus('${p._id}', ${Boolean(p.isActive)})">
+              <input type="checkbox" ${p.isActive ? "checked" : ""} onchange="togglePromoStatus('${promoId}', ${Boolean(p.isActive)})">
               <span class="slider"></span>
             </label>
           </td>
@@ -464,7 +485,6 @@ window.renderPromoCodes = function (customList = null) {
     })
     .join("");
 
-  // អាប់ដេត Pagination Footer
   const pageInfo = document.getElementById("promoPageInfo");
   if (pageInfo) {
     pageInfo.innerText = `ទំព័រ ${currentPromoPage} នៃ ${totalPages} (សរុប ${filteredPromoCodes.length} កូដ)`;
@@ -490,12 +510,19 @@ window.changePromoPage = function (step) {
   renderPromoCodes();
 };
 
+// ============================================================================
+// ⚡ ជំពូកទី ៥៖ ការបិទ/បើកកូដតាម `_id`, ចម្លងកូដ និងទាញយក CSV (ACTIONS & EXPORT)
+// ============================================================================
+
+/**
+ * 🔹 ៥.១ បិទ ឬ បើកដំណើរការកូដប្រូម៉ូសិនតាមរយៈ MongoDB `_id`
+ */
 window.togglePromoStatus = async function (id, wasActive) {
   try {
     const res = await fetch("/api/admin/promo/toggle", {
       method: "POST",
       headers: getAuthHeaders(),
-      body: JSON.stringify({ id }),
+      body: JSON.stringify({ id, _id: id }),
     });
     const data = await res.json();
     if (data.success) {
@@ -515,6 +542,9 @@ window.togglePromoStatus = async function (id, wasActive) {
   }
 };
 
+/**
+ * 🔹 ៥.២ ចម្លងអក្សរកូដប្រូម៉ូសិនទុកក្នុង Clipboard
+ */
 window.copyPromoCodeText = function (codeText) {
   navigator.clipboard.writeText(codeText).then(() => {
     Swal.fire({
@@ -529,6 +559,9 @@ window.copyPromoCodeText = function (codeText) {
   });
 };
 
+/**
+ * 🔹 ៥.៣ ទាញយករបាយការណ៍កូដប្រូម៉ូសិនជាឯកសារ CSV
+ */
 window.exportPromoCodesCSV = function () {
   if (!filteredPromoCodes || filteredPromoCodes.length === 0) {
     return Swal.fire({
@@ -540,6 +573,7 @@ window.exportPromoCodesCSV = function () {
   }
 
   const headers = [
+    "MongoDB_ID",
     "Code",
     "Reward_USD",
     "Used_Count",
@@ -554,6 +588,7 @@ window.exportPromoCodesCSV = function () {
       ? new Date(p.expiresAt).toISOString().slice(0, 10)
       : "Never";
     return [
+      `"${p._id || p.id || ""}"`,
       `"${p.code}"`,
       st.reward.toFixed(2),
       st.used,
@@ -578,7 +613,9 @@ window.exportPromoCodesCSV = function () {
   URL.revokeObjectURL(url);
 };
 
-// Auto-Load ពេលចុចចូលផ្ទាំង Promo Codes
+/**
+ * 🔹 ៥.៤ ចាប់ផ្តើមទាញទិន្នន័យកូដប្រូម៉ូសិនដោយស្វ័យប្រវត្តិពេលបើកទំព័រ
+ */
 document.addEventListener("DOMContentLoaded", () => {
   setTimeout(() => loadPromoCodes(), 700);
 

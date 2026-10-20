@@ -1,15 +1,21 @@
-// ========================================================================
-// ឯកសារ: admin-broadcast.js (100% Pro Redesign - Push Notification Center)
+// ============================================================================
+// ឯកសារ: js/admin-broadcast.js (100% Pro Redesign - Push Notification Center)
 // អត្ថន័យ: ផ្ញើសារជូនដំណឹងជាប្រព័ន្ធ (Broadcast Messages), Live Preview, Templates & Pagination
-// ========================================================================
+// ស្តង់ដារថ្មី: បង្ហាញឈ្មោះពេញរបស់មន្ត្រីផ្ញើសារ (fullName) និងចាត់ថ្នាក់ Icon សារច្បាស់លាស់
+// ============================================================================
 
+// ============================================================================
+// 🗂️ ជំពូកទី ១៖ អថេរសកល និងម៉ាស៊ីនចាត់ថ្នាក់ប្រភេទសារឆ្លាតវៃ (STATE & CLASSIFIER)
+// ============================================================================
 let allBroadcastList = [];
 let filteredBroadcastList = [];
 let currentBroadcastPage = 1;
 const BROADCAST_PER_PAGE = 6; // បង្ហាញ ៦ សារក្នុង ១ ទំព័រ
 let abroadCurrentCatFilter = "ALL"; // 'ALL', 'TODAY', 'PROMO', 'SYSTEM', 'SECURITY', 'GENERAL'
 
-// 🔍 ១. ចំណាត់ថ្នាក់ប្រភេទសារដោយស្វ័យប្រវត្តិ (Smart Broadcast Classifier)
+/**
+ * 🔹 ១.១ ចំណាត់ថ្នាក់ប្រភេទសារ និងរូបតំណាង (Icon) ដោយស្វ័យប្រវត្តិ
+ */
 function classifyBroadcastItem(title = "", message = "") {
   const combined = `${title} ${message}`.toLowerCase();
 
@@ -77,7 +83,9 @@ function classifyBroadcastItem(title = "", message = "") {
   };
 }
 
-// 🔍 ២. ឆែកថាតើសារនោះត្រូវបានផ្ញើក្នុងថ្ងៃនេះឬអត់
+/**
+ * 🔹 ១.២ ឆែកថាតើសារនោះត្រូវបានផ្ញើក្នុងថ្ងៃនេះឬអត់
+ */
 function isBroadcastFromToday(dateStr = "") {
   if (!dateStr) return false;
   try {
@@ -100,9 +108,22 @@ function isBroadcastFromToday(dateStr = "") {
   }
 }
 
-// ========================================================================
-// 🚀 SECTION 2: PRO BROADCAST COMPOSER (Quick Templates + Live Preview)
-// ========================================================================
+/**
+ * 🔹 ១.៣ ទាញយកឈ្មោះពេញរបស់មន្ត្រី Admin សម្រាប់ដាក់ជាអ្នកផ្ញើសារ (ហាមប្រើ @username!)
+ */
+function getActiveAdminSenderFullName() {
+  const fromDisplay = document
+    .getElementById("adminNameDisplay")
+    ?.innerText?.trim();
+  if (fromDisplay) return fromDisplay;
+  const fromSession = sessionStorage.getItem("adminFullName");
+  if (fromSession) return fromSession;
+  return "គណៈគ្រប់គ្រងធនាគារ U-Pay";
+}
+
+// ============================================================================
+// 🚀 ជំពូកទី ២៖ ផ្ទាំងតាក់តែងសារជូនដំណឹងថ្មី និងការមើលរូបរាងផ្ទាល់ (PRO COMPOSER & LIVE PREVIEW)
+// ============================================================================
 
 window.applyBroadcastTemplate = function (type) {
   const titleEl = document.getElementById("swal-bc-title");
@@ -124,7 +145,7 @@ window.applyBroadcastTemplate = function (type) {
   } else if (type === "feature") {
     titleEl.value = "✨ មុខងារថ្មីត្រូវបានដាក់ឱ្យប្រើប្រាស់ហើយ!";
     msgEl.value =
-      "ឥឡូវនេះ លោកអ្នកអាចប្រើប្រាស់មុខងារកាតនិម្មិត (Virtual Card), កាតរូបវ័ន្ត NFC និងការផ្ទៀងផ្ទាត់អត្តសញ្ញាណដោយ AI កាន់តែរហ័សទាន់ចិត្តនៅក្នុង U-Pay!";
+      "ឥឡូវនេះ លោកអ្នកអាចប្រើប្រាស់មុខងារកាតនិម្មិត (Virtual Card), កាតរូបវ័ន្ត NFC និងការគ្រប់គ្រងគណនីកូនៗ (U-Pay Junior) កាន់តែរហ័សទាន់ចិត្តនៅក្នុង U-Pay!";
   }
   updateBroadcastLivePreview();
 };
@@ -144,16 +165,12 @@ window.updateBroadcastLivePreview = function () {
 };
 
 window.sendBroadcast = async function (prefillTitle = "", prefillMsg = "") {
-  const activeSender =
-    (typeof c360GetActiveAdminIdentity === "function"
-      ? c360GetActiveAdminIdentity().username
-      : "") || "admin";
+  const activeSenderFullName = getActiveAdminSenderFullName();
 
   const { value: formValues } = await Swal.fire({
     title: `<span style="font-family:'Kantumruy Pro',sans-serif; font-size:1.22rem; font-weight:800; color:var(--text-main,#0f172a);"><i class="fa-solid fa-bullhorn" style="color:#0d9488;"></i> បញ្ជូនសារជូនដំណឹងទូទាំងប្រព័ន្ធ (New Broadcast)</span>`,
     html: `
       <div style="text-align: left; font-family: 'Kantumruy Pro', sans-serif; display: flex; flex-direction: column; gap: 12px; margin-top: 6px;">
-        <!-- គំរូសាររហ័ស (Quick Templates) -->
         <div>
           <label style="font-size: 0.76rem; font-weight: 800; color: #64748b; display: block; margin-bottom: 6px;">ជ្រើសរើសគំរូសាររហ័ស (QUICK TEMPLATES)៖</label>
           <div style="display: flex; gap: 6px; flex-wrap: wrap;">
@@ -164,23 +181,20 @@ window.sendBroadcast = async function (prefillTitle = "", prefillMsg = "") {
           </div>
         </div>
 
-        <!-- ចំណងជើងសារ -->
         <div>
           <label style="font-size: 0.8rem; font-weight: 800; color: #475569; display: block; margin-bottom: 5px;">១. ចំណងជើងសារជូនដំណឹង (Notification Title) <span style="color:#ef4444;">*</span></label>
           <input id="swal-bc-title" type="text" value="${prefillTitle.replace(/"/g, "&quot;")}" placeholder="ឧ. ដំណឹងថែទាំប្រព័ន្ធ ឬ កម្មវិធីចែករង្វាន់ពិសេស..." oninput="updateBroadcastLivePreview()" style="width: 100%; height: 42px; padding: 0 14px; border-radius: 10px; border: 1.5px solid #cbd5e1; font-size: 0.92rem; font-weight: 800; outline: none; box-sizing: border-box;">
         </div>
 
-        <!-- ខ្លឹមសារសារ -->
         <div>
           <label style="font-size: 0.8rem; font-weight: 800; color: #475569; display: block; margin-bottom: 5px;">២. ខ្លឹមសារសារលម្អិត (Message Content) <span style="color:#ef4444;">*</span></label>
           <textarea id="swal-bc-msg" rows="4" placeholder="សរសេរខ្លឹមសារសារជូនដំណឹងទៅកាន់អតិថិជនទាំងអស់នៅទីនេះ..." oninput="updateBroadcastLivePreview()" style="width: 100%; padding: 12px 14px; border-radius: 10px; border: 1.5px solid #cbd5e1; font-size: 0.9rem; font-weight: 600; outline: none; box-sizing: border-box; resize: vertical; line-height: 1.5;">${prefillMsg}</textarea>
         </div>
 
-        <!-- Live Mobile Push Preview -->
         <div style="background: #0f172a; border-radius: 14px; padding: 12px 15px; border: 1px solid #334155; color: #f8fafc;">
           <div style="display: flex; justify-content: space-between; align-items: center; font-size: 0.7rem; color: #94a3b8; margin-bottom: 6px; font-weight: 700;">
             <span><i class="fa-solid fa-mobile-screen-button" style="color:#10b981;"></i> រូបរាងបង្ហាញលើទូរស័ព្ទអតិថិជន (LIVE PREVIEW)</span>
-            <span>ឥឡូវនេះ • U-PAY</span>
+            <span>ឥឡូវនេះ • ${activeSenderFullName}</span>
           </div>
           <div id="swal-bc-preview-title" style="font-weight: 800; font-size: 0.9rem; color: #34d399; margin-bottom: 3px;">
             ${prefillTitle || "ចំណងជើងសារជូនដំណឹង..."}
@@ -209,7 +223,7 @@ window.sendBroadcast = async function (prefillTitle = "", prefillMsg = "") {
         );
         return false;
       }
-      return { title, message: msg, sender: activeSender };
+      return { title, message: msg, sender: activeSenderFullName };
     },
   });
 
@@ -252,9 +266,9 @@ window.sendBroadcast = async function (prefillTitle = "", prefillMsg = "") {
   }
 };
 
-// ========================================================================
-// 🔄 SECTION 3: LOAD HISTORY, KPI STATS & FILTERING
-// ========================================================================
+// ============================================================================
+// 🔄 ជំពូកទី ៣៖ ការទាញយកប្រវត្តិសារ, ស្ថិតិ KPI និងការចម្រាញ់ (HISTORY & KPI FILTERING)
+// ============================================================================
 
 window.loadBroadcastHistory = async function (showToast = false) {
   const spinIcon = document.getElementById("abroad-refresh-icon");
@@ -372,9 +386,9 @@ window.filterBroadcastHistory = function () {
   renderBroadcastTable();
 };
 
-// ========================================================================
-// 📋 SECTION 4: TABLE RENDERING & PAGINATION
-// ========================================================================
+// ============================================================================
+// 📋 ជំពូកទី ៤៖ ការគូរតារាងប្រវត្តិសារ និងបែងចែកទំព័រ (TABLE RENDERING & PAGINATION)
+// ============================================================================
 
 function renderBroadcastTable() {
   const tbody = document.getElementById("broadcastList");
@@ -418,11 +432,12 @@ function renderBroadcastTable() {
       const dateParts = rawDate.split(",");
       const dateMain = dateParts[0] || rawDate;
       const timeMain = dateParts.slice(1).join(",").trim();
-      const senderName = String(n.sender || "admin").replace(/^@/, "");
+      const senderFullName = String(
+        n.sender || "គណៈគ្រប់គ្រងធនាគារ U-Pay",
+      ).replace(/^@/, "");
 
       return `
         <tr style="border-bottom: 1px solid var(--border, #e2e8f0); transition: 0.15s;" onmouseover="this.style.background='rgba(15, 23, 42, 0.015)'" onmouseout="this.style.background='transparent'">
-          <!-- ១. កាលបរិច្ឆេទ & ម៉ោង -->
           <td style="padding: 14px 12px;">
             <div style="font-weight: 800; font-size: 0.85rem; color: var(--text-main);">
               <i class="fa-regular fa-calendar" style="color: #0d9488; margin-right: 4px;"></i> ${dateMain}
@@ -436,32 +451,28 @@ function renderBroadcastTable() {
             }
           </td>
 
-          <!-- ២. ប្រភេទ & អ្នកផ្ញើ -->
           <td style="padding: 14px 12px;">
             <span class="abroad-cat-badge ${cat.badgeClass}">
               <i class="fa-solid ${cat.icon}"></i>
               <span>${cat.label}</span>
             </span>
             <div style="font-size: 0.74rem; color: var(--text-muted); font-weight: 700; margin-top: 5px;">
-              ដោយ៖ <b style="color: var(--text-main);">@${senderName}</b>
+              ដោយ៖ <b style="color: var(--text-main);">${senderFullName}</b>
             </div>
           </td>
 
-          <!-- ៣. ចំណងជើងសារ -->
           <td style="padding: 14px 12px;">
             <div style="font-weight: 800; font-size: 0.94rem; color: var(--text-main); line-height: 1.4;">
               ${n.title || "គ្មានចំណងជើង"}
             </div>
           </td>
 
-          <!-- ៤. ខ្លឹមសារសារ -->
           <td style="padding: 14px 12px; max-width: 380px;">
             <div style="font-size: 0.86rem; color: var(--text-muted); overflow: hidden; text-overflow: ellipsis; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; line-height: 1.48;">
               ${n.message || "-"}
             </div>
           </td>
 
-          <!-- ៥. សកម្មភាព (មើល, ផ្ញើម្ដងទៀត, ដកហូត Recall) -->
           <td style="padding: 14px 12px; text-align: right; white-space: nowrap;">
             <div style="display: inline-flex; gap: 6px; align-items: center;">
               <button type="button" class="abroad-act-btn" style="background: var(--bg-body, #f1f5f9); color: var(--text-main); border-color: var(--border, #cbd5e1);" onclick="viewBroadcastDetailModal(${actualIdx})" title="អានខ្លឹមសារពេញលេញ">
@@ -482,7 +493,6 @@ function renderBroadcastTable() {
     })
     .join("");
 
-  // អាប់ដេត Pagination Footer
   const pageInfo = document.getElementById("broadcastPageInfo");
   if (pageInfo) {
     pageInfo.innerText = `ទំព័រ ${currentBroadcastPage} នៃ ${totalPages} (សរុប ${filteredBroadcastList.length} សារ)`;
@@ -509,16 +519,18 @@ window.changeBroadcastPage = function (step) {
   renderBroadcastTable();
 };
 
-// ========================================================================
-// 🔎 SECTION 5: VIEW FULL MESSAGE, RESEND, RECALL & EXPORT CSV
-// ========================================================================
+// ============================================================================
+// 🔎 ជំពូកទី ៥៖ ការមើលខ្លឹមសារពេញលេញ, ផ្ញើឡើងវិញ, ដកហូតសារ និងទាញយក CSV (DETAIL & RECALL)
+// ============================================================================
 
 window.viewBroadcastDetailModal = function (index) {
   const item = filteredBroadcastList[index];
   if (!item) return;
 
   const cat = classifyBroadcastItem(item.title, item.message);
-  const safeId = item.id || item._id;
+  const senderFullName = String(
+    item.sender || "គណៈគ្រប់គ្រងធនាគារ U-Pay",
+  ).replace(/^@/, "");
 
   Swal.fire({
     title: `<span style="font-family:'Kantumruy Pro',sans-serif; font-size:1.18rem; font-weight:800;"><i class="fa-solid ${cat.icon}" style="color:${cat.color};"></i> ព័ត៌មានលម្អិតនៃសារ Broadcast</span>`,
@@ -531,7 +543,7 @@ window.viewBroadcastDetailModal = function (index) {
 
         <div style="display:flex; justify-content:space-between; padding:10px 14px; background:var(--bg-body,#f8fafc); border:1px solid var(--border,#e2e8f0); border-radius:10px; font-size:0.86rem;">
           <span style="color:var(--text-muted); font-weight:700;">អ្នកផ្ញើ (Sender)៖</span>
-          <span style="font-weight:800; color:#0d9488;">@${String(item.sender || "admin").replace(/^@/, "")}</span>
+          <span style="font-weight:800; color:#0d9488;">${senderFullName}</span>
         </div>
 
         <div style="padding:14px; background:var(--bg-body,#f8fafc); border:1px solid var(--border,#e2e8f0); border-radius:12px;">
@@ -623,7 +635,7 @@ window.exportBroadcastHistoryCSV = function () {
     "Broadcast_ID",
     "Date",
     "Category",
-    "Sender",
+    "Sender_Full_Name",
     "Title",
     "Message",
   ];
@@ -633,7 +645,9 @@ window.exportBroadcastHistoryCSV = function () {
       `"${String(n.id || n._id || "").replace(/"/g, '""')}"`,
       `"${String(n.date || "").replace(/"/g, '""')}"`,
       `"${cat.key}"`,
-      `"${String(n.sender || "admin").replace(/"/g, '""')}"`,
+      `"${String(n.sender || "គណៈគ្រប់គ្រងធនាគារ U-Pay")
+        .replace(/^@/, "")
+        .replace(/"/g, '""')}"`,
       `"${String(n.title || "").replace(/"/g, '""')}"`,
       `"${String(n.message || "").replace(/"/g, '""')}"`,
     ];
@@ -653,7 +667,9 @@ window.exportBroadcastHistoryCSV = function () {
   URL.revokeObjectURL(url);
 };
 
-// Auto-Load ពេលចុចចូលផ្ទាំង Broadcast History
+// ============================================================================
+// 🎬 ជំពូកទី ៦៖ ការចាប់ផ្តើមដំណើរការតារាងប្រវត្តិសារដោយស្វ័យប្រវត្តិ (AUTO-INIT HOOK)
+// ============================================================================
 document.addEventListener("DOMContentLoaded", () => {
   setTimeout(() => loadBroadcastHistory(), 800);
 

@@ -1,16 +1,22 @@
-// ========================================================================
-// ឯកសារ: admin-merchants.js (100% Pro Redesign - Enterprise Merchant Hub)
+// ============================================================================
+// ឯកសារ: js/admin-merchants.js (100% Pro Redesign - Enterprise Merchant Hub)
 // អត្ថន័យ: គ្រប់គ្រងអាជីវកម្ម (Merchants), ប្រតិបត្តិការ, QR Stand Pro និង API Credentials
-// ========================================================================
+// ស្តង់ដារថ្មី: ចាប់ទិន្នន័យម្ចាស់ហាង និងហាងតាម MongoDB `_id` សុទ្ធសាធ + បង្ហាញឈ្មោះពេញ (fullName)
+// ============================================================================
 
+// ============================================================================
+// 🏪 ជំពូកទី ១៖ អថេរសកល, បញ្ជីខេត្ត-ក្រុង និងអនុគមន៍ស្វែងរកម្ចាស់ហាងតាម `_id` (STATE & HELPERS)
+// ============================================================================
 let globalMerchantsData = [];
 let currentViewedMerchantId = null;
 let gmCurrentFilter = "ALL"; // 'ALL', 'ACTIVE', 'HOLD', 'SUSPENDED'
 let gmCurrentPage = 1;
-const gmItemsPerPage = 4; // បង្ហាញ ៥ ហាងក្នុង ១ ទំព័រ
+const gmItemsPerPage = 4; // បង្ហាញ ៤ ហាងក្នុង ១ ទំព័រ
 let gmCachedShopTrx = [];
 
-// 🇰🇭 បញ្ជីរាជធានី-ខេត្តទាំង ២៥
+/**
+ * 🔹 ១.១ បញ្ជីរាជធានី-ខេត្តទាំង ២៥
+ */
 const gmCambodiaProvinces = [
   "Phnom Penh",
   "Banteay Meanchey",
@@ -38,7 +44,9 @@ const gmCambodiaProvinces = [
   "Tbong Khmum",
 ];
 
-// 🎨 រូបតំណាង និងពណ៌តាមប្រភេទអាជីវកម្ម (Category Icon Helper)
+/**
+ * 🔹 ១.២ រូបតំណាង និងពណ៌តាមប្រភេទអាជីវកម្ម (Category Icon Helper)
+ */
 function gmGetCategoryBadge(category) {
   const cat = String(category || "Others");
   const map = {
@@ -103,24 +111,35 @@ function gmGetCategoryBadge(category) {
   );
 }
 
-// 🔍 ស្វែងរកព័ត៌មានម្ចាស់ហាងពី globalUsersData
+/**
+ * 🔹 ១.៣ ស្វែងរកព័ត៌មានម្ចាស់ហាងពី `globalUsersData` ដោយផ្តល់អាទិភាពទី ១ លើ `ownerId` (`_id`)
+ */
 function gmResolveOwnerObj(merchant) {
+  if (!merchant) return null;
+  const targetOwnerId = String(
+    merchant.ownerId || merchant.userCustomId || "",
+  ).trim();
   const uname = merchant.username || merchant.userId;
+
   if (
     typeof globalUsersData !== "undefined" &&
     Array.isArray(globalUsersData)
   ) {
-    return globalUsersData.find(
-      (u) =>
-        u.username === uname ||
-        (merchant.ownerId && String(u._id) === String(merchant.ownerId)),
-    );
+    // អាទិភាពទី ១៖ ចាប់តាម MongoDB `_id`
+    if (targetOwnerId) {
+      const byId = globalUsersData.find(
+        (u) => String(u._id || u.id) === targetOwnerId,
+      );
+      if (byId) return byId;
+    }
+    // Fallback សម្រាប់ហាងចាស់ៗ
+    return globalUsersData.find((u) => u.username === uname) || null;
   }
   return null;
 }
 
 /**
- * 📌 បិទផ្ទាំង Sub-views ត្រឡប់ទៅផ្ទាំងបញ្ជីហាងធំវិញ
+ * 🔹 ១.៤ បិទផ្ទាំង Sub-views (Credentials ឬ History) ត្រឡប់ទៅផ្ទាំងបញ្ជីហាងធំវិញ
  */
 function closeMerchantSubViews() {
   document.getElementById("sec-merchant-credentials").style.display = "none";
@@ -132,10 +151,13 @@ function closeMerchantSubViews() {
   }
 }
 
-// ========================================================================
-// 🔄 SECTION 2: DATA LOADING, KPI STATS, SEARCH & PAGINATION
-// ========================================================================
+// ============================================================================
+// 🔄 ជំពូកទី ២៖ ការទាញយកទិន្នន័យហាង, ស្ថិតិ KPI, ការចម្រាញ់ និងបែងចែកទំព័រ (DATA & TABLE RENDERING)
+// ============================================================================
 
+/**
+ * 🔹 ២.១ ទាញយកបញ្ជីហាងទំនិញទាំងអស់ពី Server (`/api/merchants/admin/all-merchants`)
+ */
 async function loadMerchantsData() {
   try {
     const tbody = document.getElementById("merchantTableBody");
@@ -150,7 +172,10 @@ async function loadMerchantsData() {
     const data = await res.json();
 
     if (data.success && Array.isArray(data.merchants)) {
-      globalMerchantsData = data.merchants;
+      globalMerchantsData = data.merchants.map((m) => ({
+        ...m,
+        _id: String(m._id || m.id),
+      }));
       renderMerchantsTable();
     } else {
       globalMerchantsData = [];
@@ -214,7 +239,7 @@ window.gmChangePage = function (step) {
 };
 
 /**
- * 📌 គូរតារាងហាងទំនិញ និងគណនាស្ថិតិ KPI ទាំង ៥
+ * 🔹 ២.២ គូរតារាងហាងទំនិញ និងគណនាស្ថិតិ KPI ទាំង ៥ ដោយចាប់ម្ចាស់ហាងតាម `ownerId` (`_id`)
  */
 function renderMerchantsTable() {
   const tbody = document.getElementById("merchantTableBody");
@@ -222,7 +247,6 @@ function renderMerchantsTable() {
 
   const allShops = globalMerchantsData || [];
 
-  // ១. គណនាស្ថិតិ KPI ទាំង ៥
   let totalShops = allShops.length;
   let activeShops = 0;
   let suspendedShops = 0;
@@ -267,7 +291,6 @@ function renderMerchantsTable() {
   );
   setElText("gm-stat-hold-khr", totalHoldKHR.toLocaleString("en-US") + " ៛");
 
-  // ២. Filter តាមប្រភេទ និងពាក្យស្វែងរក
   const keyword = (document.getElementById("searchMerchantBox")?.value || "")
     .toLowerCase()
     .trim();
@@ -288,6 +311,8 @@ function renderMerchantsTable() {
       const ownerPhone = ownerObj ? ownerObj.phone || "" : "";
 
       const haystack = [
+        m._id,
+        m.ownerId,
         m.name,
         m.merchantId,
         m.userId,
@@ -325,7 +350,6 @@ function renderMerchantsTable() {
     return;
   }
 
-  // ៣. Pagination Slicing (៥ ហាងក្នុង ១ ទំព័រ)
   const totalPages = Math.ceil(filtered.length / gmItemsPerPage) || 1;
   if (gmCurrentPage > totalPages) gmCurrentPage = totalPages;
   if (gmCurrentPage < 1) gmCurrentPage = 1;
@@ -335,9 +359,15 @@ function renderMerchantsTable() {
 
   tbody.innerHTML = pageItems
     .map((m) => {
+      const shopId = String(m._id);
       const shopName = m.name || "Unnamed Shop";
       const ownerUsername = m.username || m.userId || "Unknown";
       const ownerObj = gmResolveOwnerObj(m);
+
+      // 🎯 ប្រើប្រាស់ MongoDB `_id` របស់ម្ចាស់ហាងសម្រាប់លោតទៅ Customer 360°
+      const canonicalOwnerId = String(
+        ownerObj?._id || m.ownerId || ownerUsername,
+      );
       const ownerFullName = ownerObj
         ? ownerObj.fullName || ownerUsername
         : ownerUsername;
@@ -363,7 +393,6 @@ function renderMerchantsTable() {
         JSON.stringify(m.accountNumbers || {}),
       );
 
-      // គណនីភ្ជាប់ និងលេខ QR
       let accountsCellHtml = `<div style="display:flex; flex-direction:column; gap:4px; font-size:0.8rem;">`;
       if (linkUSD) {
         accountsCellHtml += `
@@ -386,17 +415,15 @@ function renderMerchantsTable() {
       }
       accountsCellHtml += `</div>`;
 
-      // ចំណូលសរុប និងទឹកប្រាក់ជាប់ Hold
       const holdBadgeHtml =
         holdUSD > 0 || holdKHR > 0
-          ? `<div onclick="viewMerchantTrx('${m._id}')" style="margin-top:4px; display:inline-flex; align-items:center; gap:4px; background:#fef9c3; color:#d97706; border:1px solid #fde68a; padding:2px 8px; border-radius:6px; font-size:0.7rem; font-weight:800; cursor:pointer;" title="ចុចដើម្បីពិនិត្យ និងដោះ Hold">
+          ? `<div onclick="viewMerchantTrx('${shopId}')" style="margin-top:4px; display:inline-flex; align-items:center; gap:4px; background:#fef9c3; color:#d97706; border:1px solid #fde68a; padding:2px 8px; border-radius:6px; font-size:0.7rem; font-weight:800; cursor:pointer;" title="ចុចដើម្បីពិនិត្យ និងដោះ Hold">
                <i class="fa-solid fa-clock"></i> Hold: ${holdUSD > 0 ? `$${holdUSD.toFixed(2)}` : ""} ${holdKHR > 0 ? `${holdKHR.toLocaleString()}៛` : ""}
              </div>`
           : "";
 
       return `
         <tr style="border-bottom: 1px solid var(--border, #e2e8f0); transition: 0.15s;" onmouseover="this.style.background='rgba(15, 23, 42, 0.015)'" onmouseout="this.style.background='transparent'">
-          <!-- ១. ព័ត៌មានហាង -->
           <td style="padding: 14px 12px;">
             <div style="display: flex; align-items: center; gap: 12px;">
               <div style="width: 46px; height: 46px; border-radius: 13px; background: ${catInfo.bg}; color: ${catInfo.color}; border: 1px solid ${catInfo.border}; display: flex; align-items: center; justify-content: center; font-size: 1.2rem; flex-shrink: 0;">
@@ -419,11 +446,10 @@ function renderMerchantsTable() {
             </div>
           </td>
 
-          <!-- ២. ម្ចាស់ហាង + ប៊ូតុងលោតទៅ 360° -->
           <td style="padding: 14px 12px;">
             <div style="font-weight: 800; font-size: 0.92rem; color: var(--text-main); display: flex; align-items: center; gap: 6px;">
               <span>${ownerFullName}</span>
-              <button onclick="gmJumpToCustomer360('${ownerUsername}')" title="បើកមើលម្ចាស់ហាងក្នុង Customer 360°" style="background: #f1f5f9; border: 1px solid #cbd5e1; color: #3b82f6; border-radius: 6px; padding: 2px 6px; font-size: 0.68rem; cursor: pointer; font-weight: 800;">
+              <button onclick="gmJumpToCustomer360('${canonicalOwnerId}')" title="បើកមើលម្ចាស់ហាងក្នុង Customer 360° តាម _id" style="background: #f1f5f9; border: 1px solid #cbd5e1; color: #3b82f6; border-radius: 6px; padding: 2px 6px; font-size: 0.68rem; cursor: pointer; font-weight: 800;">
                 360° <i class="fa-solid fa-arrow-up-right-from-square" style="font-size: 0.6rem;"></i>
               </button>
             </div>
@@ -432,12 +458,10 @@ function renderMerchantsTable() {
             </div>
           </td>
 
-          <!-- ៣. គណនីទទួលប្រាក់ -->
           <td style="padding: 14px 12px;">
             ${accountsCellHtml}
           </td>
 
-          <!-- ៤. ចំណូលសរុប & Hold -->
           <td style="padding: 14px 12px;">
             <div style="font-family: 'JetBrains Mono', monospace; font-weight: 800; font-size: 0.92rem; color: #059669;">
               $${balUSD.toLocaleString("en-US", { minimumFractionDigits: 2 })}
@@ -448,11 +472,10 @@ function renderMerchantsTable() {
             ${holdBadgeHtml}
           </td>
 
-          <!-- ៥. ស្ថានភាពហាង & Toggle Freeze -->
           <td style="padding: 14px 12px;">
             <div style="display: flex; align-items: center; gap: 10px;">
               <label class="switch" title="បិទ/បើកដំណើរការហាង">
-                <input type="checkbox" ${!isFrozen ? "checked" : ""} onchange="toggleMerchantFreeze('${m._id}', !this.checked)">
+                <input type="checkbox" ${!isFrozen ? "checked" : ""} onchange="toggleMerchantFreeze('${shopId}', !this.checked)">
                 <span class="slider"></span>
               </label>
               <span style="font-size: 0.75rem; font-weight: 800; color: ${isFrozen ? "#ef4444" : "#10b981"};">
@@ -461,26 +484,25 @@ function renderMerchantsTable() {
             </div>
           </td>
 
-          <!-- ៦. ប៊ូតុងគ្រប់គ្រង -->
           <td style="padding: 14px 12px; text-align: right; white-space: nowrap;">
             <div style="display: inline-flex; gap: 6px; align-items: center;">
               <button class="gm-btn-act" style="background: #f3e8ff; color: #7e22ce; border-color: #d8b4fe;" title="បង្ហាញកាត QR Stand Pro & ទាញយក PDF" onclick="if(typeof c360ShowMerchantQR === 'function') c360ShowMerchantQR('${mid}', '${shopName.replace(/'/g, "\\'")}', '${strAccountsStr}')">
                 <i class="fa-solid fa-qrcode"></i> QR Stand
               </button>
 
-              <button class="gm-btn-act" style="background: #ecfdf5; color: #059669; border-color: #a7f3d0;" title="មើលប្រតិបត្តិការហាង, ដោះ Hold និង Refund" onclick="viewMerchantTrx('${m._id}')">
+              <button class="gm-btn-act" style="background: #ecfdf5; color: #059669; border-color: #a7f3d0;" title="មើលប្រតិបត្តិការហាង, ដោះ Hold និង Refund" onclick="viewMerchantTrx('${shopId}')">
                 <i class="fa-solid fa-receipt"></i> ប្រតិបត្តិការ
               </button>
 
-              <button class="gm-btn-act" style="background: #e0f2fe; color: #0284c7; border-color: #bae6fd;" title="មើល API Key, Secret & ទាញយក PDF" onclick="viewMerchantCredentials('${m._id}')">
+              <button class="gm-btn-act" style="background: #e0f2fe; color: #0284c7; border-color: #bae6fd;" title="មើល API Key, Secret & ទាញយក PDF" onclick="viewMerchantCredentials('${shopId}')">
                 <i class="fa-solid fa-key"></i> API
               </button>
 
-              <button class="gm-btn-act" style="background: #fef9c3; color: #d97706; border-color: #fde68a;" title="កែប្រែព័ត៌មានហាង និងគណនីភ្ជាប់" onclick="gmOpenEditMerchantModal('${m._id}')">
+              <button class="gm-btn-act" style="background: #fef9c3; color: #d97706; border-color: #fde68a;" title="កែប្រែព័ត៌មានហាង និងគណនីភ្ជាប់" onclick="gmOpenEditMerchantModal('${shopId}')">
                 <i class="fa-solid fa-pen"></i> កែប្រែ
               </button>
 
-              <button class="gm-btn-act" style="background: #fef2f2; color: #ef4444; border-color: #fca5a5;" title="លុបហាងចោល" onclick="gmDeleteMerchantConfirm('${m._id}')">
+              <button class="gm-btn-act" style="background: #fef2f2; color: #ef4444; border-color: #fca5a5;" title="លុបហាងចោល" onclick="gmDeleteMerchantConfirm('${shopId}')">
                 <i class="fa-solid fa-trash"></i>
               </button>
             </div>
@@ -490,7 +512,6 @@ function renderMerchantsTable() {
     })
     .join("");
 
-  // ៤. បង្កើត ឬអាប់ដេត Pagination Footer
   let pagerContainer = document.getElementById(
     "gm-merchants-pagination-footer",
   );
@@ -516,13 +537,14 @@ function renderMerchantsTable() {
   `;
 }
 
-// លោតទៅកាន់ Customer 360° របស់ម្ចាស់ហាងហើយបើក Tab 7 (Merchant) ឱ្យអូតូ
-window.gmJumpToCustomer360 = function (username) {
+/**
+ * 🔹 ២.៣ លោតទៅកាន់ Customer 360° តាមរយៈ MongoDB `_id` របស់ម្ចាស់ហាង ហើយបើក Tab 7 (Merchant)
+ */
+window.gmJumpToCustomer360 = function (ownerId) {
   const searchInput = document.getElementById("searchC360");
   if (searchInput) {
-    searchInput.value = username;
-    const c360Nav = document.querySelector(`[onclick*="sec-c360"]`);
-    if (c360Nav) c360Nav.click();
+    searchInput.value = ownerId;
+    if (typeof showSection === "function") showSection("customer-360");
     if (typeof currentC360ActiveTab !== "undefined") {
       currentC360ActiveTab = "merchant";
     }
@@ -532,17 +554,19 @@ window.gmJumpToCustomer360 = function (username) {
   }
 };
 
-// ========================================================================
-// 🛠️ SECTION 3: CREATE, EDIT, FREEZE & DELETE MERCHANT (SHARED APIs)
-// ========================================================================
+// ============================================================================
+// 🛠️ ជំពូកទី ៣៖ ការបង្កើតហាងថ្មី, កែប្រែ, ផ្អាក និងលុបហាងតាម `_id` (CRUD OPERATIONS BY `_id`)
+// ============================================================================
 
-// ១. បង្កើតហាងថ្មីជូនអតិថិជនណាម្នាក់ពីក្នុង Menu ធំផ្ទាល់
+/**
+ * 🔹 ៣.១ ចុះឈ្មោះហាងថ្មីជូនអតិថិជនណាម្នាក់ពីក្នុងម៉ឺនុយ Merchants ផ្ទាល់ (ស្វែងរកតាម `_id`, ឈ្មោះពេញ ឬលេខទូរស័ព្ទ)
+ */
 window.gmOpenCreateShopForAnyUserModal = async function () {
   const { value: targetUserStr } = await Swal.fire({
     title:
       '<span class="kh-text" style="font-size: 1.2rem; color: #004d40;"><i class="fa-solid fa-store"></i> ចុះឈ្មោះហាងថ្មីជូនអតិថិជន</span>',
     input: "text",
-    inputPlaceholder: "វាយបញ្ចូល Username ឬ លេខទូរស័ព្ទម្ចាស់ហាង...",
+    inputPlaceholder: "វាយបញ្ចូលឈ្មោះពេញ, លេខគណនី, លេខទូរស័ព្ទ ឬ _id...",
     showCancelButton: true,
     confirmButtonText: '<span class="kh-text">បន្តទៅបង្កើតហាង</span>',
     cancelButtonText: '<span class="kh-text">បោះបង់</span>',
@@ -554,9 +578,12 @@ window.gmOpenCreateShopForAnyUserModal = async function () {
     const kw = targetUserStr.trim().toLowerCase();
     let foundUser = (globalUsersData || []).find(
       (u) =>
+        String(u._id || u.id).toLowerCase() === kw ||
+        (u.fullName && u.fullName.toLowerCase().includes(kw)) ||
         (u.username && u.username.toLowerCase() === kw) ||
         u.phone === kw ||
-        u.phoneNumber === kw,
+        u.mainAccounts?.USD?.accountNumber === kw ||
+        u.mainAccounts?.KHR?.accountNumber === kw,
     );
 
     if (!foundUser) {
@@ -588,7 +615,9 @@ window.gmOpenCreateShopForAnyUserModal = async function () {
   }
 };
 
-// ២. កែប្រែព័ត៌មានហាង និងគណនីភ្ជាប់ (ប្រើប្រាស់ API `/api/admin/edit-merchant` ដូចក្នុង 360°)
+/**
+ * 🔹 ៣.២ កែប្រែព័ត៌មានហាង និងគណនីភ្ជាប់តាមរយៈ MongoDB `_id`
+ */
 window.gmOpenEditMerchantModal = async function (id) {
   const mData = globalMerchantsData.find(
     (m) => String(m._id) === String(id) || String(m.id) === String(id),
@@ -598,28 +627,36 @@ window.gmOpenEditMerchantModal = async function (id) {
   const ownerUsername = mData.username || mData.userId;
   let ownerUser = gmResolveOwnerObj(mData);
 
-  if (!ownerUser && ownerUsername) {
+  // 🎯 ប្រសិនបើមិនទាន់មានក្នុង Memory ទាញយកម្ចាស់ហាងពី `/api/admin/get-user` តាមរយៈ `ownerId` (`_id`)
+  if (!ownerUser && (mData.ownerId || ownerUsername)) {
     try {
       const res = await fetch("/api/admin/get-user", {
         method: "POST",
         headers: getAuthHeaders(),
-        body: JSON.stringify({ username: ownerUsername }),
+        body: JSON.stringify({
+          _id: mData.ownerId || undefined,
+          username: ownerUsername,
+        }),
       });
       const d = await res.json();
       if (d.success && d.user) ownerUser = d.user;
     } catch (e) {}
   }
 
+  const ownerFullName = ownerUser
+    ? ownerUser.fullName || ownerUser.username
+    : ownerUsername;
+
   let usdOptions = `<option value="">-- មិនភ្ជាប់ (None) --</option>`;
   let khrOptions = `<option value="">-- មិនភ្ជាប់ (None) --</option>`;
 
   if (ownerUser) {
-    if (ownerUser.mainAccounts?.USD) {
+    if (ownerUser.mainAccounts?.USD?.accountNumber) {
       const accNo = ownerUser.mainAccounts.USD.accountNumber;
       const sel = mData.linkedAccounts?.USD === accNo ? "selected" : "";
       usdOptions += `<option value="${accNo}" ${sel}>គណនីចម្បង USD (${accNo})</option>`;
     }
-    if (ownerUser.mainAccounts?.KHR) {
+    if (ownerUser.mainAccounts?.KHR?.accountNumber) {
       const accNo = ownerUser.mainAccounts.KHR.accountNumber;
       const sel = mData.linkedAccounts?.KHR === accNo ? "selected" : "";
       khrOptions += `<option value="${accNo}" ${sel}>គណនីចម្បង KHR (${accNo})</option>`;
@@ -688,7 +725,7 @@ window.gmOpenEditMerchantModal = async function (id) {
         </div>
 
         <div style="background: #f0fdfa; padding: 16px; border-radius: 14px; border: 1px dashed #5eead4;">
-          <h4 style="margin: 0 0 10px; color: #0f766e; font-size: 0.9rem; font-weight: 800;"><i class="fa-solid fa-link"></i> គណនីទទួលប្រាក់របស់ម្ចាស់ហាង (@${ownerUsername})</h4>
+          <h4 style="margin: 0 0 10px; color: #0f766e; font-size: 0.9rem; font-weight: 800;"><i class="fa-solid fa-link"></i> គណនីទទួលប្រាក់របស់ម្ចាស់ហាង (${ownerFullName})</h4>
           <div style="margin-bottom: 10px;">
             <label style="font-size: 0.8rem; font-weight: 700; color: #0f766e; margin-bottom: 4px; display: block;">គណនីទទួលប្រាក់ដុល្លារ (USD)</label>
             <select id="gm-edit-linked-usd" class="swal2-select kh-text" style="width: 100%; margin: 0; background: white; border: 1px solid #99f6e4; border-radius: 10px; font-size: 0.88rem; padding: 9px 12px; box-sizing: border-box; height: auto;">
@@ -754,6 +791,7 @@ window.gmOpenEditMerchantModal = async function (id) {
         headers: getAuthHeaders(),
         body: JSON.stringify({
           id: mData._id || mData.id,
+          userId: ownerUser ? String(ownerUser._id) : mData.ownerId,
           username: ownerUsername,
           ...formValues,
         }),
@@ -779,7 +817,9 @@ window.gmOpenEditMerchantModal = async function (id) {
   }
 };
 
-// ៣. ផ្អាក ឬបើកដំណើរការហាង (Freeze / Unfreeze)
+/**
+ * 🔹 ៣.៣ ផ្អាក ឬ បើកដំណើរការហាង និងលុបហាងចោលតាមរយៈ MongoDB `_id`
+ */
 async function toggleMerchantFreeze(id, isFrozen) {
   try {
     const res = await fetch("/api/admin/toggle-merchant-freeze", {
@@ -813,12 +853,14 @@ async function toggleMerchantFreeze(id, isFrozen) {
   }
 }
 
-// ៤. លុបហាងចោលពីប្រព័ន្ធ (ប្រើប្រាស់ `/api/admin/delete-merchant/:id`)
 window.gmDeleteMerchantConfirm = function (id) {
+  const m = globalMerchantsData.find((item) => String(item._id) === String(id));
+  const shopName = m ? m.name : "ហាងនេះ";
+
   Swal.fire({
     title:
       '<span class="kh-text" style="color:#ef4444;">តើអ្នកប្រាកដទេ?</span>',
-    text: "ទិន្នន័យហាងនេះនឹងត្រូវលុបចោលទាំងស្រុងពីប្រព័ន្ធ!",
+    text: `ទិន្នន័យហាង "${shopName}" នឹងត្រូវលុបចោលទាំងស្រុងពីប្រព័ន្ធ!`,
     icon: "warning",
     showCancelButton: true,
     confirmButtonColor: "#ef4444",
@@ -860,10 +902,13 @@ window.gmDeleteMerchantConfirm = function (id) {
   });
 };
 
-// ========================================================================
-// 🔎 SECTION 4: MERCHANT TRANSACTIONS & CREDENTIALS SUB-VIEWS
-// ========================================================================
+// ============================================================================
+// 🔎 ជំពូកទី ៤៖ ការមើលប្រវត្តិប្រតិបត្តិការហាង, ដោះ HOLD, REFUND និង API CREDENTIALS តាម `_id`
+// ============================================================================
 
+/**
+ * 🔹 ៤.១ មើលប្រវត្តិប្រតិបត្តិការរបស់ហាងជាក់លាក់តាមរយៈ MongoDB `_id`
+ */
 async function viewMerchantTrx(mid) {
   currentViewedMerchantId = mid;
   const shopObj = globalMerchantsData.find(
@@ -984,13 +1029,17 @@ window.gmRefundShopTrx = async function (refId, amount, currency) {
 };
 
 /**
- * 📌 មើលព័ត៌មានសម្ងាត់ (Credentials View)
+ * 🔹 ៤.២ មើលព័ត៌មានសម្ងាត់របស់ហាង (API Key, Secret & Webhook) តាមរយៈ MongoDB `_id`
  */
 function viewMerchantCredentials(id) {
   const mData = globalMerchantsData.find((m) => String(m._id) === String(id));
   if (!mData) return;
 
   currentViewedMerchantId = id;
+  const ownerObj = gmResolveOwnerObj(mData);
+  const ownerFullName = ownerObj
+    ? ownerObj.fullName || ownerObj.username
+    : mData.username || mData.userId;
 
   document.getElementById("sec-merchants").style.display = "none";
   document.getElementById("sec-merchant-history").style.display = "none";
@@ -1043,7 +1092,7 @@ function viewMerchantCredentials(id) {
   };
 
   let html = "";
-  html += createRow("ម្ចាស់ហាង (Username)", mData.username || mData.userId);
+  html += createRow("ម្ចាស់ហាង (Owner Full Name)", ownerFullName);
   html += createRow("ឈ្មោះហាង (Shop Name)", mData.name);
   html += createRow("ទីតាំង (City / Province)", mData.city);
   html += createRow("ប្រភេទអាជីវកម្ម (Category)", mData.category);
@@ -1079,9 +1128,9 @@ function viewMerchantCredentials(id) {
   tbody.innerHTML = html;
 }
 
-// ========================================================================
-// 🧰 SECTION 5: UTILITIES (PDF Download & Clipboard)
-// ========================================================================
+// ============================================================================
+// 🧰 ជំពូកទី ៥៖ ការទាញយកឯកសារសម្ងាត់ PDF និងមុខងារចម្លងទុក (PDF & CLIPBOARD UTILITIES)
+// ============================================================================
 
 async function downloadCredentialPDF() {
   if (!currentViewedMerchantId) return;

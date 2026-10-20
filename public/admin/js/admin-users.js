@@ -1,7 +1,11 @@
 // ============================================================================
 // ឯកសារ: js/admin-users.js (100% Clean & Modular Admin User Directory)
 // អត្ថន័យ: គ្រប់គ្រងបញ្ជីគណនីអតិថិជន, ស្ថិតិ KPI, ផ្ទាំង Drawer, ការបង្កើតគណនីថ្មី (AI OCR)
-// - រាល់ប្រតិបត្តិការសាច់ប្រាក់ត្រូវបញ្ជូនទៅកាន់ម៉ឺនុយ Cashier Desk ទាំងអស់!
+// ស្តង់ដារថ្មី: រាល់សកម្មភាពទាំងអស់ចាប់តាម MongoDB `_id` សុទ្ធសាធ + បង្ហាញឈ្មោះពេញ (fullName)
+// ============================================================================
+
+// ============================================================================
+// 🧩 ជំពូកទី ១៖ អនុគមន៍ជំនួយទូទៅ និងការស្វែងរកតាម `_id` (UNIVERSAL HELPERS & `_id` RESOLVER)
 // ============================================================================
 
 function getMasterUsersArray() {
@@ -21,9 +25,25 @@ function getMasterUsersArray() {
   return [];
 }
 
-// ============================================================================
-// 🧩 SECTION 1: UNIVERSAL HELPERS (មុខងារជំនួយទូទៅ និងការចម្លងអត្ថបទ)
-// ============================================================================
+/**
+ * 🔹 ១.១ ស្វែងរកអតិថិជនក្នុងបញ្ជីដោយផ្តល់អាទិភាព ១០០% លើ MongoDB `_id`
+ */
+function findDirectoryUserById(identifier) {
+  if (!identifier) return null;
+  const clean = String(identifier).trim();
+  const list = getMasterUsersArray();
+
+  // អាទិភាពទី ១៖ ចាប់តាម MongoDB `_id`
+  let found = list.find((u) => String(u._id || u.id) === clean);
+  if (found) return found;
+
+  // Fallback សម្រាប់កន្លែងដែលបោះ username មក
+  return (
+    list.find(
+      (u) => String(u.username || "").toLowerCase() === clean.toLowerCase(),
+    ) || null
+  );
+}
 
 window.standardDataSearch = function (dataArray, keyword, searchFields) {
   if (!keyword || keyword.trim() === "") return dataArray;
@@ -95,7 +115,7 @@ function getCombinedUsdBalance(u) {
 }
 
 // ============================================================================
-// 👥 SECTION 2: USER DIRECTORY, KPI STATS, FILTERING & PAGINATION
+// 👥 ជំពូកទី ២៖ បញ្ជីអតិថិជន, ស្ថិតិ KPI, ការចម្រាញ់ និងបែងចែកទំព័រ (USER DIRECTORY & KPI)
 // ============================================================================
 
 let currentUsersList = [];
@@ -151,12 +171,16 @@ window.filterUsers = async function () {
     try {
       const res = await fetch("/api/users", { headers: getAuthHeaders() });
       const raw = await res.json();
-      const fetched = Array.isArray(raw)
+      const rawList = Array.isArray(raw)
         ? raw
         : Array.isArray(raw?.users)
           ? raw.users
           : [];
-      if (fetched.length > 0) {
+      if (rawList.length > 0) {
+        const fetched = rawList.map((u) => {
+          const canonicalId = String(u._id || u.id || "");
+          return { ...u, _id: canonicalId, id: canonicalId };
+        });
         globalUsersData = fetched;
         window.globalUsersData = fetched;
         masterList = fetched;
@@ -174,12 +198,12 @@ window.filterUsers = async function () {
   const sortMode = document.getElementById("userSortSelect")?.value || "NEWEST";
 
   let filtered = window.standardDataSearch(masterList, term, [
-    "username",
+    "_id",
     "fullName",
+    "username",
     "phone",
     "email",
     "idNumber",
-    "userId",
     "mainAccounts.USD.accountNumber",
     "mainAccounts.KHR.accountNumber",
     "subAccounts.accountNumber",
@@ -224,6 +248,9 @@ window.filterUsers = async function () {
   renderUsersTable();
 };
 
+/**
+ * 🔹 ២.២ គូរតារាងអតិថិជនដោយភ្ជាប់ `u._id` ទៅគ្រប់ប៊ូតុងសកម្មភាពទាំងអស់!
+ */
 window.renderUsersTable = function () {
   const listContainer = document.getElementById("userDirectoryList");
   if (!listContainer) return;
@@ -250,10 +277,12 @@ window.renderUsersTable = function () {
 
   listContainer.innerHTML = usersToShow
     .map((u) => {
+      const uid = String(u._id || u.id);
       const imgSrc = u.profileImage || "../images/default-avatar.png";
-      const name = u.fullName || u.username;
+      const fullName = u.fullName || u.username;
       const isSystem = u.mainAccounts?.USD?.accountNumber === "888888888";
       const isOnline = isUserCurrentlyOnline(u);
+      const isJunior = u.role === "junior";
 
       const usdAcc = u.mainAccounts?.USD?.accountNumber || "N/A";
       const usdBal = Number(u.mainAccounts?.USD?.balance || 0);
@@ -267,6 +296,10 @@ window.renderUsersTable = function () {
         kycBadge = `<span style="background:rgba(245,158,11,0.16); color:#d97706; padding:3px 9px; border-radius:20px; font-size:0.7rem; font-weight:800"><i class="fa-solid fa-clock"></i> Pending KYC</span>`;
       }
 
+      const juniorBadge = isJunior
+        ? `<span style="background:rgba(219,39,119,0.14); color:#db2777; padding:3px 8px; border-radius:20px; font-size:0.68rem; font-weight:800">👶 គណនីកុមារ</span>`
+        : "";
+
       const statusHtml = isSystem
         ? `<span style="background:#e0f2fe; color:#0284c7; padding:4px 10px; border-radius:20px; font-size:0.72rem; font-weight:900">🏛️ CENTRAL BANK</span>`
         : u.isFrozen
@@ -274,7 +307,7 @@ window.renderUsersTable = function () {
           : `<span style="background:rgba(16,185,129,0.12); color:#10b981; border:1px solid rgba(16,185,129,0.28); padding:4px 10px; border-radius:20px; font-size:0.72rem; font-weight:900">🟢 ACTIVE</span>`;
 
       return `
-        <div class="ausr-row-card" onclick="openUserDrawer('${u.username}', this)">
+        <div class="ausr-row-card" onclick="openUserDrawer('${uid}', this)">
           <div style="display:flex; align-items:center; gap:14px; min-width:0; flex:1">
             <div class="ausr-avatar-wrap">
               <img loading="lazy" src="${imgSrc}" onerror="this.src='../images/default-avatar.png'" />
@@ -284,8 +317,9 @@ window.renderUsersTable = function () {
             <div style="min-width:0; flex:1">
               <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap">
                 <h4 style="margin:0; color:var(--text-main); font-size:0.98rem; font-weight:900; white-space:nowrap; overflow:hidden; text-overflow:ellipsis">
-                  ${name}
+                  ${fullName}
                 </h4>
+                ${juniorBadge}
                 ${kycBadge}
               </div>
 
@@ -313,7 +347,7 @@ window.renderUsersTable = function () {
               <button
                 type="button"
                 class="ausr-mini-btn"
-                onclick="goToCashierDesk('${usdAcc !== "N/A" ? usdAcc : u.username}', 'Deposit')"
+                onclick="goToCashierDesk('${uid}', 'Deposit')"
                 title="ទៅកាន់បញ្ជរគិតប្រាក់ (Cashier Desk)"
               >
                 <i class="fa-solid fa-cash-register" style="color:#10b981"></i>
@@ -321,7 +355,7 @@ window.renderUsersTable = function () {
               <button
                 type="button"
                 class="ausr-mini-btn"
-                onclick="goToCustomer360('${u.username}')"
+                onclick="goToCustomer360('${uid}')"
                 title="មើលក្នុង Customer 360°"
               >
                 <i class="fa-solid fa-users-viewfinder" style="color:#3b82f6"></i>
@@ -367,7 +401,7 @@ window.exportUserDirectoryCSV = function () {
     return;
   }
   const headers = [
-    "User ID",
+    "MongoDB _id",
     "Username",
     "Full Name",
     "Phone",
@@ -380,7 +414,7 @@ window.exportUserDirectoryCSV = function () {
     "Status",
   ];
   const rows = currentUsersList.map((u) => [
-    u.userId || "",
+    u._id || u.id || "",
     u.username || "",
     `"${String(u.fullName || "").replace(/"/g, '""')}"`,
     u.phone || "",
@@ -402,18 +436,17 @@ window.exportUserDirectoryCSV = function () {
 };
 
 // ============================================================================
-// 💎 SECTION 3: SLIDE-OVER INSPECTOR DRAWER & NAVIGATION TO CASHIER / C360
+// 💎 ជំពូកទី ៣៖ ផ្ទាំងត្រួតពិនិត្យរហ័ស និងការបញ្ជូនទៅបេឡាករ/C360 តាម `_id` (INSPECTOR DRAWER)
 // ============================================================================
 
 /**
- * 🏦 មុខងារបញ្ជូនអតិថិជនទៅកាន់ម៉ឺនុយ បេឡាករ (Cashier Desk) ដោយស្វ័យប្រវត្តិ
+ * 🔹 ៣.១ បញ្ជូនអតិថិជនទៅកាន់ម៉ឺនុយ បេឡាករ (Cashier Desk) ដោយប្រើ `_id` ផ្ទាល់!
  */
 window.goToCashierDesk = function (identifier, requestType = "Deposit") {
   closeUserDrawer();
   showSection("cashier");
 
   setTimeout(() => {
-    // ១. បំពេញលេខគណនី ឬ @username ចូលប្រអប់ស្វែងរកក្នុង Cashier Desk
     const searchInput =
       document.getElementById("cashierSearchAcc") ||
       document.getElementById("cashierSearchInput") ||
@@ -423,14 +456,12 @@ window.goToCashierDesk = function (identifier, requestType = "Deposit") {
       searchInput.value = identifier;
     }
 
-    // ២. ហៅអនុគមន៍ស្វែងរកអតិថិជនក្នុង Cashier Desk ដោយស្វ័យប្រវត្តិ
     if (typeof searchCashierCustomer === "function") {
       searchCashierCustomer();
     } else if (typeof searchUserForCashier === "function") {
       searchUserForCashier();
     }
 
-    // ៣. ជ្រើសរើសប្រភេទប្រតិបត្តិការ (Deposit ឬ Withdrawal) ឱ្យស្រេច
     setTimeout(() => {
       if (typeof selectCashierType === "function") {
         selectCashierType(requestType);
@@ -447,20 +478,26 @@ window.goToCashierDesk = function (identifier, requestType = "Deposit") {
   }, 120);
 };
 
-window.openUserDrawer = function (username, cardElement) {
-  const user = getMasterUsersArray().find((u) => u.username === username);
+/**
+ * 🔹 ៣.២ បើកផ្ទាំងត្រួតពិនិត្យព័ត៌មានអតិថិជនរហ័សតាម `_id` (openUserDrawer)
+ */
+window.openUserDrawer = function (identifier, cardElement) {
+  const user = findDirectoryUserById(identifier);
   if (!user) return;
 
-  document.getElementById("drawerName").innerText =
-    user.fullName || user.username;
+  const canonicalId = String(user._id || user.id);
+  const fullName = user.fullName || user.username;
 
-  const displayId = user.userId || "N/A";
+  document.getElementById("drawerName").innerText = fullName;
+
+  const displayUserId = user.userId || canonicalId.slice(-8);
+
   document.getElementById("drawerUsername").innerHTML = `
-    <span style="color:var(--text-muted); font-size:0.84rem">
-      ID: <span class="ausr-mono" onclick="copyToClipboard('${displayId}', 'User ID')" style="cursor:pointer; text-decoration:underline" title="ចុចចម្លង">${displayId}</span>
-    </span>
-    <span style="color:#cbd5e1; margin:0 8px">|</span>
-    <span class="ausr-mono" onclick="copyToClipboard('${user.username}', 'Username')" style="cursor:pointer; text-decoration:underline; color:#0d9488" title="ចុចចម្លង">@${user.username}</span>
+    <span style="color:var(--text-muted); font-size:0.8rem">
+      id: <span class="ausr-mono" onclick="copyToClipboard('${displayUserId}', 'User ID')" style="cursor:pointer; text-decoration:underline" title="ចុចចម្លង User ID">${displayUserId}</span>
+  </span>
+  <span style="color:#cbd5e1; margin:0 8px">|</span>
+  <span class="ausr-mono" onclick="copyToClipboard('${user.username}', 'Username')" style="cursor:pointer; text-decoration:underline; color:#0d9488" title="ចុចចម្លង">@${user.username}</span>
   `;
 
   document.getElementById("drawerAvatar").src =
@@ -490,16 +527,25 @@ window.openUserDrawer = function (username, cardElement) {
     user.mainAccounts?.KHR?.accountNumber,
     "លេខគណនី KHR",
   );
-  setCopyable("drawerPhone", user.phone, "លេខទូរស័ព្ទ");
-  setCopyable("drawerEmail", user.email, "អ៊ីមែល");
-
   const usdBalEl = document.getElementById("drawerUsdBal");
   const khrBalEl = document.getElementById("drawerKhrBal");
+
   if (usdBalEl) {
-    usdBalEl.innerText = `សមតុល្យ: $${Number(user.mainAccounts?.USD?.balance || 0).toLocaleString("en-US", { minimumFractionDigits: 2 })}`;
+    usdBalEl.innerHTML = `
+      <span style="font-family: 'Kantumruy Pro', sans-serif; font-size: 0.85rem; color: var(--text-muted); font-weight: 600;">សមតុល្យ:</span> 
+      <span style="font-family: 'JetBrains Mono', monospace; font-weight: 800; color: #0284c7; font-size: 0.95rem;">
+        $${Number(user.mainAccounts?.USD?.balance || 0).toLocaleString("en-US", { minimumFractionDigits: 2 })}
+      </span>
+    `;
   }
+
   if (khrBalEl) {
-    khrBalEl.innerText = `សមតុល្យ: ${Number(user.mainAccounts?.KHR?.balance || 0).toLocaleString("en-US")} ៛`;
+    khrBalEl.innerHTML = `
+      <span style="font-family: 'Kantumruy Pro', sans-serif; font-size: 0.85rem; color: var(--text-muted); font-weight: 600;">សមតុល្យ:</span> 
+      <span style="font-family: 'JetBrains Mono', monospace; font-weight: 800; color: #059669; font-size: 0.95rem;">
+        ${Number(user.mainAccounts?.KHR?.balance || 0).toLocaleString("en-US")} ៛
+      </span>
+    `;
   }
 
   const subAccContainer = document.getElementById("drawerSubAccountsContainer");
@@ -560,33 +606,32 @@ window.openUserDrawer = function (username, cardElement) {
         stLabel.innerText = willFreeze ? "FROZEN 🛑" : "ACTIVE 🟢";
         stLabel.style.color = willFreeze ? "#ef4444" : "#10b981";
       }
-      toggleFreeze(user._id || user.id, willFreeze);
+      toggleFreeze(canonicalId, willFreeze);
     };
   }
 
-  // 🏦 ភ្ជាប់ប៊ូតុងដាក់ប្រាក់/ដកប្រាក់ ឱ្យលោតទៅម៉ឺនុយ Cashier Desk ផ្ទាល់តែម្ដង!
-  const targetCashierKey = primaryUsdAcc || user.username;
+  // 🎯 ភ្ជាប់ប៊ូតុងទាំងអស់ឱ្យបោះ MongoDB `_id` (canonicalId) ទៅកាន់គ្រប់មុខងារ!
   const btnAdd = document.getElementById("btnDrawerQuickAdd");
   const btnDed = document.getElementById("btnDrawerQuickDeduct");
   if (btnAdd) {
-    btnAdd.onclick = () => goToCashierDesk(targetCashierKey, "Deposit");
+    btnAdd.onclick = () => goToCashierDesk(canonicalId, "Deposit");
   }
   if (btnDed) {
-    btnDed.onclick = () => goToCashierDesk(targetCashierKey, "Withdrawal");
+    btnDed.onclick = () => goToCashierDesk(canonicalId, "Withdrawal");
   }
 
   document.getElementById("btnMessageDrawer").onclick = () =>
-    sendDirectMessage(user.username);
+    sendDirectMessage(canonicalId);
   document.getElementById("btnForceLogoutDrawer").onclick = () =>
-    forceLogoutUser(user.username);
+    forceLogoutUser(canonicalId);
   document.getElementById("btnC360Drawer").onclick = () =>
-    goToCustomer360(user.username);
+    goToCustomer360(canonicalId);
 
   const isSystem = primaryUsdAcc === "888888888";
   const delBtn = document.getElementById("btnDeleteDrawer");
   if (delBtn) {
     delBtn.style.display = isSystem ? "none" : "block";
-    delBtn.onclick = () => deleteUser(user._id || user.id);
+    delBtn.onclick = () => deleteUser(canonicalId);
   }
 
   document.getElementById("userDetailDrawer").classList.add("open");
@@ -603,16 +648,19 @@ window.closeUserDrawer = function () {
     .forEach((c) => c.classList.remove("selected"));
 };
 
-window.goToCustomer360 = function (username) {
+/**
+ * 🔹 ៣.៣ បញ្ជូនអតិថិជនទៅកាន់ទំព័រ Customer 360° តាមរយៈ MongoDB `_id` ផ្ទាល់!
+ */
+window.goToCustomer360 = function (identifier) {
   closeUserDrawer();
   showSection("customer-360");
   const inp = document.getElementById("searchC360");
-  if (inp) inp.value = username;
+  if (inp) inp.value = identifier;
   if (typeof searchCustomer360 === "function") searchCustomer360();
 };
 
 // ============================================================================
-// 🧑‍💻 SECTION 4: INLINE CREATE FORM & AI OCR ONBOARDING
+// 🧑‍💻 ជំពូកទី ៤៖ ទម្រង់បង្កើតគណនីអតិថិជនថ្មី និងការស្កេនអត្តសញ្ញាណប័ណ្ណ (AI OCR ONBOARDING)
 // ============================================================================
 
 let isCreateFormOpen = false;
@@ -936,7 +984,7 @@ window.submitNewUserByAdmin = async function () {
       Swal.fire({
         icon: "success",
         title: "ជោគជ័យ!",
-        html: `គណនី <b>@${payload.username}</b> ត្រូវបានបង្កើតរួចរាល់។<br>ស្ថានភាព KYC: <b>Pending (រង់ចាំអនុម័ត)</b>`,
+        html: `គណនីរបស់ <b>${payload.fullName}</b> ត្រូវបានបង្កើតរួចរាល់។<br>ស្ថានភាព KYC: <b>Pending (រង់ចាំអនុម័ត)</b>`,
         customClass: { popup: "premium-swal" },
       });
 
@@ -962,14 +1010,20 @@ window.submitNewUserByAdmin = async function () {
 };
 
 // ============================================================================
-// 🛑 SECTION 5: ACCOUNT SECURITY & STATUS OPERATIONS (ផ្អាកគណនី, ផ្ញើសារ, ផ្តាច់គណនី & លុប)
+// 🛑 ជំពូកទី ៥៖ សកម្មភាពសុវត្ថិភាពលើគណនីអតិថិជនតាម `_id` (DELETE, FREEZE, MESSAGE & LOGOUT BY `_id`)
 // ============================================================================
 
-window.deleteUser = function (id) {
-  const user = getMasterUsersArray().find((u) => (u._id || u.id) === id);
+/**
+ * 🔹 ៥.១ លុបគណនីអតិថិជន ឬ គណនីរងតាមរយៈ MongoDB `_id` ផ្ទាល់ (Cascade Purge)
+ */
+window.deleteUser = function (identifier) {
+  const user = findDirectoryUserById(identifier);
   if (!user) return;
 
-  let optionsHtml = `<option value="ALL">លុបគណនីអ្នកប្រើប្រាស់ទាំងមូល (Delete Entire User)</option>`;
+  const canonicalId = String(user._id || user.id);
+  const fullName = user.fullName || user.username;
+
+  let optionsHtml = `<option value="ALL">លុបគណនី "${fullName}" ទាំងមូល និងសម្អាតគ្រប់តារាង</option>`;
   if (Array.isArray(user.subAccounts)) {
     user.subAccounts.forEach((sub) => {
       optionsHtml += `<option value="${sub.accountNumber}">លុបតែគណនីរង: ${sub.accountNumber} (${sub.accountName})</option>`;
@@ -1011,7 +1065,8 @@ window.deleteUser = function (id) {
           method: "POST",
           headers: getAuthHeaders(),
           body: JSON.stringify({
-            id,
+            _id: canonicalId,
+            id: canonicalId,
             targetAccount: result.value.targetAccount,
             reason: result.value.reason,
           }),
@@ -1023,7 +1078,7 @@ window.deleteUser = function (id) {
             toast: true,
             position: "top-end",
             icon: "success",
-            title: "បានលុបជោគជ័យ!",
+            title: "បានលុប និងសម្អាតទិន្នន័យជោគជ័យ!",
             showConfirmButton: false,
             timer: 1500,
           });
@@ -1038,12 +1093,20 @@ window.deleteUser = function (id) {
   });
 };
 
-window.toggleFreeze = async function (id, isFrozen) {
+/**
+ * 🔹 ៥.២ ផ្អាក ឬ បើកដំណើរការគណនីអតិថិជនតាមរយៈ MongoDB `_id`
+ */
+window.toggleFreeze = async function (identifier, isFrozen) {
+  const user = findDirectoryUserById(identifier);
+  const canonicalId = user
+    ? String(user._id || user.id)
+    : String(identifier).trim();
+
   try {
     const res = await fetch("/api/admin/toggle-freeze", {
       method: "POST",
       headers: getAuthHeaders(),
-      body: JSON.stringify({ id, isFrozen }),
+      body: JSON.stringify({ _id: canonicalId, id: canonicalId, isFrozen }),
     });
     const data = await res.json();
     if (data.success) {
@@ -1055,7 +1118,6 @@ window.toggleFreeze = async function (id, isFrozen) {
         showConfirmButton: false,
         timer: 1500,
       });
-      const user = getMasterUsersArray().find((u) => (u._id || u.id) === id);
       if (user) user.isFrozen = isFrozen;
       filterUsers();
     } else {
@@ -1067,11 +1129,22 @@ window.toggleFreeze = async function (id, isFrozen) {
   }
 };
 
-window.sendDirectMessage = async function (username) {
+/**
+ * 🔹 ៥.៣ ផ្ញើសារផ្លូវការទៅកាន់អតិថិជនតាមរយៈ MongoDB `_id` (បង្ហាញឈ្មោះពេញ `fullName`)
+ */
+window.sendDirectMessage = async function (identifier) {
+  const user = findDirectoryUserById(identifier);
+  const canonicalId = user
+    ? String(user._id || user.id)
+    : String(identifier).trim();
+  const displayFullName = user
+    ? user.fullName || user.username
+    : String(identifier);
+
   const { value: text } = await Swal.fire({
-    title: `ផ្ញើសារជូនដំណឹងទៅកាន់ @${username}`,
+    title: `ផ្ញើសារជូនដំណឹងទៅកាន់ ${displayFullName}`,
     input: "textarea",
-    inputPlaceholder: "វាយបញ្ចូលខ្លឹមសារសារនៅទីនេះ...",
+    inputPlaceholder: "វាយបញ្ចូលខ្លឹមសារសារផ្លូវការនៅទីនេះ...",
     showCancelButton: true,
     confirmButtonColor: "#0d9488",
     confirmButtonText: "ផ្ញើសារ",
@@ -1084,7 +1157,12 @@ window.sendDirectMessage = async function (username) {
       const res = await fetch("/api/admin/send-message", {
         method: "POST",
         headers: getAuthHeaders(),
-        body: JSON.stringify({ username, message: text.trim() }),
+        body: JSON.stringify({
+          _id: canonicalId,
+          userId: canonicalId,
+          username: user ? user.username : identifier,
+          message: text.trim(),
+        }),
       });
       const data = await res.json();
       if (data.success) {
@@ -1103,10 +1181,21 @@ window.sendDirectMessage = async function (username) {
   }
 };
 
-window.forceLogoutUser = function (username) {
+/**
+ * 🔹 ៥.៤ បង្ខំឱ្យគណនីអតិថិជនចាកចេញពីគ្រប់ឧបករណ៍តាមរយៈ MongoDB `_id`
+ */
+window.forceLogoutUser = function (identifier) {
+  const user = findDirectoryUserById(identifier);
+  const canonicalId = user
+    ? String(user._id || user.id)
+    : String(identifier).trim();
+  const displayFullName = user
+    ? user.fullName || user.username
+    : String(identifier);
+
   Swal.fire({
     title: "ផ្តាច់គណនីអតិថិជន?",
-    text: `តើអ្នកចង់បង្ខំឱ្យ @${username} Log out ចេញពីគ្រប់ឧបករណ៍ភ្លាមៗមែនទេ?`,
+    text: `តើអ្នកចង់បង្ខំឱ្យ "${displayFullName}" ចាកចេញពីគ្រប់ឧបករណ៍ភ្លាមៗមែនទេ?`,
     icon: "warning",
     showCancelButton: true,
     confirmButtonColor: "#f59e0b",
@@ -1119,7 +1208,11 @@ window.forceLogoutUser = function (username) {
         const res = await fetch("/api/admin/force-logout", {
           method: "POST",
           headers: getAuthHeaders(),
-          body: JSON.stringify({ username }),
+          body: JSON.stringify({
+            _id: canonicalId,
+            userId: canonicalId,
+            username: user ? user.username : identifier,
+          }),
         });
         const data = await res.json();
         if (data.success) {

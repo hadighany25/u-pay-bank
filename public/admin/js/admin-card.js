@@ -1,14 +1,21 @@
-// ========================================================================
-// ឯកសារ: admin-card.js (100% Pro Clean - Global Card Command Center)
+// ============================================================================
+// ឯកសារ: js/admin-card.js (100% Pro Clean - Global Card Command Center)
 // អត្ថន័យ: គ្រប់គ្រងកាតទាំង ៣ ប្រភេទ (Virtual, Debit, Credit), ដឹកជញ្ជូន និង NFC
-// ========================================================================
+// ស្តង់ដារថ្មី: ចាប់ទិន្នន័យម្ចាស់កាត និងកាតតាម MongoDB `_id` សុទ្ធសាធ + បង្ហាញឈ្មោះពេញ (fullName)
+// ============================================================================
 
+// ============================================================================
+// 🎨 ជំពូកទី ១៖ អថេរសកល និងអនុគមន៍ជំនួយកាត (GLOBAL STATE & CARD HELPERS)
+// ============================================================================
 let gcCurrentCategoryFilter = "ALL";
 let gcAllFlattenedCards = [];
-let gcCurrentCardPage = 1; // 🟢 ទំព័របច្ចុប្បន្ន
-const gcCardsPerPage = 4; // 🟢 កំណត់ឱ្យបង្ហាញតែ ៤ កាតក្នុង ១ ទំព័រ
+let gcCurrentCardPage = 1;
+const gcCardsPerPage = 4; // បង្ហាញ ៤ កាតក្នុង ១ ទំព័រ
+let gcIsFetchingCards = false;
 
-// 🎨 ផែនទី Theme របស់កាតទាំង ១០ ម៉ូដ
+/**
+ * 🔹 ១.១ ផែនទី Theme របស់កាតទាំង ១០ ម៉ូដ
+ */
 function gcGetThemeClass(type) {
   const map = {
     standard: "theme-standard",
@@ -25,7 +32,9 @@ function gcGetThemeClass(type) {
   return map[type] || "theme-standard";
 }
 
-// 🔄 មុខងារ Normalizes UID កាត NFC
+/**
+ * 🔹 ១.២ មុខងារបម្លែងលេខ UID របស់បន្ទះឈីប NFC ឱ្យទៅជាទម្រង់ស្តង់ដារ Hex ៨ ខ្ទង់
+ */
 function normalizeUID(uid) {
   if (!uid) return "";
   uid = String(uid).replaceAll(":", "").trim().toUpperCase();
@@ -41,7 +50,9 @@ function normalizeUID(uid) {
   return uid;
 }
 
-// 🚚 មុខងារបង្កើតលេខ Tracking អូតូតាមក្រុមហ៊ុនដឹកជញ្ជូន
+/**
+ * 🔹 ១.៣ មុខងារបង្កើតលេខ Tracking អូតូតាមក្រុមហ៊ុនដឹកជញ្ជូន
+ */
 window.gcGenerateTrackingCode = function (method) {
   const rand8 = Math.floor(10000000 + Math.random() * 90000000);
   if (method === "Virak Buntham") return `VET-${rand8}`;
@@ -50,51 +61,153 @@ window.gcGenerateTrackingCode = function (method) {
   return "យកផ្ទាល់នៅសាខា (Branch Pickup)";
 };
 
-// ========================================================================
-// ១. ប្រមូលទិន្នន័យកាតពី globalUsersData
-// ========================================================================
-window.gcCollectCardsFromUsers = function () {
-  if (typeof globalUsersData === "undefined" || !Array.isArray(globalUsersData))
-    return [];
+/**
+ * 🔹 ១.៤ អនុគមន៍ស្វែងរកកាតក្នុងបញ្ជីរួមតាមរយៈ `ownerId` (`_id`) និង `cardId`
+ */
+function gcFindFlattenedCard(ownerIdentifier, cardId) {
+  const cleanOwner = String(ownerIdentifier || "").trim();
+  const cleanCardId = String(cardId || "").trim();
 
+  return (
+    gcAllFlattenedCards.find(
+      (item) =>
+        (String(item.id) === cleanCardId || String(item._id) === cleanCardId) &&
+        (String(item.ownerId) === cleanOwner ||
+          String(item.ownerUsername) === cleanOwner),
+    ) ||
+    gcAllFlattenedCards.find(
+      (item) =>
+        String(item.id) === cleanCardId || String(item._id) === cleanCardId,
+    ) ||
+    null
+  );
+}
+
+/**
+ * 🔹 ១.៥ អនុគមន៍លោតទៅកាន់ផ្ទាំង Customer 360° តាមរយៈ MongoDB `_id` របស់ម្ចាស់កាតផ្ទាល់!
+ */
+window.gcJumpToCustomer360 = function (ownerId) {
+  if (typeof goToCustomer360 === "function") {
+    goToCustomer360(ownerId);
+  } else if (typeof showSection === "function") {
+    showSection("customer-360");
+    const inp = document.getElementById("searchC360");
+    if (inp) inp.value = ownerId;
+    if (typeof searchCustomer360 === "function") searchCustomer360();
+  }
+};
+
+// ============================================================================
+// 🔄 ជំពូកទី ២៖ ម៉ាស៊ីនប្រមូល និងផ្គូផ្គងទិន្នន័យកាតតាម `_id` (CARD COLLECTION BY `_id`)
+// ============================================================================
+
+/**
+ * 🔹 ២.១ ប្រមូលទិន្នន័យកាតទាំងអស់ និងចាប់គូជាមួយម្ចាស់គណនីតាម `userId` (`_id`) ១០០%!
+ */
+window.gcCollectCardsFromUsers = function () {
+  const users = Array.isArray(window.globalUsersData)
+    ? window.globalUsersData
+    : [];
   const list = [];
-  globalUsersData.forEach((u) => {
+  const seenCardKeys = new Set();
+
+  // ១. ប្រមូលពី window.globalCardsData (ទាញមកពី /api/admin/all-cards នៃ Model Card.js ថ្មី)
+  if (
+    Array.isArray(window.globalCardsData) &&
+    window.globalCardsData.length > 0
+  ) {
+    window.globalCardsData.forEach((entry) => {
+      const c = entry.card || entry;
+      if (!c || !c.number) return;
+
+      const cardKey = String(c._id || c.id || c.number);
+      if (seenCardKeys.has(cardKey)) return;
+      seenCardKeys.add(cardKey);
+
+      const targetUserId = String(c.userId || entry.user?._id || "");
+      // 🎯 ចាប់គូម្ចាស់កាតតាម MongoDB `_id` ជាអាទិភាពទី ១!
+      const ownerObj =
+        users.find(
+          (u) => targetUserId && String(u._id || u.id) === targetUserId,
+        ) ||
+        users.find((u) => u.username === c.username) ||
+        entry.user ||
+        {};
+
+      const canonicalOwnerId = String(
+        ownerObj._id || ownerObj.id || targetUserId || "",
+      );
+
+      list.push({
+        ...c,
+        id: String(c.id || c._id),
+        _id: String(c._id || c.id),
+        ownerId: canonicalOwnerId,
+        ownerUsername: ownerObj.username || c.username || "Unknown",
+        ownerFullName:
+          ownerObj.fullName || ownerObj.name || c.username || "អតិថិជន U-Pay",
+        ownerPhone: ownerObj.phone || ownerObj.phoneNumber || "N/A",
+        ownerProfileImage:
+          ownerObj.profileImage || "../images/default-avatar.png",
+        ownerObj: ownerObj,
+      });
+    });
+  }
+
+  // ២. Fallback៖ ប្រមូលពី u.virtualCards ប្រសិនបើមានភ្ជាប់មកជាមួយ User Object
+  users.forEach((u) => {
     if (Array.isArray(u.virtualCards)) {
+      const canonicalOwnerId = String(u._id || u.id || "");
       u.virtualCards.forEach((c) => {
         if (!c || !c.number) return;
+        const cardKey = String(c._id || c.id || c.number);
+        if (seenCardKeys.has(cardKey)) return;
+        seenCardKeys.add(cardKey);
+
         list.push({
           ...c,
+          id: String(c.id || c._id),
+          _id: String(c._id || c.id),
+          ownerId: canonicalOwnerId,
           ownerUsername: u.username,
           ownerFullName: u.fullName || u.username,
           ownerPhone: u.phone || u.phoneNumber || "N/A",
           ownerProfileImage: u.profileImage || "../images/default-avatar.png",
-          ownerUserId: u.userId || "N/A",
           ownerObj: u,
         });
       });
     }
   });
+
   return list;
 };
 
-window.gcRefreshAllCards = async function () {
+/**
+ * 🔹 ២.២ ទាញយកទិន្នន័យកាតថ្មីៗពី Server និងធ្វើបច្ចុប្បន្នភាពតារាង
+ */
+window.gcRefreshAllCards = async function (silent = false) {
   const spinIcon = document.getElementById("gc-refresh-spin-icon");
   if (spinIcon) spinIcon.classList.add("fa-spin");
 
   try {
-    if (typeof loadData === "function") {
+    if (typeof loadCardsModuleData === "function") {
+      await loadCardsModuleData();
+    } else if (typeof loadData === "function") {
       await loadData();
     }
     renderGlobalCardsTable();
     if (spinIcon) spinIcon.classList.remove("fa-spin");
-    Swal.fire({
-      toast: true,
-      position: "top-end",
-      icon: "success",
-      title: "ទិន្នន័យកាតត្រូវបានធ្វើបច្ចុប្បន្នភាព!",
-      showConfirmButton: false,
-      timer: 1200,
-    });
+
+    if (!silent) {
+      Swal.fire({
+        toast: true,
+        position: "top-end",
+        icon: "success",
+        title: "ទិន្នន័យកាតត្រូវបានធ្វើបច្ចុប្បន្នភាព!",
+        showConfirmButton: false,
+        timer: 1200,
+      });
+    }
   } catch (e) {
     if (spinIcon) spinIcon.classList.remove("fa-spin");
   }
@@ -107,7 +220,7 @@ window.gcChangeCardPage = function (step) {
 
 window.gcSetCategoryFilter = function (filterKey) {
   gcCurrentCategoryFilter = filterKey;
-  gcCurrentCardPage = 1; // ពេលប្តូរ Filter ឱ្យលោតមកទំព័រទី ១ វិញ
+  gcCurrentCardPage = 1;
 
   document.querySelectorAll(".gc-filter-pill").forEach((btn) => {
     btn.classList.toggle(
@@ -126,18 +239,30 @@ window.gcSetCategoryFilter = function (filterKey) {
 };
 
 function filterCards() {
-  gcCurrentCardPage = 1; // ពេល Search ឱ្យលោតមកទំព័រទី ១ វិញ
+  gcCurrentCardPage = 1;
   renderGlobalCardsTable();
 }
 
-// ========================================================================
-// ២. គូរតារាងកាតទាំងស្រុង (Rich Banking Table UI + Pagination 4 Cards/Page)
-// ========================================================================
-window.renderGlobalCardsTable = function () {
+// ============================================================================
+// 📋 ជំពូកទី ៣៖ ការគូរតារាងកាតទាំងស្រុង និងបែងចែកទំព័រ (RICH BANKING TABLE & PAGINATION)
+// ============================================================================
+window.renderGlobalCardsTable = async function () {
   const tbody = document.getElementById("cardTableBody");
   if (!tbody) return;
 
   gcAllFlattenedCards = window.gcCollectCardsFromUsers();
+
+  // បើមិនទាន់មានទិន្នន័យកាតក្នុង Memory ទេ ឱ្យទាញពី Backend `/api/admin/all-cards` ដោយស្វ័យប្រវត្តិ១ដង
+  if (
+    gcAllFlattenedCards.length === 0 &&
+    !gcIsFetchingCards &&
+    typeof loadCardsModuleData === "function"
+  ) {
+    gcIsFetchingCards = true;
+    await loadCardsModuleData();
+    gcAllFlattenedCards = window.gcCollectCardsFromUsers();
+    gcIsFetchingCards = false;
+  }
 
   const totalCount = gcAllFlattenedCards.length;
   let virtualCount = 0;
@@ -217,8 +342,9 @@ window.renderGlobalCardsTable = function () {
 
     if (keyword) {
       const searchStr = [
-        c.ownerUsername,
+        c.ownerId,
         c.ownerFullName,
+        c.ownerUsername,
         c.ownerPhone,
         c.number,
         c.number.slice(-4),
@@ -254,7 +380,6 @@ window.renderGlobalCardsTable = function () {
     return;
   }
 
-  // 🟢 Pagination Slicing (បង្ហាញ ៤ កាតក្នុង ១ ទំព័រ)
   const totalPages = Math.ceil(filtered.length / gcCardsPerPage) || 1;
   if (gcCurrentCardPage > totalPages) gcCurrentCardPage = totalPages;
   if (gcCurrentCardPage < 1) gcCurrentCardPage = 1;
@@ -274,6 +399,7 @@ window.renderGlobalCardsTable = function () {
   tbody.dataset.gcCustomRendered = "true";
   tbody.innerHTML = pageItems
     .map((c) => {
+      const ownerKey = c.ownerId || c.ownerUsername;
       const cat = c.cardCategory || (c.isPhysical ? "debit" : "virtual");
       const isPhy =
         cat === "debit" ||
@@ -352,7 +478,7 @@ window.renderGlobalCardsTable = function () {
                   : st.label;
 
             return `
-              <div class="gc-step-dot ${cls}" title="${tooltip}" onclick="gcQuickAdvanceStep('${c.ownerUsername}', '${c.id}', '${st.key}')">
+              <div class="gc-step-dot ${cls}" title="${tooltip}" onclick="gcQuickAdvanceStep('${ownerKey}', '${c.id}', '${st.key}')">
                 <i class="fa-solid ${isDone ? "fa-check" : st.icon}"></i>
               </div>
             `;
@@ -365,7 +491,7 @@ window.renderGlobalCardsTable = function () {
               ${
                 hasUid
                   ? `<span style="background: #ccfbf1; color: #0f766e; padding: 2px 8px; border-radius: 6px; font-size: 0.72rem; font-weight: 800; font-family: monospace;"><i class="fa-solid fa-microchip"></i> UID: ${c.uid}</span>`
-                  : `<span onclick="quickBindNFC('${c.ownerUsername}', '${c.id}')" style="background: #fef9c3; color: #d97706; border: 1px dashed #f59e0b; padding: 2px 8px; border-radius: 6px; font-size: 0.72rem; font-weight: 800; cursor: pointer;" title="ចុចដើម្បីស្កេនភ្ជាប់ NFC"><i class="fa-solid fa-wifi"></i> មិនទាន់ភ្ជាប់ NFC (ចុចស្កេន)</span>`
+                  : `<span onclick="quickBindNFC('${ownerKey}', '${c.id}')" style="background: #fef9c3; color: #d97706; border: 1px dashed #f59e0b; padding: 2px 8px; border-radius: 6px; font-size: 0.72rem; font-weight: 800; cursor: pointer;" title="ចុចដើម្បីស្កេនភ្ជាប់ NFC"><i class="fa-solid fa-wifi"></i> មិនទាន់ភ្ជាប់ NFC (ចុចស្កេន)</span>`
               }
               <span style="font-size: 0.74rem; font-weight: 800; color: #0f766e;">• ${stepsOrder[curIdx]?.label || curStepKey}</span>
             </div>
@@ -396,7 +522,7 @@ window.renderGlobalCardsTable = function () {
         <tr style="border-bottom: 1px solid var(--border, #e2e8f0); transition: 0.15s;" onmouseover="this.style.background='rgba(15, 23, 42, 0.015)'" onmouseout="this.style.background='transparent'">
           <td style="padding: 14px 12px;">
             <div style="display: flex; align-items: center; gap: 14px;">
-              <div class="gc-mini-card ${themeClass}" ${customBgStyle} onclick="gcOpenCardCommandModal('${c.ownerUsername}', '${c.id}')" title="ចុចដើម្បីបើកផ្ទាំងបញ្ជាកាត 3D">
+              <div class="gc-mini-card ${themeClass}" ${customBgStyle} onclick="gcOpenCardCommandModal('${ownerKey}', '${c.id}')" title="ចុចដើម្បីបើកផ្ទាំងបញ្ជាកាត 3D">
                 <div style="display: flex; justify-content: space-between; align-items: center;">
                   <div style="width: 18px; height: 13px; background: linear-gradient(135deg, #fde047, #ca8a04); border-radius: 3px;"></div>
                   ${isPhy ? `<i class="fa-solid fa-wifi" style="font-size: 0.65rem; transform: rotate(90deg); opacity: ${hasUid ? "1" : "0.4"};"></i>` : ""}
@@ -412,7 +538,7 @@ window.renderGlobalCardsTable = function () {
               <div>
                 <div style="font-weight: 800; font-size: 0.95rem; color: var(--text-main); display: flex; align-items: center; gap: 6px;">
                   <span>${c.ownerFullName}</span>
-                  <button onclick="gcJumpToCustomer360('${c.ownerUsername}')" title="បើកមើលក្នុង Customer 360°" style="background: #f1f5f9; border: 1px solid #cbd5e1; color: #3b82f6; border-radius: 6px; padding: 2px 6px; font-size: 0.68rem; cursor: pointer; font-weight: 800;">
+                  <button onclick="gcJumpToCustomer360('${ownerKey}')" title="បើកមើលក្នុង Customer 360° តាម _id" style="background: #f1f5f9; border: 1px solid #cbd5e1; color: #3b82f6; border-radius: 6px; padding: 2px 6px; font-size: 0.68rem; cursor: pointer; font-weight: 800;">
                     360° <i class="fa-solid fa-arrow-up-right-from-square" style="font-size: 0.6rem;"></i>
                   </button>
                 </div>
@@ -453,20 +579,20 @@ window.renderGlobalCardsTable = function () {
               ${
                 isPhy
                   ? hasUid
-                    ? `<button onclick="unbindNFC('${c.ownerUsername}', '${c.id}')" class="gc-btn-act" style="background: #fef2f2; color: #ef4444; border-color: #fca5a5;" title="ផ្តាច់បន្ទះឈីប NFC">
+                    ? `<button onclick="unbindNFC('${ownerKey}', '${c.id}')" class="gc-btn-act" style="background: #fef2f2; color: #ef4444; border-color: #fca5a5;" title="ផ្តាច់បន្ទះឈីប NFC">
                          <i class="fa-solid fa-link-slash"></i> ផ្តាច់ NFC
                        </button>`
-                    : `<button onclick="quickBindNFC('${c.ownerUsername}', '${c.id}')" class="gc-btn-act" style="background: #eff6ff; color: #2563eb; border-color: #bfdbfe;" title="ស្កេនភ្ជាប់បន្ទះឈីប NFC">
+                    : `<button onclick="quickBindNFC('${ownerKey}', '${c.id}')" class="gc-btn-act" style="background: #eff6ff; color: #2563eb; border-color: #bfdbfe;" title="ស្កេនភ្ជាប់បន្ទះឈីប NFC">
                          <i class="fa-solid fa-wifi"></i> ភ្ជាប់ NFC
                        </button>`
                   : ""
               }
 
-              <button onclick="toggleCardLock('${c.ownerUsername}', '${c.id}', ${Boolean(c.isLocked)})" class="gc-btn-act" style="background: ${c.isLocked ? "#dcfce7" : "#f1f5f9"}; color: ${c.isLocked ? "#059669" : "#475569"}; border-color: ${c.isLocked ? "#86efac" : "#cbd5e1"};" title="${c.isLocked ? "បើកដំណើរការកាតវិញ" : "ផ្អាកកាតបណ្តោះអាសន្ន"}">
+              <button onclick="toggleCardLock('${ownerKey}', '${c.id}', ${Boolean(c.isLocked)})" class="gc-btn-act" style="background: ${c.isLocked ? "#dcfce7" : "#f1f5f9"}; color: ${c.isLocked ? "#059669" : "#475569"}; border-color: ${c.isLocked ? "#86efac" : "#cbd5e1"};" title="${c.isLocked ? "បើកដំណើរការកាតវិញ" : "ផ្អាកកាតបណ្តោះអាសន្ន"}">
                 <i class="fa-solid ${c.isLocked ? "fa-unlock" : "fa-snowflake"}"></i>
               </button>
 
-              <button onclick="gcOpenCardCommandModal('${c.ownerUsername}', '${c.id}')" class="gc-btn-act" style="background: #004d40; color: #ffffff;" title="បើកផ្ទាំងបញ្ជាគ្រប់គ្រងកាតពេញលេញ">
+              <button onclick="gcOpenCardCommandModal('${ownerKey}', '${c.id}')" class="gc-btn-act" style="background: #004d40; color: #ffffff;" title="បើកផ្ទាំងបញ្ជាគ្រប់គ្រងកាតពេញលេញ">
                 <i class="fa-solid fa-sliders"></i> គ្រប់គ្រង
               </button>
             </div>
@@ -476,7 +602,6 @@ window.renderGlobalCardsTable = function () {
     })
     .join("");
 
-  // 🟢 បង្កើត ឬអាប់ដេត Pagination Footer ក្រោមតារាង
   let pagerContainer = document.getElementById("gc-cards-pagination-footer");
   if (!pagerContainer) {
     pagerContainer = document.createElement("div");
@@ -500,21 +625,18 @@ window.renderGlobalCardsTable = function () {
   `;
 };
 
-// ========================================================================
-// ៤. មុខងារចុចរុញដំណាក់កាលដឹកជញ្ជូន ១ ជំហានម្ដង (Strict Step-by-Step)
-// ========================================================================
-window.gcQuickAdvanceStep = async function (username, cardId, targetStatus) {
-  const card = gcAllFlattenedCards.find(
-    (item) => item.ownerUsername === username && item.id === cardId,
-  );
+// ============================================================================
+// 🚚 ជំពូកទី ៤៖ ការគ្រប់គ្រងដំណាក់កាលផលិត និងដឹកជញ្ជូនកាតរូបវ័ន្តតាម `_id` (PHYSICAL DELIVERY STEPPER)
+// ============================================================================
+window.gcQuickAdvanceStep = async function (ownerId, cardId, targetStatus) {
+  const card = gcFindFlattenedCard(ownerId, cardId);
   if (!card) return;
 
-  // 🛑 ទុកជំហានទី ៥ (Activated) ឱ្យភ្ញៀវចុចបើកខ្លួនឯងក្នុង App
   if (targetStatus === "Activated") {
     return Swal.fire({
       icon: "info",
       title: "សិទ្ធិរបស់អតិថិជន (User Activation)",
-      text: "ដំណាក់កាល '៥. ភ្ញៀវបើកប្រើ' គឺទុកឱ្យអតិថិជនជាអ្នកចុចបើកដោយខ្លួនឯងនៅក្នុង App (ដោយវាយលេខកាត ៤ ខ្ទង់ចុងក្រោយពេលទទួលបានកាតពិត)។",
+      text: "ដំណាក់កាល '៥. ភ្ញៀវបើកប្រើ' គឺទុកឱ្យអតិថិជនជាអ្នកចុចបើកដោយខ្លួនឯងនៅក្នុងកម្មវិធី (ដោយវាយលេខកាត ៤ ខ្ទង់ចុងក្រោយពេលទទួលបានកាតពិត)។",
       confirmButtonColor: "#0d9488",
       customClass: { popup: "premium-swal kh-text" },
     });
@@ -568,7 +690,6 @@ window.gcQuickAdvanceStep = async function (username, cardId, targetStatus) {
     });
   }
 
-  // 🛡️ បើមិនទាន់ស្កេនភ្ជាប់ NFC ទេ មិនឱ្យដឹកជញ្ជូនចេញដាច់ខាត
   if (targetIdx >= 2 && !hasUid) {
     return Swal.fire({
       icon: "warning",
@@ -579,7 +700,6 @@ window.gcQuickAdvanceStep = async function (username, cardId, targetStatus) {
     });
   }
 
-  // 🚚 បើចុចដល់ជំហាន "៣. កំពុងដឹកជញ្ជូន (Shipped)" លោតផ្ទាំងតូចរើសសេវាដឹកជញ្ជូន និងលេខ Tracking អូតូ
   if (targetStatus === "Shipped") {
     const initMethod =
       card.deliveryMethod && card.deliveryMethod !== "None"
@@ -589,7 +709,7 @@ window.gcQuickAdvanceStep = async function (username, cardId, targetStatus) {
       card.trackingNumber || window.gcGenerateTrackingCode(initMethod);
 
     const { value: shipData } = await Swal.fire({
-      title: `<span class="kh-text" style="font-size: 1.15rem; color: #0f766e;"><i class="fa-solid fa-truck-fast"></i> ចាប់ផ្តើមដឹកជញ្ជូនកាត (**** ${card.number.slice(-4)})</span>`,
+      title: `<span class="kh-text" style="font-size: 1.15rem; color: #0f766e;"><i class="fa-solid fa-truck-fast"></i> ចាប់ផ្តើមដឹកជញ្ជូនកាតជូន ${card.ownerFullName} (**** ${card.number.slice(-4)})</span>`,
       html: `
         <div style="text-align: left; font-family: 'Kantumruy Pro', sans-serif; display: flex; flex-direction: column; gap: 10px; margin-top: 6px;">
           <div>
@@ -623,7 +743,7 @@ window.gcQuickAdvanceStep = async function (username, cardId, targetStatus) {
     });
 
     if (shipData) {
-      await gcSaveDeliveryStatus(username, {
+      await gcSaveDeliveryStatus(card, {
         cardId: card.id,
         deliveryStatus: "Shipped",
         deliveryMethod: shipData.deliveryMethod,
@@ -637,7 +757,7 @@ window.gcQuickAdvanceStep = async function (username, cardId, targetStatus) {
 
   const confirm = await Swal.fire({
     title: `<span class="kh-text" style="color: #0f766e; font-size: 1.15rem;">បញ្ជាក់ជំហានបន្ទាប់?</span>`,
-    html: `<div class="kh-text" style="font-size: 0.92rem; color: #475569;">តើអ្នកចង់ប្តូរស្ថានភាពកាត <b>**** ${card.number.slice(-4)}</b> ទៅជា<br><b style="color: #0d9488;">[${statusNames[targetStatus]}]</b> មែនទេ?</div>`,
+    html: `<div class="kh-text" style="font-size: 0.92rem; color: #475569;">តើអ្នកចង់ប្តូរស្ថានភាពកាតរបស់ <b>${card.ownerFullName}</b> (**** ${card.number.slice(-4)}) ទៅជា<br><b style="color: #0d9488;">[${statusNames[targetStatus]}]</b> មែនទេ?</div>`,
     icon: "question",
     width: "400px",
     showCancelButton: true,
@@ -648,7 +768,7 @@ window.gcQuickAdvanceStep = async function (username, cardId, targetStatus) {
   });
 
   if (confirm.isConfirmed) {
-    await gcSaveDeliveryStatus(username, {
+    await gcSaveDeliveryStatus(card, {
       cardId: card.id,
       deliveryStatus: targetStatus,
       deliveryMethod: card.deliveryMethod || "Branch Pickup",
@@ -659,7 +779,7 @@ window.gcQuickAdvanceStep = async function (username, cardId, targetStatus) {
   }
 };
 
-async function gcSaveDeliveryStatus(username, payload) {
+async function gcSaveDeliveryStatus(cardObj, payload) {
   Swal.fire({
     title: "កំពុងរក្សាទុក...",
     allowOutsideClick: false,
@@ -670,11 +790,24 @@ async function gcSaveDeliveryStatus(username, payload) {
     const res = await fetch("/api/admin/cards/physical-status", {
       method: "POST",
       headers: getAuthHeaders(),
-      body: JSON.stringify({ username, ...payload }),
+      body: JSON.stringify({
+        _id: cardObj.ownerId,
+        userId: cardObj.ownerId,
+        username: cardObj.ownerUsername,
+        ...payload,
+      }),
     });
     const data = await res.json();
     if (data.success) {
-      await gcRefreshAllCards();
+      await gcRefreshAllCards(true);
+      Swal.fire({
+        toast: true,
+        position: "top-end",
+        icon: "success",
+        title: "ធ្វើបច្ចុប្បន្នភាពស្ថានភាពកាតជោគជ័យ!",
+        showConfirmButton: false,
+        timer: 1400,
+      });
     } else {
       Swal.fire("បរាជ័យ", data.message || "មិនអាចរក្សាទុកបានទេ", "error");
     }
@@ -683,15 +816,14 @@ async function gcSaveDeliveryStatus(username, payload) {
   }
 }
 
-// ========================================================================
-// ៥. ផ្ទាំងបញ្ជាកាតពេញលេញ (3D Card Command Drawer Modal - Font ខ្មែរស្អាត & Full Name)
-// ========================================================================
-window.gcOpenCardCommandModal = function (username, cardId) {
-  const c = gcAllFlattenedCards.find(
-    (item) => item.ownerUsername === username && item.id === cardId,
-  );
+// ============================================================================
+// 🎛️ ជំពូកទី ៥៖ ផ្ទាំងបញ្ជាកាត 3D ពេញលេញតាម `_id` (3D CARD COMMAND MODAL BY `_id`)
+// ============================================================================
+window.gcOpenCardCommandModal = function (ownerId, cardId) {
+  const c = gcFindFlattenedCard(ownerId, cardId);
   if (!c) return;
 
+  const ownerKey = c.ownerId || c.ownerUsername;
   const cat = c.cardCategory || (c.isPhysical ? "debit" : "virtual");
   const isPhy =
     cat === "debit" ||
@@ -701,7 +833,7 @@ window.gcOpenCardCommandModal = function (username, cardId) {
   const hasUid = Boolean(c.uid && c.uid !== "");
   const themeClass = gcGetThemeClass(c.type);
   const last4 = c.number.slice(-4);
-  const fullNameDisplay = c.ownerFullName || username; // 🌟 យក Full Name មកបង្ហាញជំនួស username
+  const fullNameDisplay = c.ownerFullName || c.ownerUsername;
 
   let customBgStyle = "";
   if (c.type === "custom" && c.customBgUrl) {
@@ -709,7 +841,7 @@ window.gcOpenCardCommandModal = function (username, cardId) {
   }
 
   Swal.fire({
-    title: `<span class="kh-text" style="font-size: 1.25rem; color: #0f172a; font-family: 'Kantumruy Pro', sans-serif;"><i class="fa-solid fa-sliders" style="color: #0d9488;"></i> មជ្ឈមណ្ឌលបញ្ជាកាត (${fullNameDisplay})</span>`,
+    title: `<span class="kh-text" style="font-size: 1.22rem; color: #0f172a; font-family: 'Kantumruy Pro', sans-serif;"><i class="fa-solid fa-sliders" style="color: #0d9488;"></i> មជ្ឈមណ្ឌលបញ្ជាកាត (${fullNameDisplay})</span>`,
     html: `
       <div style="font-family: 'Kantumruy Pro', sans-serif; text-align: left; margin-top: 8px;">
         <!-- កាត 3D Preview -->
@@ -740,41 +872,41 @@ window.gcOpenCardCommandModal = function (username, cardId) {
           </div>
         </div>
 
-        <!-- ក្រឡាប៊ូតុងបញ្ជាទាំង ៩ (3x3 Command Grid - Kantumruy Pro Font) -->
+        <!-- ក្រឡាប៊ូតុងបញ្ជាទាំង ៩ (3x3 Command Grid) -->
         <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 6px;">
           <button type="button" onclick="navigator.clipboard.writeText('${c.number}'); Swal.fire({toast:true, position:'top', icon:'success', title:'បានចម្លងលេខកាតពេញ!', showConfirmButton:false, timer:1200});" class="kh-text" style="padding: 11px 6px; border-radius: 10px; border: 1px solid #e2e8f0; background: #f8fafc; cursor: pointer; font-weight: 700; font-size: 0.78rem; color: #1e293b; display: flex; flex-direction: column; align-items: center; gap: 5px;">
             <i class="fa-regular fa-copy" style="font-size: 1.1rem; color: #0ea5e9;"></i> ចម្លងលេខពេញ
           </button>
 
-          <button type="button" onclick="gcModalEditLimit('${username}', '${c.id}')" class="kh-text" style="padding: 11px 6px; border-radius: 10px; border: 1px solid #e2e8f0; background: #f8fafc; cursor: pointer; font-weight: 700; font-size: 0.78rem; color: #1e293b; display: flex; flex-direction: column; align-items: center; gap: 5px;">
+          <button type="button" onclick="gcModalEditLimit('${ownerKey}', '${c.id}')" class="kh-text" style="padding: 11px 6px; border-radius: 10px; border: 1px solid #e2e8f0; background: #f8fafc; cursor: pointer; font-weight: 700; font-size: 0.78rem; color: #1e293b; display: flex; flex-direction: column; align-items: center; gap: 5px;">
             <i class="fa-solid fa-sliders" style="font-size: 1.1rem; color: #f59e0b;"></i> កំណត់ Limit
           </button>
 
-          <button type="button" onclick="gcModalToggleOnline('${username}', '${c.id}', ${c.isOnlinePayEnabled !== false})" class="kh-text" style="padding: 11px 6px; border-radius: 10px; border: 1px solid #e2e8f0; background: #f8fafc; cursor: pointer; font-weight: 700; font-size: 0.78rem; color: #1e293b; display: flex; flex-direction: column; align-items: center; gap: 5px;">
+          <button type="button" onclick="gcModalToggleOnline('${ownerKey}', '${c.id}', ${c.isOnlinePayEnabled !== false})" class="kh-text" style="padding: 11px 6px; border-radius: 10px; border: 1px solid #e2e8f0; background: #f8fafc; cursor: pointer; font-weight: 700; font-size: 0.78rem; color: #1e293b; display: flex; flex-direction: column; align-items: center; gap: 5px;">
             <i class="fa-solid fa-globe" style="font-size: 1.1rem; color: ${c.isOnlinePayEnabled !== false ? "#10b981" : "#94a3b8"};"></i> អនឡាញ: ${c.isOnlinePayEnabled !== false ? "ON" : "OFF"}
           </button>
 
-          <button type="button" onclick="gcModalRenameCard('${username}', '${c.id}', '${c.name || ""}')" class="kh-text" style="padding: 11px 6px; border-radius: 10px; border: 1px solid #e2e8f0; background: #f8fafc; cursor: pointer; font-weight: 700; font-size: 0.78rem; color: #1e293b; display: flex; flex-direction: column; align-items: center; gap: 5px;">
+          <button type="button" onclick="gcModalRenameCard('${ownerKey}', '${c.id}', '${c.name || ""}')" class="kh-text" style="padding: 11px 6px; border-radius: 10px; border: 1px solid #e2e8f0; background: #f8fafc; cursor: pointer; font-weight: 700; font-size: 0.78rem; color: #1e293b; display: flex; flex-direction: column; align-items: center; gap: 5px;">
             <i class="fa-solid fa-pen" style="font-size: 1.1rem; color: #8b5cf6;"></i> ប្តូរឈ្មោះកាត
           </button>
 
-          <button type="button" onclick="gcModalChangeLinkedAcc('${username}', '${c.id}')" class="kh-text" style="padding: 11px 6px; border-radius: 10px; border: 1px solid #e2e8f0; background: #f8fafc; cursor: pointer; font-weight: 700; font-size: 0.78rem; color: #1e293b; display: flex; flex-direction: column; align-items: center; gap: 5px;">
+          <button type="button" onclick="gcModalChangeLinkedAcc('${ownerKey}', '${c.id}')" class="kh-text" style="padding: 11px 6px; border-radius: 10px; border: 1px solid #e2e8f0; background: #f8fafc; cursor: pointer; font-weight: 700; font-size: 0.78rem; color: #1e293b; display: flex; flex-direction: column; align-items: center; gap: 5px;">
             <i class="fa-solid fa-link" style="font-size: 1.1rem; color: #eab308;"></i> ប្តូរគណនីភ្ជាប់
           </button>
 
-          <button type="button" onclick="gcModalResetPosPin('${username}', '${c.id}')" class="kh-text" style="padding: 11px 6px; border-radius: 10px; border: 1px solid #e2e8f0; background: #f8fafc; cursor: pointer; font-weight: 700; font-size: 0.78rem; color: #1e293b; display: flex; flex-direction: column; align-items: center; gap: 5px;">
+          <button type="button" onclick="gcModalResetPosPin('${ownerKey}', '${c.id}')" class="kh-text" style="padding: 11px 6px; border-radius: 10px; border: 1px solid #e2e8f0; background: #f8fafc; cursor: pointer; font-weight: 700; font-size: 0.78rem; color: #1e293b; display: flex; flex-direction: column; align-items: center; gap: 5px;">
             <i class="fa-solid fa-key" style="font-size: 1.1rem; color: #0d9488;"></i> កំណត់កូដ PIN
           </button>
 
-          <button type="button" onclick="${!isPhy ? "Swal.fire('កាតនិម្មិត','កាតនិម្មិតមិនមានបន្ទះឈីប NFC ទេ!','info')" : hasUid ? `unbindNFC('${username}', '${c.id}')` : `quickBindNFC('${username}', '${c.id}')`}" class="kh-text" style="padding: 11px 6px; border-radius: 10px; border: 1px solid #e2e8f0; background: #f8fafc; cursor: pointer; font-weight: 700; font-size: 0.78rem; color: #1e293b; display: flex; flex-direction: column; align-items: center; gap: 5px; ${!isPhy ? "opacity:0.45;" : ""}">
+          <button type="button" onclick="${!isPhy ? "Swal.fire('កាតនិម្មិត','កាតនិម្មិតមិនមានបន្ទះឈីប NFC ទេ!','info')" : hasUid ? `unbindNFC('${ownerKey}', '${c.id}')` : `quickBindNFC('${ownerKey}', '${c.id}')`}" class="kh-text" style="padding: 11px 6px; border-radius: 10px; border: 1px solid #e2e8f0; background: #f8fafc; cursor: pointer; font-weight: 700; font-size: 0.78rem; color: #1e293b; display: flex; flex-direction: column; align-items: center; gap: 5px; ${!isPhy ? "opacity:0.45;" : ""}">
             <i class="fa-solid fa-wifi" style="font-size: 1.1rem; color: ${hasUid ? "#ef4444" : "#2563eb"};"></i> ${hasUid ? "ផ្តាច់ NFC" : "ភ្ជាប់ NFC"}
           </button>
 
-          <button type="button" onclick="toggleCardLock('${username}', '${c.id}', ${Boolean(c.isLocked)})" class="kh-text" style="padding: 11px 6px; border-radius: 10px; border: 1px solid #e2e8f0; background: #f8fafc; cursor: pointer; font-weight: 700; font-size: 0.78rem; color: #1e293b; display: flex; flex-direction: column; align-items: center; gap: 5px;">
+          <button type="button" onclick="toggleCardLock('${ownerKey}', '${c.id}', ${Boolean(c.isLocked)})" class="kh-text" style="padding: 11px 6px; border-radius: 10px; border: 1px solid #e2e8f0; background: #f8fafc; cursor: pointer; font-weight: 700; font-size: 0.78rem; color: #1e293b; display: flex; flex-direction: column; align-items: center; gap: 5px;">
             <i class="fa-solid ${c.isLocked ? "fa-unlock" : "fa-snowflake"}" style="font-size: 1.1rem; color: #64748b;"></i> ${c.isLocked ? "បើកកាតវិញ" : "ផ្អាកកាត"}
           </button>
 
-          <button type="button" onclick="gcModalDeleteCard('${username}', '${c.id}')" class="kh-text" style="padding: 11px 6px; border-radius: 10px; border: 1px solid #fca5a5; background: #fef2f2; cursor: pointer; font-weight: 700; font-size: 0.78rem; color: #ef4444; display: flex; flex-direction: column; align-items: center; gap: 5px;">
+          <button type="button" onclick="gcModalDeleteCard('${ownerKey}', '${c.id}')" class="kh-text" style="padding: 11px 6px; border-radius: 10px; border: 1px solid #fca5a5; background: #fef2f2; cursor: pointer; font-weight: 700; font-size: 0.78rem; color: #ef4444; display: flex; flex-direction: column; align-items: center; gap: 5px;">
             <i class="fa-solid fa-trash" style="font-size: 1.1rem; color: #ef4444;"></i> លុបកាតចោល
           </button>
         </div>
@@ -789,17 +921,16 @@ window.gcOpenCardCommandModal = function (username, cardId) {
   });
 };
 
-// មុខងាររងនៅក្នុងផ្ទាំង Command Modal
-window.gcModalEditLimit = async function (username, cardId) {
-  const c = gcAllFlattenedCards.find(
-    (item) => item.ownerUsername === username && item.id === cardId,
-  );
+/**
+ * 🔹 ៥.២ មុខងាររងសម្រាប់កែប្រែដែនកំណត់, បិទ/បើកអនឡាញ, ប្តូរឈ្មោះ, ប្តូរគណនីភ្ជាប់, កំណត់កូដ PIN និងលុបកាតតាម `_id`
+ */
+window.gcModalEditLimit = async function (ownerId, cardId) {
+  const c = gcFindFlattenedCard(ownerId, cardId);
   if (!c) return;
   const isCredit = c.cardCategory === "credit";
 
   const { value: formVal } = await Swal.fire({
-    title:
-      '<span class="kh-text" style="font-size:1.15rem;">កំណត់ដែនកំណត់ចំណាយ (Card Limits)</span>',
+    title: `<span class="kh-text" style="font-size:1.15rem;">កំណត់ដែនកំណត់ចំណាយកាតរបស់ ${c.ownerFullName}</span>`,
     html: `
       <div style="text-align: left; font-family: 'Kantumruy Pro', sans-serif; display: flex; flex-direction: column; gap: 10px; margin-top: 8px;">
         ${
@@ -841,7 +972,13 @@ window.gcModalEditLimit = async function (username, cardId) {
     const res = await fetch("/api/admin/update-card-limit", {
       method: "POST",
       headers: getAuthHeaders(),
-      body: JSON.stringify({ username, cardId, ...formVal }),
+      body: JSON.stringify({
+        _id: c.ownerId,
+        userId: c.ownerId,
+        username: c.ownerUsername,
+        cardId: c.id,
+        ...formVal,
+      }),
     });
     const data = await res.json();
     if (data.success) {
@@ -852,11 +989,18 @@ window.gcModalEditLimit = async function (username, cardId) {
   }
 };
 
-window.gcModalToggleOnline = async function (username, cardId, curState) {
+window.gcModalToggleOnline = async function (ownerId, cardId, curState) {
+  const c = gcFindFlattenedCard(ownerId, cardId);
   const res = await fetch("/api/admin/toggle-card-online", {
     method: "POST",
     headers: getAuthHeaders(),
-    body: JSON.stringify({ username, cardId, isEnabled: !curState }),
+    body: JSON.stringify({
+      _id: c ? c.ownerId : ownerId,
+      userId: c ? c.ownerId : ownerId,
+      username: c ? c.ownerUsername : ownerId,
+      cardId,
+      isEnabled: !curState,
+    }),
   });
   const data = await res.json();
   if (data.success) {
@@ -864,7 +1008,8 @@ window.gcModalToggleOnline = async function (username, cardId, curState) {
   }
 };
 
-window.gcModalRenameCard = async function (username, cardId, curName) {
+window.gcModalRenameCard = async function (ownerId, cardId, curName) {
+  const c = gcFindFlattenedCard(ownerId, cardId);
   const { value: newName } = await Swal.fire({
     title:
       '<span class="kh-text" style="font-size: 1.15rem;">ប្តូរឈ្មោះសម្គាល់កាត</span>',
@@ -880,17 +1025,21 @@ window.gcModalRenameCard = async function (username, cardId, curName) {
     const res = await fetch("/api/admin/rename-card", {
       method: "POST",
       headers: getAuthHeaders(),
-      body: JSON.stringify({ username, cardId, name: newName }),
+      body: JSON.stringify({
+        _id: c ? c.ownerId : ownerId,
+        userId: c ? c.ownerId : ownerId,
+        username: c ? c.ownerUsername : ownerId,
+        cardId,
+        name: newName,
+      }),
     });
     const data = await res.json();
     if (data.success) await gcRefreshAllCards();
   }
 };
 
-window.gcModalChangeLinkedAcc = async function (username, cardId) {
-  const c = gcAllFlattenedCards.find(
-    (item) => item.ownerUsername === username && item.id === cardId,
-  );
+window.gcModalChangeLinkedAcc = async function (ownerId, cardId) {
+  const c = gcFindFlattenedCard(ownerId, cardId);
   if (!c) return;
   if (c.cardCategory === "credit") {
     return Swal.fire(
@@ -900,20 +1049,22 @@ window.gcModalChangeLinkedAcc = async function (username, cardId) {
     );
   }
 
-  const u = c.ownerObj;
+  const u = c.ownerObj || {};
   let opts = "";
-  if (u.mainAccounts?.USD)
+  if (u.mainAccounts?.USD?.accountNumber) {
     opts += `<option value="${u.mainAccounts.USD.accountNumber}">Main USD (${u.mainAccounts.USD.accountNumber})</option>`;
-  if (u.mainAccounts?.KHR)
+  }
+  if (u.mainAccounts?.KHR?.accountNumber) {
     opts += `<option value="${u.mainAccounts.KHR.accountNumber}">Main KHR (${u.mainAccounts.KHR.accountNumber})</option>`;
+  }
   (u.subAccounts || []).forEach((s) => {
-    if (!s.isHidden)
+    if (!s.isHidden) {
       opts += `<option value="${s.accountNumber}">${s.accountName} (${s.accountNumber})</option>`;
+    }
   });
 
   const { value: newAcc } = await Swal.fire({
-    title:
-      '<span class="kh-text" style="font-size: 1.15rem;">ប្តូរគណនីភ្ជាប់</span>',
+    title: `<span class="kh-text" style="font-size: 1.15rem;">ប្តូរគណនីភ្ជាប់កាតរបស់ ${c.ownerFullName}</span>`,
     html: `<select id="gc-new-link-acc" class="swal2-select kh-text" style="width:100%; margin: 10px 0 0; padding:10px; border-radius:10px;">${opts}</select>`,
     showCancelButton: true,
     confirmButtonText: "រក្សាទុក",
@@ -927,14 +1078,21 @@ window.gcModalChangeLinkedAcc = async function (username, cardId) {
     const res = await fetch("/api/admin/change-card-account", {
       method: "POST",
       headers: getAuthHeaders(),
-      body: JSON.stringify({ username, cardId, linkedAccount: newAcc }),
+      body: JSON.stringify({
+        _id: c.ownerId,
+        userId: c.ownerId,
+        username: c.ownerUsername,
+        cardId: c.id,
+        linkedAccount: newAcc,
+      }),
     });
     const data = await res.json();
     if (data.success) await gcRefreshAllCards();
   }
 };
 
-window.gcModalResetPosPin = async function (username, cardId) {
+window.gcModalResetPosPin = async function (ownerId, cardId) {
+  const c = gcFindFlattenedCard(ownerId, cardId);
   const { value: newPin } = await Swal.fire({
     title:
       '<span class="kh-text" style="font-size: 1.15rem;">កំណត់លេខកូដ POS PIN (៤ខ្ទង់)</span>',
@@ -955,7 +1113,13 @@ window.gcModalResetPosPin = async function (username, cardId) {
     const res = await fetch("/api/admin/cards/update-pin", {
       method: "POST",
       headers: getAuthHeaders(),
-      body: JSON.stringify({ username, cardId, newPin }),
+      body: JSON.stringify({
+        _id: c ? c.ownerId : ownerId,
+        userId: c ? c.ownerId : ownerId,
+        username: c ? c.ownerUsername : ownerId,
+        cardId,
+        newPin,
+      }),
     });
     const data = await res.json();
     if (data.success) {
@@ -969,11 +1133,12 @@ window.gcModalResetPosPin = async function (username, cardId) {
   }
 };
 
-window.gcModalDeleteCard = async function (username, cardId) {
+window.gcModalDeleteCard = async function (ownerId, cardId) {
+  const c = gcFindFlattenedCard(ownerId, cardId);
   const confirm = await Swal.fire({
     title:
       '<span class="kh-text" style="color:#ef4444;">បញ្ជាក់ការលុបកាតចោល?</span>',
-    text: "សកម្មភាពនេះនឹងលុបកាតចេញពីប្រព័ន្ធជារៀងរហូត!",
+    text: `សកម្មភាពនេះនឹងលុបកាតរបស់ "${c ? c.ownerFullName : ownerId}" ចេញពីប្រព័ន្ធជារៀងរហូត!`,
     icon: "warning",
     showCancelButton: true,
     confirmButtonColor: "#ef4444",
@@ -986,7 +1151,9 @@ window.gcModalDeleteCard = async function (username, cardId) {
       method: "POST",
       headers: getAuthHeaders(),
       body: JSON.stringify({
-        username,
+        _id: c ? c.ownerId : ownerId,
+        userId: c ? c.ownerId : ownerId,
+        username: c ? c.ownerUsername : ownerId,
         cardId,
         reason: "Deleted from Card Center",
       }),
@@ -1000,13 +1167,15 @@ window.gcModalDeleteCard = async function (username, cardId) {
   }
 };
 
-// ៦. បង្កើតកាតថ្មីឱ្យអតិថិជនណាម្នាក់ពីក្នុង Menu ធំផ្ទាល់
+/**
+ * 🔹 ៥.៣ បង្កើតកាតថ្មីឱ្យអតិថិជនណាម្នាក់ពីក្នុងម៉ឺនុយ Cards Hub ផ្ទាល់ (ស្វែងរកតាម `_id`, ឈ្មោះពេញ ឬលេខទូរស័ព្ទ)
+ */
 window.gcOpenIssueCardForAnyUserModal = async function () {
   const { value: targetUserStr } = await Swal.fire({
     title:
       '<span class="kh-text" style="font-size: 1.15rem;">បង្កើតកាតថ្មីជូនអតិថិជន</span>',
     input: "text",
-    inputPlaceholder: "វាយបញ្ចូល Username ឬ លេខទូរស័ព្ទអតិថិជន...",
+    inputPlaceholder: "វាយបញ្ចូលឈ្មោះពេញ, លេខគណនី, លេខទូរស័ព្ទ ឬ _id...",
     showCancelButton: true,
     confirmButtonText: "បន្តទៅជ្រើសរើសកាត",
     cancelButtonText: "បោះបង់",
@@ -1016,27 +1185,31 @@ window.gcOpenIssueCardForAnyUserModal = async function () {
 
   if (targetUserStr) {
     const kw = targetUserStr.trim().toLowerCase();
-    const found = (globalUsersData || []).find(
+    const found = (window.globalUsersData || []).find(
       (u) =>
+        String(u._id || u.id).toLowerCase() === kw ||
+        (u.fullName && u.fullName.toLowerCase().includes(kw)) ||
         (u.username && u.username.toLowerCase() === kw) ||
         u.phone === kw ||
-        u.phoneNumber === kw,
+        u.mainAccounts?.USD?.accountNumber === kw ||
+        u.mainAccounts?.KHR?.accountNumber === kw,
     );
     if (!found) {
       return Swal.fire("រកមិនឃើញ", "មិនមានអតិថិជននេះក្នុងប្រព័ន្ធទេ!", "error");
     }
-    currentC360User = found;
+    window.currentC360User = found;
     if (typeof c360CreateCardModal === "function") {
       await c360CreateCardModal();
-      setTimeout(() => gcRefreshAllCards(), 1000);
+      setTimeout(() => gcRefreshAllCards(true), 1000);
     }
   }
 };
 
-// ========================================================================
-// ៧. មុខងារដើម៖ ផ្អាកកាត (Freeze), ស្កេនភ្ជាប់ NFC (quickBindNFC), និងផ្តាច់ NFC (unbindNFC)
-// ========================================================================
-async function toggleCardLock(username, cardId, isCurrentlyLocked) {
+// ============================================================================
+// 📡 ជំពូកទី ៦៖ ការផ្អាកកាត និងការស្កេនភ្ជាប់/ផ្តាច់ឈីប NFC តាម `_id` (LOCK & NFC SCANNER BY `_id`)
+// ============================================================================
+async function toggleCardLock(ownerId, cardId, isCurrentlyLocked) {
+  const c = gcFindFlattenedCard(ownerId, cardId);
   const actionText = isCurrentlyLocked
     ? "បើកដំណើរការកាតវិញ"
     : "ផ្អាកកាតបណ្តោះអាសន្ន";
@@ -1053,7 +1226,13 @@ async function toggleCardLock(username, cardId, isCurrentlyLocked) {
     const res = await fetch("/api/admin/toggle-card-lock", {
       method: "POST",
       headers: getAuthHeaders(),
-      body: JSON.stringify({ username, cardId, isLocked: !isCurrentlyLocked }),
+      body: JSON.stringify({
+        _id: c ? c.ownerId : ownerId,
+        userId: c ? c.ownerId : ownerId,
+        username: c ? c.ownerUsername : ownerId,
+        cardId,
+        isLocked: !isCurrentlyLocked,
+      }),
     });
     const data = await res.json();
     if (data.success) {
@@ -1064,15 +1243,11 @@ async function toggleCardLock(username, cardId, isCurrentlyLocked) {
   }
 }
 
-window.quickBindNFC = async function (username, cardId) {
-  const targetUser = (globalUsersData || []).find(
-    (u) => u.username === username,
-  );
-  if (!targetUser)
-    return Swal.fire("កំហុស", "រកមិនឃើញគណនីអតិថិជននេះទេ!", "error");
-
-  const targetCard = targetUser.virtualCards?.find((c) => c.id === cardId);
-  if (!targetCard) return Swal.fire("កំហុស", "រកមិនឃើញកាតមួយនេះទេ!", "error");
+window.quickBindNFC = async function (ownerId, cardId) {
+  const targetCard = gcFindFlattenedCard(ownerId, cardId);
+  if (!targetCard) {
+    return Swal.fire("កំហុស", "រកមិនឃើញកាតមួយនេះទេ!", "error");
+  }
 
   const cat =
     targetCard.cardCategory || (targetCard.isPhysical ? "debit" : "virtual");
@@ -1084,7 +1259,9 @@ window.quickBindNFC = async function (username, cardId) {
     );
   }
 
-  const fullName = (targetUser.fullName || targetUser.username).toUpperCase();
+  const fullName = (
+    targetCard.ownerFullName || targetCard.ownerUsername
+  ).toUpperCase();
   const rawNum = targetCard.number || "0000000000000000";
   const formattedNum = rawNum.match(/.{1,4}/g)?.join(" ") || rawNum;
   const cardType = (
@@ -1102,7 +1279,7 @@ window.quickBindNFC = async function (username, cardId) {
          <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 16px; padding: 18px;">
             <div style="margin-bottom: 12px;">
                <span style="font-size: 0.78rem; color: #64748b; font-weight: 700;"><i class="fa-solid fa-user"></i> ម្ចាស់កាត (Card Holder)</span><br>
-               <span style="font-size: 1.05rem; color: #0f172a; font-weight: 800;">${fullName} (@${username})</span>
+               <span style="font-size: 1.05rem; color: #0f172a; font-weight: 800;">${fullName}</span>
             </div>
             <div style="margin-bottom: 12px;">
                <span style="font-size: 0.78rem; color: #64748b; font-weight: 700;"><i class="fa-regular fa-credit-card"></i> លេខកាត (Card Number)</span><br>
@@ -1161,8 +1338,7 @@ window.quickBindNFC = async function (username, cardId) {
               isScanning = false;
               Swal.close();
               processCardBinding(
-                username,
-                cardId,
+                targetCard,
                 currentCardPin,
                 normalizeUID(scanBuffer),
               );
@@ -1200,8 +1376,7 @@ window.quickBindNFC = async function (username, cardId) {
           : "";
         if (navigator.vibrate) navigator.vibrate([200, 100, 200]);
         processCardBinding(
-          username,
-          cardId,
+          targetCard,
           currentCardPin,
           normalizeUID(serialNumber),
         );
@@ -1210,16 +1385,23 @@ window.quickBindNFC = async function (username, cardId) {
   }
 };
 
-async function processCardBinding(username, cardId, pin, uid) {
+async function processCardBinding(cardObj, pin, uid) {
   try {
     const res = await fetch("/api/admin/cards/bind-nfc", {
       method: "POST",
       headers: getAuthHeaders(),
-      body: JSON.stringify({ username, cardId, pin, uid }),
+      body: JSON.stringify({
+        _id: cardObj.ownerId,
+        userId: cardObj.ownerId,
+        username: cardObj.ownerUsername,
+        cardId: cardObj.id,
+        pin,
+        uid,
+      }),
     });
     const data = await res.json();
     if (data.success) {
-      await gcRefreshAllCards();
+      await gcRefreshAllCards(true);
       Swal.fire({
         icon: "success",
         title: "ភ្ជាប់ឈីប NFC ជោគជ័យ!",
@@ -1241,7 +1423,8 @@ async function processCardBinding(username, cardId, pin, uid) {
   }
 }
 
-window.unbindNFC = function (username, cardId) {
+window.unbindNFC = function (ownerId, cardId) {
+  const c = gcFindFlattenedCard(ownerId, cardId);
   Swal.fire({
     title:
       '<span class="kh-text" style="color:#ef4444;">ផ្តាច់បន្ទះឈីប NFC នេះ?</span>',
@@ -1255,12 +1438,20 @@ window.unbindNFC = function (username, cardId) {
     customClass: { popup: "premium-swal kh-text" },
   }).then(async (result) => {
     if (result.isConfirmed) {
-      Swal.fire({ title: "កំពុងផ្តាច់...", didOpen: () => Swal.showLoading() });
+      Swal.fire({
+        title: "កំពុងផ្តាច់...",
+        didOpen: () => Swal.showLoading(),
+      });
       try {
         const res = await fetch("/api/admin/cards/unbind-nfc", {
           method: "POST",
           headers: getAuthHeaders(),
-          body: JSON.stringify({ username, cardId }),
+          body: JSON.stringify({
+            _id: c ? c.ownerId : ownerId,
+            userId: c ? c.ownerId : ownerId,
+            username: c ? c.ownerUsername : ownerId,
+            cardId,
+          }),
         });
         const data = await res.json();
         if (data.success) {
@@ -1275,9 +1466,13 @@ window.unbindNFC = function (username, cardId) {
   });
 };
 
-// ========================================================================
-// ៨. Auto-Hook៖ គូរតារាងកាតពេលចូលដល់ Menu Cards តែម្តងគត់ (មិនមាន Loop រំខាន)
-// ========================================================================
+// ============================================================================
+// 🎬 ជំពូកទី ៧៖ ការចាប់ផ្តើមដំណើរការតារាងកាតដោយស្វ័យប្រវត្តិ (AUTO-INIT HOOK)
+// ============================================================================
+window.renderCardTablePage = function () {
+  renderGlobalCardsTable();
+};
+
 document.addEventListener("DOMContentLoaded", () => {
   setTimeout(() => {
     if (document.getElementById("cardTableBody")) {
@@ -1285,7 +1480,6 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   }, 500);
 
-  // ចាប់សញ្ញាចុចលើ Menu Cards ខាងឆ្វេង ដើម្បីអាប់ដេតតារាងភ្លាមៗពេលបើកផ្ទាំង
   document.body.addEventListener("click", (e) => {
     const navItem = e.target.closest(
       "[onclick*='cards'], [data-target*='cards']",

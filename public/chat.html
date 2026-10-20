@@ -2715,7 +2715,26 @@
           });
           const data = await res.json();
           if (data.success) {
-            cachedContactsList = data.contacts || [];
+            const newContacts = data.contacts || [];
+
+            // 🛡️ ផ្ទៀងផ្ទាត់សញ្ញាណ (Hash Check) ថាតើទិន្នន័យមានការប្រែប្រួលពិតប្រាកដដែរឬទេ
+            // មុននឹងបញ្ជាឱ្យ Render ឡើងវិញ ដើម្បីការពារការលោតផ្លឹបៗ (Flickering)!
+            const newContactsHash = JSON.stringify(
+              newContacts.map((c) => ({
+                id: c.partnerId || c.accountNumber,
+                msg: c.lastMessage,
+                time: c.timestamp || c.time,
+                unread: c.unreadCount,
+                online: c.isOnline,
+              })),
+            );
+
+            if (window._lastContactsHash === newContactsHash) {
+              return; // បើទិន្នន័យដូចគ្នាបេះបិទ គឺមិនបាច់គូរឡើងវិញទេ!
+            }
+            window._lastContactsHash = newContactsHash;
+
+            cachedContactsList = newContacts;
             let totalUnread = 0;
             cachedContactsList.forEach(
               (c) => (totalUnread += c.unreadCount || 0),

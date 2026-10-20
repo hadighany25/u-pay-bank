@@ -1,16 +1,23 @@
-// ========================================================================
-// ឯកសារ: admin-trx.js (100% Pro Redesign - Real-Time Transaction Forensics)
+// ============================================================================
+// ឯកសារ: js/admin-trx.js (100% Pro Redesign - Real-Time Transaction Forensics)
 // អត្ថន័យ: ពិនិត្យវិក្កយបត្រពិត (Zero Fake Data), អនុម័ត Pending, ដោះ Hold ហាង និងធ្វើ Refund
-// ========================================================================
+// ស្តង់ដារថ្មី: ចាប់ទិន្នន័យភាគីអ្នកផ្ញើ និងអ្នកទទួលតាម MongoDB `_id` សុទ្ធសាធ + បង្ហាញឈ្មោះពេញ
+// ============================================================================
 
+// ============================================================================
+// 🔍 ជំពូកទី ១៖ អថេរសកល, ម៉ាស៊ីនចាត់ថ្នាក់ប្រតិបត្តិការ និងការប្រមូលទិន្នន័យ (STATE & COLLECTOR)
+// ============================================================================
 let allSystemTrxList = [];
 let filteredSystemTrxList = [];
 let currentAtrxPage = 1;
 const ATRX_PER_PAGE = 8; // បង្ហាញ ៨ ប្រតិបត្តិការក្នុង ១ ទំព័រ
 let atrxCurrentFilter = "ALL"; // 'ALL', 'PENDING', 'HOLD', 'TRANSFER', 'POS_CARD', 'CASHIER', 'REFUNDED'
 let currentInspectedTrx = null;
+let atrxCachedStream = [];
 
-// 🔍 ១. ចំណាត់ថ្នាក់ប្រភេទប្រតិបត្តិការដោយស្វ័យប្រវត្តិ (Smart Transaction Classifier)
+/**
+ * 🔹 ១.១ ចំណាត់ថ្នាក់ប្រភេទប្រតិបត្តិការដោយស្វ័យប្រវត្តិ (Smart Transaction Classifier)
+ */
 function classifyTrxCategory(t) {
   const type = String(t.type || "").toLowerCase();
   const method = String(t.trxMethod || "").toLowerCase();
@@ -71,52 +78,69 @@ function classifyTrxCategory(t) {
   };
 }
 
-// 🔍 ២. ប្រមូលប្រតិបត្តិការពិតទាំងអស់ពី globalUsersData (Deduplicated by Ref ID)
+/**
+ * 🔹 ១.២ ប្រមូលប្រតិបត្តិការពិតទាំងអស់ពីប្រព័ន្ធ (Deduplicated by Ref ID & Linked by `_id`)
+ */
 function collectAllRealTransactions() {
-  if (
-    typeof globalUsersData === "undefined" ||
-    !Array.isArray(globalUsersData)
-  ) {
-    return [];
-  }
-
   const mapByRef = new Map();
 
-  globalUsersData.forEach((u) => {
-    if (!Array.isArray(u.transactions)) return;
-    u.transactions.forEach((t) => {
-      if (!t) return;
-      // ផាត់ចេញប្រតិបត្តិការគណនីកណ្តាល 888888888 កុំឱ្យជាន់គ្នា២ដង
-      if (u.username === "superadmin" && t.senderAcc === "888888888") return;
+  // ១.២.១ ប្រមូលពី globalUsersData (បើមានភ្ជាប់មកជាមួយ)
+  if (
+    typeof globalUsersData !== "undefined" &&
+    Array.isArray(globalUsersData)
+  ) {
+    globalUsersData.forEach((u) => {
+      if (!Array.isArray(u.transactions)) return;
+      const canonicalId = String(u._id || u.id || "");
+      u.transactions.forEach((t) => {
+        if (!t) return;
+        if (u.username === "superadmin" && t.senderAcc === "888888888") return;
 
-      const key = t.refId || t.hash || `${u.username}_${t.date}_${t.amount}`;
-      const existing = mapByRef.get(key);
+        const key = t.refId || t.hash || `${canonicalId}_${t.date}_${t.amount}`;
+        const existing = mapByRef.get(key);
 
-      if (!existing) {
-        mapByRef.set(key, {
-          ...t,
-          ownerUsername: u.username,
-          ownerFullName: u.fullName || u.username,
-        });
-      } else {
-        // បើមាន២ជើង (Sender & Receiver) បញ្ចូលព័ត៌មានឱ្យពេញលេញ
-        if (t.status === "Hold" || existing.status === "Hold") {
-          existing.status = "Hold";
+        if (!existing) {
+          mapByRef.set(key, {
+            ...t,
+            ownerId: canonicalId,
+            ownerUsername: u.username,
+            ownerFullName: u.fullName || u.username,
+          });
+        } else {
+          if (t.status === "Hold" || existing.status === "Hold")
+            existing.status = "Hold";
+          if (t.status === "Pending" || existing.status === "Pending")
+            existing.status = "Pending";
+          if (t.status === "Refunded" || existing.status === "Refunded")
+            existing.status = "Refunded";
+          if (!existing.merchantId && t.merchantId)
+            existing.merchantId = t.merchantId;
+          if (!existing.cardNumber && t.cardNumber)
+            existing.cardNumber = t.cardNumber;
         }
-        if (t.status === "Pending" || existing.status === "Pending") {
-          existing.status = "Pending";
-        }
-        if (t.status === "Refunded" || existing.status === "Refunded") {
-          existing.status = "Refunded";
-        }
-        if (!existing.merchantId && t.merchantId) {
-          existing.merchantId = t.merchantId;
-        }
-        if (!existing.cardNumber && t.cardNumber) {
-          existing.cardNumber = t.cardNumber;
-        }
-      }
+      });
     });
+  }
+
+  // ១.២.២ បញ្ចូលបន្ថែមពី Live Stream នៃ Dashboard Analytics (ធានាថាតារាងមានប្រតិបត្តិការជានិច្ច!)
+  const streamSource =
+    (typeof adashRawPayload !== "undefined" &&
+      Array.isArray(adashRawPayload?.liveStream) &&
+      adashRawPayload.liveStream) ||
+    atrxCachedStream ||
+    [];
+
+  streamSource.forEach((t) => {
+    if (!t) return;
+    const key = t.refId || t.hash || String(t._id || Math.random());
+    if (!mapByRef.has(key)) {
+      mapByRef.set(key, {
+        ...t,
+        ownerId: String(t.userId || ""),
+        ownerUsername: t.username || "",
+        ownerFullName: t.senderName || t.username || "អតិថិជន U-Pay",
+      });
+    }
   });
 
   const list = Array.from(mapByRef.values());
@@ -128,18 +152,32 @@ function collectAllRealTransactions() {
   return list;
 }
 
-// ========================================================================
-// 🔄 SECTION 2: KPI STATS, FILTERING & TABLE RENDERING
-// ========================================================================
+// ============================================================================
+// 🔄 ជំពូកទី ២៖ ការធ្វើបច្ចុប្បន្នភាពទិន្នន័យ, ស្ថិតិ KPI និងការចម្រាញ់ (REFRESH, KPI & FILTER)
+// ============================================================================
 
+/**
+ * 🔹 ២.១ ទាញយកទិន្នន័យប្រតិបត្តិការថ្មីៗពី Server
+ */
 window.atrxRefreshLedger = async function () {
   const icon = document.getElementById("atrx-refresh-icon");
   if (icon) icon.classList.add("fa-spin");
 
   try {
-    if (typeof loadData === "function") {
-      await loadData();
+    const [dashRes] = await Promise.all([
+      fetch("/api/admin/dashboard-analytics", {
+        headers: getAuthHeaders(),
+      }).catch(() => null),
+      typeof loadData === "function" ? loadData() : Promise.resolve(),
+    ]);
+
+    if (dashRes && dashRes.ok) {
+      const dJson = await dashRes.json();
+      if (dJson && Array.isArray(dJson.liveStream)) {
+        atrxCachedStream = dJson.liveStream;
+      }
     }
+
     setTimeout(() => {
       initAtrxLedger();
       if (currentInspectedTrx && currentInspectedTrx.refId) {
@@ -163,10 +201,27 @@ window.atrxRefreshLedger = async function () {
   }
 };
 
-window.initAtrxLedger = function () {
+/**
+ * 🔹 ២.២ គណនាស្ថិតិ KPI ទាំង ៥ និងរៀបចំតារាងប្រតិបត្តិការ
+ */
+window.initAtrxLedger = async function () {
   allSystemTrxList = collectAllRealTransactions();
 
-  // គណនាស្ថិតិ KPI ទាំង ៥
+  if (allSystemTrxList.length === 0 && atrxCachedStream.length === 0) {
+    try {
+      const res = await fetch("/api/admin/dashboard-analytics", {
+        headers: getAuthHeaders(),
+      });
+      if (res.ok) {
+        const dJson = await res.json();
+        if (dJson && Array.isArray(dJson.liveStream)) {
+          atrxCachedStream = dJson.liveStream;
+          allSystemTrxList = collectAllRealTransactions();
+        }
+      }
+    } catch (e) {}
+  }
+
   let pendingCount = 0;
   let holdCount = 0;
   let posCardCount = 0;
@@ -193,6 +248,9 @@ window.initAtrxLedger = function () {
   atrxFilterTableOnly();
 };
 
+/**
+ * 🔹 ២.៣ ចម្រាញ់តារាងប្រតិបត្តិការតាមប្រភេទ, រូបិយប័ណ្ណ និងពាក្យគន្លឹះ
+ */
 window.atrxSetFilter = function (filterKey) {
   atrxCurrentFilter = filterKey;
   currentAtrxPage = 1;
@@ -239,10 +297,12 @@ window.atrxFilterTableOnly = function () {
       const searchStr = [
         t.refId,
         t.hash,
+        t.ownerId,
         t.senderName,
         t.senderAcc,
         t.receiverName,
         t.receiverAcc,
+        t.ownerFullName,
         t.ownerUsername,
         t.type,
         t.trxMethod,
@@ -269,6 +329,13 @@ window.atrxFilterTableOnly = function () {
   renderAtrxLedgerTable();
 };
 
+// ============================================================================
+// 📋 ជំពូកទី ៣៖ ការគូរតារាងប្រតិបត្តិការ និងការបែងចែកទំព័រ (LEDGER TABLE & PAGINATION)
+// ============================================================================
+
+/**
+ * 🔹 ៣.១ គូរតារាងប្រតិបត្តិការរួម និងប៊ូតុងសកម្មភាពរហ័ស
+ */
 function renderAtrxLedgerTable() {
   const tbody = document.getElementById("atrxLedgerTableBody");
   if (!tbody) return;
@@ -321,7 +388,6 @@ function renderAtrxLedgerTable() {
         stBadge = `<span style="background:rgba(239,68,68,0.14); color:#ef4444; padding:3px 9px; border-radius:20px; font-size:0.72rem; font-weight:800;"><i class="fa-solid fa-rotate-left"></i> ${t.status}</span>`;
       }
 
-      // ប៊ូតុងសកម្មភាពរហ័សក្នុងតារាង
       let quickBtnHtml = "";
       if (t.status === "Pending") {
         quickBtnHtml = `
@@ -339,7 +405,6 @@ function renderAtrxLedgerTable() {
 
       return `
         <tr style="border-bottom: 1px solid var(--border, #e2e8f0); transition: 0.15s;" onmouseover="this.style.background='rgba(15, 23, 42, 0.015)'" onmouseout="this.style.background='transparent'">
-          <!-- ១. កាលបរិច្ឆេទ & Ref ID -->
           <td style="padding: 13px 12px;">
             <div onclick="inspectSpecificTrx('${refCode}')" style="font-family: 'JetBrains Mono', monospace; font-weight: 900; font-size: 0.88rem; color: #0d9488; cursor: pointer; display: inline-flex; align-items: center; gap: 5px;" title="ចុចដើម្បីពិនិត្យលម្អិត">
               <span>${refCode}</span>
@@ -350,7 +415,6 @@ function renderAtrxLedgerTable() {
             </div>
           </td>
 
-          <!-- ២. ប្រភេទប្រតិបត្តិការ -->
           <td style="padding: 13px 12px;">
             <span class="atrx-cat-badge" style="background: ${cat.bg}; color: ${cat.color}; border: 1px solid ${cat.border};">
               <i class="fa-solid ${cat.icon}"></i>
@@ -361,7 +425,6 @@ function renderAtrxLedgerTable() {
             </div>
           </td>
 
-          <!-- ៣. អ្នកផ្ញើ (Sender) -->
           <td style="padding: 13px 12px;">
             <div style="font-weight: 800; font-size: 0.88rem; color: var(--text-main);">${t.senderName || "System"}</div>
             <div style="font-family: 'JetBrains Mono', monospace; font-size: 0.75rem; color: var(--text-muted); margin-top: 2px;">
@@ -369,7 +432,6 @@ function renderAtrxLedgerTable() {
             </div>
           </td>
 
-          <!-- ៤. អ្នកទទួល (Receiver) -->
           <td style="padding: 13px 12px;">
             <div style="font-weight: 800; font-size: 0.88rem; color: var(--text-main);">${t.receiverName || "System"}</div>
             <div style="font-family: 'JetBrains Mono', monospace; font-size: 0.75rem; color: var(--text-muted); margin-top: 2px;">
@@ -377,7 +439,6 @@ function renderAtrxLedgerTable() {
             </div>
           </td>
 
-          <!-- ៥. ចំនួនទឹកប្រាក់ & ស្ថានភាព -->
           <td style="padding: 13px 12px;">
             <div style="font-family: 'JetBrains Mono', monospace; font-weight: 900; font-size: 0.96rem; color: var(--text-main); margin-bottom: 4px;">
               ${fmtAmt}
@@ -385,7 +446,6 @@ function renderAtrxLedgerTable() {
             ${stBadge}
           </td>
 
-          <!-- ៦. សកម្មភាព -->
           <td style="padding: 13px 12px; text-align: right; white-space: nowrap;">
             <div style="display: inline-flex; gap: 6px; align-items: center;">
               ${quickBtnHtml}
@@ -399,7 +459,6 @@ function renderAtrxLedgerTable() {
     })
     .join("");
 
-  // អាប់ដេត Pagination Footer
   const pageInfo = document.getElementById("atrxPageInfo");
   if (pageInfo) {
     pageInfo.innerText = `ទំព័រ ${currentAtrxPage} នៃ ${totalPages} (សរុប ${filteredSystemTrxList.length} ប្រតិបត្តិការ)`;
@@ -434,10 +493,13 @@ window.inspectSpecificTrx = function (refId) {
   }
 };
 
-// ========================================================================
-// 🕵️‍♂️ SECTION 3: DEEP FORENSICS INSPECTOR (100% REAL DATA FROM SERVER)
-// ========================================================================
+// ============================================================================
+// 🕵️‍♂️ ជំពូកទី ៤៖ ការត្រួតពិនិត្យវិក្កយបត្រស៊ីជម្រៅពី SERVER តាម `_id` (DEEP FORENSICS INSPECTOR)
+// ============================================================================
 
+/**
+ * 🔹 ៤.១ ទាញយកទិន្នន័យកោសល្យវិច័យពិតប្រាកដពី `/api/admin/transaction/:id`
+ */
 async function searchTrx(silent = false) {
   const id = document.getElementById("searchTrxId")?.value.trim();
   if (!id) {
@@ -478,7 +540,6 @@ async function searchTrx(silent = false) {
       const isHold = t.status === "Hold";
       const isRefunded = t.status === "Refunded" || t.status === "Voided";
       const isKHR = t.currency === "KHR";
-      const currSym = isKHR ? "៛" : "$";
 
       const absAmt = Math.abs(Number(t.amount || 0));
       const fmtAmt = isKHR
@@ -490,13 +551,13 @@ async function searchTrx(silent = false) {
         ? `${feeVal.toLocaleString("en-US")} ៛`
         : `$${feeVal.toFixed(2)}`;
 
-      // ១. ទិន្នន័យពិតរបស់អ្នកផ្ញើ (Sender Real Data)
+      // 🎯 ១. ទិន្នន័យពិតរបស់អ្នកផ្ញើ (Sender Real Data by `_id`)
+      const sUserId = t.senderUserId || t.senderRealUsername || null;
       const sFullName = (
         t.senderRealFullName ||
         t.senderName ||
         "ប្រព័ន្ធធនាគារ (System)"
       ).toUpperCase();
-      const sUsername = t.senderRealUsername || null;
       const sPhone = t.senderPhone || "មិនមានលេខទូរស័ព្ទ";
       const sAcc = t.senderAcc || "SYSTEM-WALLET";
       const sDevice = t.senderDevice || "មិនមានកំណត់ត្រាឧបករណ៍";
@@ -509,14 +570,14 @@ async function searchTrx(silent = false) {
             ? "#3b82f6"
             : "#ef4444";
 
-      // ២. ទិន្នន័យពិតរបស់អ្នកទទួល (Receiver Real Data)
+      // 🎯 ២. ទិន្នន័យពិតរបស់អ្នកទទួល (Receiver Real Data by `_id`)
+      const rUserId = t.receiverUserId || t.receiverRealUsername || null;
       const rFullName = (
         t.merchantName ||
         t.receiverRealFullName ||
         t.receiverName ||
         "ប្រព័ន្ធធនាគារ (System)"
       ).toUpperCase();
-      const rUsername = t.receiverRealUsername || null;
       const rPhone = t.receiverPhone || "មិនមានលេខទូរស័ព្ទ";
       const rAcc = t.receiverAcc || "SYSTEM-WALLET";
       const rDevice = t.receiverDevice || "មិនមានកំណត់ត្រាឧបករណ៍";
@@ -529,7 +590,6 @@ async function searchTrx(silent = false) {
             ? "#3b82f6"
             : "#ef4444";
 
-      // ៣. ប៊ូតុងសកម្មភាពឆ្លាតវៃតាមស្ថានភាពពិត
       const canRefund =
         typeof adminRole === "undefined" ||
         adminRole === "super_admin" ||
@@ -611,8 +671,8 @@ async function searchTrx(silent = false) {
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; padding-bottom: 8px; border-bottom: 2px solid #ef4444;">
               <span style="font-weight: 800; font-size: 0.9rem; color: #ef4444;"><i class="fa-solid fa-arrow-up-from-bracket"></i> ១. ភាគីអ្នកផ្ញើ / ប្រភពប្រាក់ (SENDER)</span>
               ${
-                sUsername
-                  ? `<button type="button" onclick="atrxJumpTo360('${sUsername}')" style="background:#eff6ff; color:#2563eb; border:1px solid #bfdbfe; border-radius:6px; padding:2px 8px; font-size:0.72rem; font-weight:800; cursor:pointer;">@${sUsername} • 360° <i class="fa-solid fa-arrow-up-right-from-square" style="font-size:0.6rem;"></i></button>`
+                sUserId
+                  ? `<button type="button" onclick="atrxJumpTo360('${sUserId}')" style="background:#eff6ff; color:#2563eb; border:1px solid #bfdbfe; border-radius:6px; padding:2px 8px; font-size:0.72rem; font-weight:800; cursor:pointer;">បើក 360° <i class="fa-solid fa-arrow-up-right-from-square" style="font-size:0.6rem;"></i></button>`
                   : ""
               }
             </div>
@@ -625,7 +685,7 @@ async function searchTrx(silent = false) {
             }
             ${
               t.depositorName
-                ? `<div class="atrx-row"><span class="atrx-lbl">អ្នកដាក់/ដកប្រាក់ផ្ទាល់</span><span class="atrx-val" style="color:#d97706;">${t.depositorName}${t.depositorAcc ? `(${t.depositorAcc})` : ""}</span></div>`
+                ? `<div class="atrx-row"><span class="atrx-lbl">អ្នកដាក់/ដកប្រាក់ផ្ទាល់</span><span class="atrx-val" style="color:#d97706;">${t.depositorName}${t.depositorAcc ? ` (${t.depositorAcc})` : ""}</span></div>`
                 : ""
             }
             <div class="atrx-row"><span class="atrx-lbl">លេខទូរស័ព្ទពិត</span><span class="atrx-val">${sPhone}</span></div>
@@ -646,8 +706,8 @@ async function searchTrx(silent = false) {
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; padding-bottom: 8px; border-bottom: 2px solid #10b981;">
               <span style="font-weight: 800; font-size: 0.9rem; color: #10b981;"><i class="fa-solid fa-arrow-down-to-bracket"></i> ២. ភាគីអ្នកទទួល / គោលដៅ (RECEIVER)</span>
               ${
-                rUsername
-                  ? `<button type="button" onclick="atrxJumpTo360('${rUsername}')" style="background:#eff6ff; color:#2563eb; border:1px solid #bfdbfe; border-radius:6px; padding:2px 8px; font-size:0.72rem; font-weight:800; cursor:pointer;">@${rUsername} • 360° <i class="fa-solid fa-arrow-up-right-from-square" style="font-size:0.6rem;"></i></button>`
+                rUserId
+                  ? `<button type="button" onclick="atrxJumpTo360('${rUserId}')" style="background:#eff6ff; color:#2563eb; border:1px solid #bfdbfe; border-radius:6px; padding:2px 8px; font-size:0.72rem; font-weight:800; cursor:pointer;">បើក 360° <i class="fa-solid fa-arrow-up-right-from-square" style="font-size:0.6rem;"></i></button>`
                   : ""
               }
             </div>
@@ -655,7 +715,7 @@ async function searchTrx(silent = false) {
             <div class="atrx-row"><span class="atrx-lbl">លេខគណនីទទួលប្រាក់</span><span class="atrx-val" style="font-family:'JetBrains Mono',monospace; color:#0d9488;">${rAcc}</span></div>
             ${
               t.merchantId
-                ? `<div class="atrx-row"><span class="atrx-lbl">លេខសម្គាល់ហាង (MID)</span><span class="atrx-val" style="font-family:monospace; color:#8b5cf6;">${t.merchantId}${t.merchantLinkedAcc ? `(គណនីភ្ជាប់: ${t.merchantLinkedAcc})` : ""}</span></div>`
+                ? `<div class="atrx-row"><span class="atrx-lbl">លេខសម្គាល់ហាង (MID)</span><span class="atrx-val" style="font-family:monospace; color:#8b5cf6;">${t.merchantId}${t.merchantLinkedAcc ? ` (គណនីភ្ជាប់: ${t.merchantLinkedAcc})` : ""}</span></div>`
                 : ""
             }
             <div class="atrx-row"><span class="atrx-lbl">លេខទូរស័ព្ទពិត</span><span class="atrx-val">${rPhone}</span></div>
@@ -677,7 +737,7 @@ async function searchTrx(silent = false) {
           </div>
           ${
             t.cashierMaker
-              ? `<div><span style="color: var(--text-muted); font-weight: 700;">បេឡាករ (Maker)៖</span> <b style="color:#2563eb; margin-left:4px;">@${t.cashierMaker}</b>${t.cashierChecker ? `• អនុម័តដោយ: <b>@${t.cashierChecker}</b>` : ""}</div>`
+              ? `<div><span style="color: var(--text-muted); font-weight: 700;">បេឡាករ (Maker)៖</span> <b style="color:#2563eb; margin-left:4px;">${String(t.cashierMaker).replace(/^@/, "")}</b>${t.cashierChecker ? ` • អនុម័តដោយ: <b>${String(t.cashierChecker).replace(/^@/, "")}</b>` : ""}</div>`
               : ""
           }
           <div style="grid-column: 1 / -1;">
@@ -721,22 +781,31 @@ window.openOfficialSlipFromTrxCheck = function () {
   }
 };
 
-window.atrxJumpTo360 = function (username) {
+/**
+ * 🔹 ៤.២ លោតទៅកាន់ទំព័រ Customer 360° តាមរយៈ MongoDB `_id` របស់អ្នកផ្ញើ ឬអ្នកទទួល
+ */
+window.atrxJumpTo360 = function (targetId) {
+  if (typeof goToCustomer360 === "function") {
+    goToCustomer360(targetId);
+    return;
+  }
   const searchInput = document.getElementById("searchC360");
   if (searchInput) {
-    searchInput.value = username;
-    const c360Nav = document.querySelector(`[onclick*="sec-c360"]`);
-    if (c360Nav) c360Nav.click();
+    searchInput.value = targetId;
+    if (typeof showSection === "function") showSection("customer-360");
     if (typeof searchCustomer360 === "function") {
       searchCustomer360();
     }
   }
 };
 
-// ========================================================================
-// ⚡ SECTION 4: ADMIN ACTIONS (Approve Pending, Release Hold & Refund)
-// ========================================================================
+// ============================================================================
+// ⚡ ជំពូកទី ៥៖ សកម្មភាពអនុម័ត Pending, ដោះ Hold ហាង និងបង្វិលប្រាក់ (APPROVE, RELEASE & REFUND)
+// ============================================================================
 
+/**
+ * 🔹 ៥.១ ដំណើរការអនុម័ត Pending, ដោះ Hold ហាង ឬធ្វើ Refund ត្រឡប់ទៅអតិថិជនវិញ
+ */
 async function handleAdminAction(action, id) {
   if (!id || id === "undefined") {
     return Swal.fire(
@@ -855,7 +924,9 @@ async function handleAdminAction(action, id) {
   }
 }
 
-// Auto-Load ពេលបើកផ្ទាំង Transaction Verification
+/**
+ * 🔹 ៥.២ ចាប់ផ្តើមដំណើរការតារាងប្រតិបត្តិការដោយស្វ័យប្រវត្តិពេលបើកទំព័រ
+ */
 document.addEventListener("DOMContentLoaded", () => {
   setTimeout(() => initAtrxLedger(), 900);
 

@@ -1,83 +1,16 @@
-// ========================================================================
-// ឯកសារ: admin-cashier.js
+// ============================================================================
+// ឯកសារ: js/admin-cashier.js (100% Pro Clean - Cashier & Maker-Checker Engine)
 // អត្ថន័យ: គ្រប់គ្រងប្រព័ន្ធបេឡាករ (Cashier System) ជាមួយលំហូរ ៣ ដំណាក់កាល
-// ========================================================================
+// ស្តង់ដារថ្មី: ចាប់ទិន្នន័យអតិថិជនតាម MongoDB `_id` សុទ្ធសាធ + បង្ហាញឈ្មោះពេញ (fullName)
+// ============================================================================
 
-// 🟨🟨🟨🟨🟨🟨🟨🟨🟨🟨🟨🟨🟨🟨🟨🟨🟨🟨🟨🟨🟨🟨🟨🟨🟨🟨🟨🟨🟨🟨🟨🟨🟨🟨🟨
-// ផ្នែកទី ០៖ អថេរទូទៅ និង ការគ្រប់គ្រង TABS (GLOBAL & TABS)
-// 🟨🟨🟨🟨🟨🟨🟨🟨🟨🟨🟨🟨🟨🟨🟨🟨🟨🟨🟨🟨🟨🟨🟨🟨🟨🟨🟨🟨🟨🟨🟨🟨🟨🟨🟨
-
-// 🟨 ផ្នែកទី ០៖ អថេរទូទៅ
+// ============================================================================
+// 🧭 ជំពូកទី ១៖ អថេរសកល, មុខងារជំនួយ និងការគ្រប់គ្រងផ្ទាំង TABS (GLOBAL STATE & TABS)
+// ============================================================================
 const adminNameElem = document.getElementById("adminNameDisplay");
 const currentAdminUser =
   sessionStorage.getItem("adminUsername") ||
   (adminNameElem ? adminNameElem.innerText : "");
-
-// ==========================================
-// 🔄 គ្រប់គ្រង TAB (Teller vs Approval) - កែប្រែឱ្យដំណើរការគ្រប់ទីកន្លែង
-// ==========================================
-window.switchCashierTab = function (tabName) {
-  // 1. បិទការបង្ហាញ View ទាំងអស់សិន (Teller, Approval Table, Approval Detail)
-  const viewTeller = document.getElementById("viewTeller");
-  const viewApproval = document.getElementById("viewApproval");
-  const viewApprovalDetail = document.getElementById("viewApprovalDetail");
-
-  if (viewTeller) viewTeller.style.display = "none";
-  if (viewApproval) viewApproval.style.display = "none";
-  if (viewApprovalDetail) viewApprovalDetail.style.display = "none";
-
-  // 2. ដក class "active" ពី Tab ទាំងអស់ (ទាំងនៅលើ Teller និង Approval)
-  const allTabs = document.querySelectorAll(".cashier-tab");
-  allTabs.forEach((tab) => tab.classList.remove("active"));
-
-  // 3. ថតរក្សាទុក Tab ដែលបានជ្រើសរើសចូលទៅក្នុង Browser Memory
-  sessionStorage.setItem("activeCashierTab", tabName);
-
-  if (tabName === "teller") {
-    // បើក View របស់ Teller Desk
-    if (viewTeller) viewTeller.style.display = "flex";
-
-    // បន្ថែម class "active" ទៅឱ្យ Tab Teller Desk គ្រប់កន្លែង (បើមានច្រើន)
-    const tellerTabs = document.querySelectorAll(
-      "#tabTeller, [onclick*=\"switchCashierTab('teller')\"]",
-    );
-    tellerTabs.forEach((tab) => tab.classList.add("active"));
-    loadTellerDashboard();
-  } else {
-    // បើក View របស់ Approval (Table View ជាចម្បង)
-    if (viewApproval) viewApproval.style.display = "block";
-
-    // បន្ថែម class "active" ទៅឱ្យ Tab Approval គ្រប់កន្លែង
-    const approvalTabs = document.querySelectorAll(
-      "#tabApproval, [onclick*=\"switchCashierTab('approval')\"]",
-    );
-    approvalTabs.forEach((tab) => tab.classList.add("active"));
-
-    // ដំណើរការមុខងារទាញទិន្នន័យចាំបាច់
-    fetchAdminsForFilter();
-    renderMakerTags();
-    loadCashierTickets();
-  }
-};
-
-document.addEventListener("DOMContentLoaded", () => {
-  const savedTab = sessionStorage.getItem("activeCashierTab") || "teller";
-  if (document.getElementById("sec-cashier")) {
-    switchCashierTab(savedTab);
-  }
-});
-
-// 🟢 មុខងារថ្មី៖ ពេល Refresh (F5) ទំព័រ ឱ្យវាឆែកមើលថាតើមុននេះនៅ Tab មួយណា រួចបើកវាមកវិញភ្លាមៗ
-document.addEventListener("DOMContentLoaded", () => {
-  const savedTab = sessionStorage.getItem("activeCashierTab") || "teller";
-  if (document.getElementById("sec-cashier")) {
-    switchCashierTab(savedTab);
-  }
-});
-
-// 🟦🟦🟦🟦🟦🟦🟦🟦🟦🟦🟦🟦🟦🟦🟦🟦🟦🟦🟦🟦🟦🟦🟦🟦🟦🟦🟦🟦🟦🟦🟦🟦🟦🟦
-// ផ្នែកទី ១៖ បញ្ជរប្រតិបត្តិការ (TELLER DESK LOGIC) - អ្នកដាក់លុយ
-// 🟦🟦🟦🟦🟦🟦🟦🟦🟦🟦🟦🟦🟦🟦🟦🟦🟦🟦🟦🟦🟦🟦🟦🟦🟦🟦🟦🟦🟦🟦🟦🟦🟦🟦
 
 let currentTargetUser = null;
 let currentDepositorUser = null;
@@ -87,6 +20,91 @@ let isUserLocked = false;
 let depositorTimeout = null;
 let currentPayload = null;
 
+let tellerPersonalTickets = [];
+let allTickets = [];
+let filteredTickets = [];
+let currentTicketPage = 1;
+const TICKETS_PER_PAGE = 10;
+let viewingTicketId = null;
+
+const storageKey = `makerFilters_${currentAdminUser}`;
+let selectedMakersFilter = JSON.parse(localStorage.getItem(storageKey)) || [];
+let globalAdminsList = [];
+
+/**
+ * 🔹 ១.១ អនុគមន៍ទាញយកឈ្មោះពេញរបស់បុគ្គលិក Admin (Maker) តាមរយៈ username ឬ _id
+ */
+function getMakerFullName(makerIdentifier) {
+  if (!makerIdentifier) return "មន្ត្រីបេឡាករ U-Pay";
+  const clean = String(makerIdentifier).replace(/^@/, "").trim().toLowerCase();
+
+  if (Array.isArray(globalAdminsList) && globalAdminsList.length > 0) {
+    const found = globalAdminsList.find(
+      (a) =>
+        (a.username && a.username.toLowerCase() === clean) ||
+        String(a._id || a.id) === clean ||
+        (a.fullName && a.fullName.toLowerCase() === clean),
+    );
+    if (found && found.fullName) return found.fullName;
+  }
+
+  const sessionUser = (
+    sessionStorage.getItem("adminUsername") || ""
+  ).toLowerCase();
+  if (clean === sessionUser) {
+    return (
+      sessionStorage.getItem("adminFullName") ||
+      document.getElementById("adminNameDisplay")?.innerText?.trim() ||
+      makerIdentifier
+    );
+  }
+  return String(makerIdentifier).replace(/^@/, "");
+}
+
+/**
+ * 🔹 ១.២ អនុគមន៍ប្តូរផ្ទាំងរវាង បញ្ជរប្រតិបត្តិការ (Teller Desk) និង ផ្ទាំងអនុម័ត (Approvals)
+ */
+window.switchCashierTab = function (tabName) {
+  const viewTeller = document.getElementById("viewTeller");
+  const viewApproval = document.getElementById("viewApproval");
+  const viewApprovalDetail = document.getElementById("viewApprovalDetail");
+
+  if (viewTeller) viewTeller.style.display = "none";
+  if (viewApproval) viewApproval.style.display = "none";
+  if (viewApprovalDetail) viewApprovalDetail.style.display = "none";
+
+  const allTabs = document.querySelectorAll(".cashier-tab");
+  allTabs.forEach((tab) => tab.classList.remove("active"));
+
+  sessionStorage.setItem("activeCashierTab", tabName);
+
+  if (tabName === "teller") {
+    if (viewTeller) viewTeller.style.display = "flex";
+    const tellerTabs = document.querySelectorAll(
+      "#tabTeller, [onclick*=\"switchCashierTab('teller')\"]",
+    );
+    tellerTabs.forEach((tab) => tab.classList.add("active"));
+    loadTellerDashboard();
+  } else {
+    if (viewApproval) viewApproval.style.display = "block";
+    const approvalTabs = document.querySelectorAll(
+      "#tabApproval, [onclick*=\"switchCashierTab('approval')\"]",
+    );
+    approvalTabs.forEach((tab) => tab.classList.add("active"));
+
+    fetchAdminsForFilter();
+    renderMakerTags();
+    loadCashierTickets();
+  }
+};
+
+// ============================================================================
+// 🏦 ជំពូកទី ២៖ បញ្ជរប្រតិបត្តិការបេឡាករតាម `_id` (TELLER DESK OPERATIONS BY `_id`)
+// ============================================================================
+
+/**
+ * 🔹 ២.១ កំណត់ប្រភេទប្រតិបត្តិការ (Deposit ឬ Withdrawal) + Aliases សម្រាប់ហៅពីទំព័រ Users
+ */
 window.setExternalTrxType = function (type) {
   if (isUserLocked) return;
 
@@ -98,38 +116,53 @@ window.setExternalTrxType = function (type) {
   const depSection = document.getElementById("depositorSection");
 
   if (type === "Deposit") {
-    lblDep.style.background = "rgba(16,185,129,0.1)";
-    lblDep.style.color = "#10b981";
-    lblWit.style.background = "transparent";
-    lblWit.style.color = "var(--text-muted)";
-
-    btnStep1.style.background = "#10b981";
-    formTitle.innerHTML = `<i class="fa-solid fa-file-invoice-dollar"></i> បំពេញទិន្នន័យដាក់ប្រាក់`;
+    if (lblDep) {
+      lblDep.style.background = "rgba(16,185,129,0.1)";
+      lblDep.style.color = "#10b981";
+    }
+    if (lblWit) {
+      lblWit.style.background = "transparent";
+      lblWit.style.color = "var(--text-muted)";
+    }
+    if (btnStep1) btnStep1.style.background = "#10b981";
+    if (formTitle) {
+      formTitle.innerHTML = `<i class="fa-solid fa-file-invoice-dollar"></i> បំពេញទិន្នន័យដាក់ប្រាក់`;
+    }
     if (depSection) depSection.style.display = "block";
   } else {
-    lblWit.style.background = "rgba(239,68,68,0.1)";
-    lblWit.style.color = "#ef4444";
-    lblDep.style.background = "transparent";
-    lblDep.style.color = "var(--text-muted)";
-
-    btnStep1.style.background = "#ef4444";
-    formTitle.innerHTML = `<i class="fa-solid fa-triangle-exclamation" style="color:#ef4444;"></i> បំពេញទិន្នន័យដកប្រាក់`;
+    if (lblWit) {
+      lblWit.style.background = "rgba(239,68,68,0.1)";
+      lblWit.style.color = "#ef4444";
+    }
+    if (lblDep) {
+      lblDep.style.background = "transparent";
+      lblDep.style.color = "var(--text-muted)";
+    }
+    if (btnStep1) btnStep1.style.background = "#ef4444";
+    if (formTitle) {
+      formTitle.innerHTML = `<i class="fa-solid fa-triangle-exclamation" style="color:#ef4444;"></i> បំពេញទិន្នន័យដកប្រាក់`;
+    }
     if (depSection) depSection.style.display = "none";
     activeDepositorType = "self";
   }
 };
 
+// 🔗 Aliases សម្រាប់ភ្ជាប់ជាមួយ `goToCashierDesk(uid, type)` ពីក្នុង `admin-users.js`
+window.selectCashierType = window.setExternalTrxType;
+window.setCashierMode = window.setExternalTrxType;
+
 window.checkSearchInput = function () {
   if (isUserLocked) return;
-  const val = document.getElementById("targetUserSearch").value.trim();
+  const val = document.getElementById("targetUserSearch")?.value.trim() || "";
   const btnCancel = document.getElementById("btnCancelSearch");
-  btnCancel.style.display = val.length > 0 ? "block" : "none";
+  if (btnCancel) btnCancel.style.display = val.length > 0 ? "block" : "none";
 };
 
 window.resetCashierSearch = function () {
-  const searchVal = document.getElementById("targetUserSearch").value.trim();
-  const amountVal = document.getElementById("cashAmount").value.trim();
-  const remarkVal = document.getElementById("cashRemark").value.trim();
+  const searchVal =
+    document.getElementById("targetUserSearch")?.value.trim() || "";
+  const amountVal = document.getElementById("cashAmount")?.value.trim() || "";
+  const remarkVal = document.getElementById("cashRemark")?.value.trim() || "";
   const depositorVal =
     document.getElementById("depositorSearchInput")?.value.trim() || "";
 
@@ -185,7 +218,6 @@ window.executeFormReset = function () {
   document.getElementById("targetUserCard").style.display = "none";
   document.getElementById("transactionForm").style.display = "none";
 
-  // 🟢 បន្ថែមបន្ទាត់នេះដើម្បីបង្ហាញ "ស្ថិតិ និងប្រវត្តិ" ឡើងវិញពេលរៀបចំធ្វើថ្មី
   const dashSection = document.getElementById("tellerDashboardSection");
   if (dashSection) dashSection.style.display = "block";
 
@@ -200,6 +232,9 @@ window.executeFormReset = function () {
   document.getElementById("targetUserSearch").focus();
 };
 
+/**
+ * 🔹 ២.២ ការផ្ទៀងផ្ទាត់គណនីអ្នកតំណាងដាក់ប្រាក់តាមរយៈ MongoDB `_id`
+ */
 window.setDepositorType = function (type) {
   activeDepositorType = type;
   document.getElementById("lblSelf").classList.remove("active");
@@ -236,21 +271,23 @@ window.verifyDepositorAccount = function (val) {
   clearTimeout(depositorTimeout);
   depositorTimeout = setTimeout(async () => {
     try {
-      const res = await fetch(`/api/admin/cashier/search/${val}`, {
-        headers: getAuthHeaders(),
-      });
+      const res = await fetch(
+        `/api/admin/cashier/search/${encodeURIComponent(val)}`,
+        {
+          headers: getAuthHeaders(),
+        },
+      );
       const data = await res.json();
       previewCard.style.display = "flex";
 
-      if (data.success) {
+      if (data.success && data.user) {
+        // 🎯 ប្រៀបធៀបតាម MongoDB `_id` ដើម្បីការពារកុំឱ្យអ្នកតំណាងជាម្ចាស់គណនីខ្លួនឯង!
         if (
-          data.user.username === currentTargetUser.username ||
-          data.user.idNumber === currentTargetUser.idNumber
+          currentTargetUser &&
+          String(data.user._id) === String(currentTargetUser._id)
         ) {
           depAvatar.style.display = "none";
           depName.innerHTML = `<span style="color:#ef4444; font-family: 'Kantumruy Pro', sans-serif;"><i class="fa-solid fa-triangle-exclamation"></i> អ្នកតំណាងមិនអាចជាម្ចាស់គណនីផ្ទាល់បានទេ!</span>`;
-
-          // 🟢 ប្តូរទៅប្រើ innerHTML ដើម្បីកំណត់ Font
           depInfo.innerHTML = `<span style="font-family: 'Kantumruy Pro', sans-serif;">សូមជ្រើសរើស 'ម្ចាស់គណនីផ្ទាល់' វិញ...</span>`;
           currentDepositorUser = null;
           return;
@@ -261,12 +298,10 @@ window.verifyDepositorAccount = function (val) {
         depAvatar.src =
           currentDepositorUser.profileImage || "../images/default-avatar.png";
         depName.innerHTML = `<i class="fa-solid fa-circle-check" style="color:#10b981;"></i> ${currentDepositorUser.fullName || currentDepositorUser.username}`;
-        depInfo.innerText = `ID: ${currentDepositorUser.userId || "N/A"} | Tel: ${currentDepositorUser.phone || "N/A"}`;
+        depInfo.innerText = `Tel: ${currentDepositorUser.phone || "N/A"} | CARD ID: ${currentDepositorUser.idNumber || "N/A"}`;
       } else {
         depAvatar.style.display = "none";
         depName.innerHTML = `<span style="color:#ef4444; font-family: 'Kantumruy Pro', sans-serif;"><i class="fa-solid fa-circle-xmark"></i> រកមិនឃើញគណនីនេះទេ</span>`;
-
-        // 🟢 ប្តូរទៅប្រើ innerHTML ដើម្បីកំណត់ Font
         depInfo.innerHTML = `<span style="font-family: 'Kantumruy Pro', sans-serif;">មិនអនុញ្ញាតឱ្យធ្វើប្រតិបត្តិការ...</span>`;
         currentDepositorUser = null;
       }
@@ -277,7 +312,9 @@ window.verifyDepositorAccount = function (val) {
 };
 
 window.viewDepositorKYC = function () {
-  if (!currentDepositorUser || !currentDepositorUser.kycImage) {
+  const kycImg =
+    currentDepositorUser?.kycDocument || currentDepositorUser?.kycImage;
+  if (!currentDepositorUser || !kycImg) {
     return Swal.fire({
       icon: "info",
       text: "អ្នកតំណាងនេះមិនទាន់មានរូប KYC ទេ",
@@ -285,13 +322,16 @@ window.viewDepositorKYC = function () {
     });
   }
   Swal.fire({
-    title: `អត្តសញ្ញាណប័ណ្ណអ្នកតំណាង`,
-    imageUrl: currentDepositorUser.kycImage,
+    title: `អត្តសញ្ញាណប័ណ្ណអ្នកតំណាង (${currentDepositorUser.fullName || currentDepositorUser.username})`,
+    imageUrl: kycImg,
     imageWidth: 400,
     customClass: { popup: "premium-swal" },
   });
 };
 
+/**
+ * 🔹 ២.៣ ស្វែងរកគណនីអតិថិជនគោលដៅតាមរយៈ MongoDB `_id`, លេខគណនី, ឬលេខទូរស័ព្ទ
+ */
 window.searchTargetUser = async function () {
   const searchVal = document.getElementById("targetUserSearch").value.trim();
   if (!searchVal) return;
@@ -303,22 +343,29 @@ window.searchTargetUser = async function () {
   });
 
   try {
-    const res = await fetch(`/api/admin/cashier/search/${searchVal}`, {
-      headers: getAuthHeaders(),
-    });
+    const res = await fetch(
+      `/api/admin/cashier/search/${encodeURIComponent(searchVal)}`,
+      {
+        headers: getAuthHeaders(),
+      },
+    );
     const data = await res.json();
 
-    if (data.success) {
+    if (data.success && data.user) {
       Swal.close();
       currentTargetUser = data.user;
       isUserLocked = true;
+
+      const canonicalId = String(
+        currentTargetUser._id || currentTargetUser.id || "",
+      );
 
       document.getElementById("targetUserSearch").disabled = true;
       document.getElementById("extLblDep").style.pointerEvents = "none";
       document.getElementById("extLblWit").style.pointerEvents = "none";
       document.getElementById("targetUserCard").style.display = "block";
       document.getElementById("transactionForm").style.display = "block";
-      // 🟢 បន្ថែមបន្ទាត់នេះដើម្បីលាក់ "ស្ថិតិ និងប្រវត្តិ" ពេលកំពុងធ្វើប្រតិបត្តិការ
+
       const dashSection = document.getElementById("tellerDashboardSection");
       if (dashSection) dashSection.style.display = "none";
 
@@ -327,7 +374,7 @@ window.searchTargetUser = async function () {
       document.getElementById("cardName").textContent =
         `${currentTargetUser.fullName || currentTargetUser.username}`;
       document.getElementById("cardUserId").textContent =
-        `ID : ${currentTargetUser.userId || "N/A"}`;
+        `_id : ${canonicalId.slice(-8)}`;
       document.getElementById("cardUIdNum").textContent =
         `CARD ID : ${currentTargetUser.idNumber || "N/A"}`;
       document.getElementById("cardPhone").textContent =
@@ -431,8 +478,13 @@ window.searchTargetUser = async function () {
   }
 };
 
+// 🔗 Aliases សម្រាប់ហៅស្វែងរកអតិថិជនស្វ័យប្រវត្តិពេលលោតមកពីទំព័រ Users (`goToCashierDesk`)
+window.searchCashierCustomer = window.searchTargetUser;
+window.searchUserForCashier = window.searchTargetUser;
+
 window.viewKYC = function () {
-  if (!currentTargetUser || !currentTargetUser.kycImage) {
+  const kycImg = currentTargetUser?.kycDocument || currentTargetUser?.kycImage;
+  if (!currentTargetUser || !kycImg) {
     return Swal.fire({
       icon: "info",
       text: "អតិថិជននេះមិនទាន់មានរូប KYC ទេ",
@@ -440,8 +492,8 @@ window.viewKYC = function () {
     });
   }
   Swal.fire({
-    title: `អត្តសញ្ញាណប័ណ្ណ`,
-    imageUrl: currentTargetUser.kycImage,
+    title: `អត្តសញ្ញាណប័ណ្ណ (${currentTargetUser.fullName || currentTargetUser.username})`,
+    imageUrl: kycImg,
     imageWidth: 400,
     customClass: { popup: "premium-swal" },
   });
@@ -450,7 +502,7 @@ window.viewKYC = function () {
 window.previewCashierExchange = function () {
   const targetSelectValue = document.getElementById(
     "targetAccountSelect",
-  ).value;
+  )?.value;
   if (!targetSelectValue) return;
 
   const displayVal = document.getElementById("targetAccountDisplay").value;
@@ -493,6 +545,9 @@ function numberToWordsKHR(amount) {
   return amount.toLocaleString() + " RIELS ONLY";
 }
 
+/**
+ * 🔹 ២.៤ ពិនិត្យផ្ទៀងផ្ទាត់វិក្កយបត្រ និងបញ្ជូនប្រតិបត្តិការដោយភ្ជាប់ MongoDB `_id` របស់អតិថិជនផ្ទាល់!
+ */
 window.goToPreviewStep = function () {
   const rawValue = document
     .getElementById("cashAmount")
@@ -507,14 +562,12 @@ window.goToPreviewStep = function () {
     });
 
   const targetAccount = document.getElementById("targetAccountSelect").value;
-  const currency = document.getElementById("cashCurrency").value; // រូបិយប័ណ្ណដែលវាយបញ្ចូល (USD ឬ KHR)
+  const currency = document.getElementById("cashCurrency").value;
   const remark = document.getElementById("cashRemark").value.trim();
 
-  // 🟢 ជួសជុល៖ ទាញយកសមតុល្យពិតប្រាកដ និងរូបិយប័ណ្ណរបស់គណនី
   let currentBal = 0;
   let targetCurrency = "USD";
 
-  // ពិនិត្យមើលថាវាជា Main Account USD ឬ KHR ឬក៏ Sub Account
   if (currentTargetUser.mainAccounts?.USD?.accountNumber === targetAccount) {
     currentBal = Number(currentTargetUser.mainAccounts.USD.balance) || 0;
     targetCurrency = "USD";
@@ -536,11 +589,8 @@ window.goToPreviewStep = function () {
     }
   }
 
-  // 🟢 ជួសជុល៖ ការឆែកសមតុល្យយ៉ាងតឹងរ៉ឹង (Strict Balance Validation)
   if (activeTrxType === "Withdrawal") {
     let finalWithdrawAmount = amount;
-
-    // បើដកលុយរូបិយប័ណ្ណផ្សេងពីគណនី (Cross-Currency) ត្រូវគណនាអត្រាប្តូរប្រាក់សិន
     if (currency === "USD" && targetCurrency === "KHR") {
       finalWithdrawAmount =
         amount * (window.currentFXRates?.usdToKhrBuy || 4050);
@@ -549,7 +599,6 @@ window.goToPreviewStep = function () {
         amount / (window.currentFXRates?.usdToKhrSell || 4100);
     }
 
-    // 🔴 បើលុយក្នុងកុងតិចជាងលុយដែលចង់ដក គឺបដិសេធភ្លាមៗ!
     if (currentBal < finalWithdrawAmount) {
       return Swal.fire({
         icon: "error",
@@ -585,7 +634,14 @@ window.goToPreviewStep = function () {
       "N/A";
   }
 
+  const canonicalTargetId = String(
+    currentTargetUser._id || currentTargetUser.id || "",
+  );
+
+  // 🎯 បញ្ជូនទាំង `_id` (`targetUserId`) និង `targetUsername` ទៅឱ្យ Backend
   currentPayload = {
+    _id: canonicalTargetId,
+    targetUserId: canonicalTargetId,
     targetUsername: currentTargetUser.username,
     targetAccount: targetAccount,
     requestType: activeTrxType,
@@ -629,7 +685,8 @@ window.goToPreviewStep = function () {
 
   document.getElementById("inlineSlipDate").innerText =
     new Date().toLocaleString();
-  document.getElementById("inlineSlipMaker").innerText = currentAdminUser;
+  document.getElementById("inlineSlipMaker").innerText =
+    getMakerFullName(currentAdminUser);
   document.getElementById("inlineSlipCustomer").innerText =
     currentTargetUser.fullName || currentTargetUser.username;
   document.getElementById("inlineSlipAccount").innerText = targetAccount;
@@ -712,7 +769,6 @@ window.submitCashierTrx = async function () {
     if (data.success) {
       Swal.close();
 
-      // 🟢 ត្រូវប្រាកដថា ID ទាំងនេះមានពិតប្រាកដនៅក្នុង HTML
       const titleText = document.getElementById("previewTitleText");
       if (titleText) {
         titleText.innerHTML = `<i class="fa-solid fa-circle-check" style="color: #10b981;"></i> ប្រតិបត្តិការជោគជ័យ`;
@@ -746,7 +802,6 @@ window.submitCashierTrx = async function () {
           qrElem.src = `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=https://u-pay-bank.fly.dev/receipt/${realTrxId}`;
       }
 
-      // 🟢 ការផ្លាស់ប្តូរប៊ូតុង
       const previewBtns = document.getElementById("previewActionBtns");
       const successBtns = document.getElementById("successActionBtns");
       if (previewBtns) previewBtns.style.display = "none";
@@ -782,63 +837,6 @@ window.formatCurrencyInput = function (input) {
   input.value = parts.join(".");
 };
 
-window.printInlineSlip = function () {
-  const printContent = document.getElementById("inlineSlipArea").innerHTML;
-  const printWindow = window.open("", "_blank", "width=800,height=900");
-
-  printWindow.document.write(`
-    <!DOCTYPE html>
-    <html>
-      <head>
-        <title>U-Pay Transaction Slip</title>
-        <link href="https://fonts.googleapis.com/css2?family=Kantumruy+Pro:wght@400;600;700;800&family=JetBrains+Mono:wght@400;700;800&display=swap" rel="stylesheet">
-        <style>
-          @page { size: A4 portrait; margin: 0 !important; }
-          body { font-family: 'Kantumruy Pro', sans-serif; color: #0f172a; padding: 0; margin: 0; -webkit-print-color-adjust: exact !important; color-adjust: exact !important; box-sizing: border-box; background: white;}
-          .page-container { display: flex; flex-direction: column; width: 210mm; height: 297mm; overflow: hidden; margin: 0 auto; background: white;}
-          .slip-half { flex: 1; height: 50%; padding: 10mm 20mm; box-sizing: border-box; display: flex; flex-direction: column; justify-content: center; }
-          .cut-line-container { width: 100%; height: 0; display: flex; align-items: center; justify-content: center; position: relative; z-index: 10; }
-          .cut-line { width: 100%; border-top: 1px dashed #94a3b8; position: absolute; }
-          .cut-icon { background: white; padding: 0 10px; color: #64748b; font-size: 16px; position: relative; z-index: 11; }
-          .copy-label { text-align: center; font-size: 0.65rem; color: #64748b; font-weight: 800; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 10px; }
-          .slip-content { transform: scale(0.95); transform-origin: center center; width: 100%; }
-          .pro-slip-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #cbd5e1; padding-bottom: 5px; margin-bottom: 8px; }
-          .pro-slip-header img { height: 35px !important; }
-          .pro-slip-title { text-align: right; }
-          .pro-slip-title h2 { margin: 0; font-size: 0.95rem; font-weight: 800; text-transform: uppercase; }
-          #inlineSlipDate { margin: 2px 0 0 0 !important; font-size: 0.7rem !important; }
-          #inlineSlipTrxBox { margin-top: 2px !important; font-size: 0.8rem !important; }
-          #inlineSlipRef { font-size: 0.9rem !important; }
-          .pro-slip-box { background: #ffffff !important; border-top: 1px solid #e2e8f0; border-bottom: 1px solid #e2e8f0; padding: 5px 0; margin-bottom: 6px; }
-          .pro-slip-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px; }
-          .pro-slip-row:last-child { margin-bottom: 0; }
-          .pro-slip-label { font-size: 0.65rem; color: #64748b; font-weight: 600; }
-          .pro-slip-value { font-size: 0.8rem; font-weight: 700; color: #0f172a; }
-          .pro-slip-value.acc-num { font-family: 'JetBrains Mono', monospace; color: #2563eb; font-size: 0.85rem; }
-          .pro-slip-amount { font-size: 1.15rem; font-weight: 800; font-family: 'JetBrains Mono', monospace; }
-          #inlineSlipAmountWords { font-size: 0.65rem !important; margin-top: 2px !important; }
-          .signature-section { display: flex; gap: 10px; margin-top: 8px; padding-top: 8px; border-top: 1px solid #e2e8f0; }
-          #inlineSlipQRCode { width: 60px !important; height: 60px !important; }
-          .qr-text { font-size: 0.55rem !important; margin-top: 3px !important; }
-          .signature-box { flex: 1; text-align: center; height: 60px !important; display: flex !important; flex-direction: column; justify-content: flex-end; }
-          .signature-line { border-bottom: 1px dashed #94a3b8; width: 100%; margin-bottom: 4px; }
-          .signature-label { font-size: 0.5rem; font-weight: bold; color: #475569; text-transform: uppercase; line-height: 1.2; margin-top: 2px !important; }
-          #inlineSlipWarning { display: none !important; }
-        </style>
-      </head>
-      <body>
-        <div class="page-container">
-          <div class="slip-half"><div class="slip-content"><div class="copy-label">CUSTOMER COPY</div>${printContent}</div></div>
-          <div class="cut-line-container"><div class="cut-line"></div><div class="cut-icon">✂️</div></div>
-          <div class="slip-half"><div class="slip-content"><div class="copy-label">BANK COPY</div>${printContent}</div></div>
-        </div>
-        <script>window.onload = function() { setTimeout(() => { window.print(); window.close(); }, 300); };</script>
-      </body>
-    </html>
-  `);
-  printWindow.document.close();
-};
-
 window.formatTicketStatus = function (status) {
   if (!status) return "UNKNOWN";
   switch (status.toLowerCase()) {
@@ -859,11 +857,9 @@ window.formatTicketStatus = function (status) {
   }
 };
 
-// ========================================================================
-// 📊 មុខងារថ្មី៖ TELLER MINI DASHBOARD & PERSONAL HISTORY
-// ========================================================================
-
-let tellerPersonalTickets = [];
+// ============================================================================
+// 📊 ជំពូកទី ៣៖ ស្ថិតិបញ្ជរបេឡាករ និងប្រវត្តិផ្ទាល់ខ្លួនតាម `_id` (TELLER MINI DASHBOARD BY `_id`)
+// ============================================================================
 
 window.loadTellerDashboard = async function () {
   try {
@@ -879,9 +875,7 @@ window.loadTellerDashboard = async function () {
         if (adminData.success) {
           globalAdminsList = adminData.admins;
         }
-      } catch (e) {
-        console.error("មិនអាចទាញយកបញ្ជី Admin បានទេ", e);
-      }
+      } catch (e) {}
     }
 
     const res = await fetch("/api/admin/cashier/tickets", {
@@ -891,7 +885,9 @@ window.loadTellerDashboard = async function () {
 
     if (data.success) {
       const sessionStaffId = sessionStorage.getItem("adminStaffId");
-      let targetUsername = "";
+      let targetUsername = (
+        sessionStorage.getItem("adminUsername") || ""
+      ).toLowerCase();
       let targetFullName = (
         sessionStorage.getItem("adminFullName") ||
         document.getElementById("adminNameDisplay")?.innerText ||
@@ -923,7 +919,6 @@ window.loadTellerDashboard = async function () {
         );
       });
 
-      // 🟢 ហៅ Filter ដើម្បីឱ្យវាចាប់យក Date Range ស្វ័យប្រវត្តិតាំងពីពេល Load ចូលដំបូង
       filterTellerPersonalTickets();
     }
   } catch (error) {
@@ -935,7 +930,6 @@ window.loadTellerDashboard = async function () {
   }
 };
 
-// 🟢 មុខងារគណនា និងបង្ហាញស្ថិតិ (ទទួលយក filtered list មកគណនា)
 function renderTellerDashboardStats(items = tellerPersonalTickets) {
   let depCount = 0,
     depAmountUSD = 0,
@@ -985,49 +979,9 @@ function renderTellerDashboardStats(items = tellerPersonalTickets) {
   document.getElementById("dashTellerRejCount").innerText = rejCount;
 }
 
-// 🟢 មុខងារបង្ហាញតារាង
-function renderTellerPersonalTickets() {
-  const tbody = document.getElementById("tellerPersonalTicketsBody");
-  if (!tbody) return;
-
-  if (tellerPersonalTickets.length === 0) {
-    tbody.innerHTML = `<tr><td colspan="6" style="text-align: center; padding: 20px; color: var(--text-muted);">មិនមានទិន្នន័យប្រតិបត្តិការទេ</td></tr>`;
-    return;
-  }
-
-  let html = "";
-  const items = tellerPersonalTickets.slice(0, 50);
-
-  items.forEach((t) => {
-    const date = new Date(t.createdAt).toLocaleString();
-    const typeColor = t.requestType === "Deposit" ? "#10b981" : "#ef4444";
-    let statusBadge = "";
-
-    if (t.status === "pending_approve" || t.status === "pending_verify")
-      statusBadge = `<span style="color:#d97706; font-weight:bold; font-size:0.8rem;">PENDING</span>`;
-    else if (t.status === "approved" || t.status === "verified")
-      statusBadge = `<span style="color:#10b981; font-weight:bold; font-size:0.8rem;">COMPLETED</span>`;
-    else
-      statusBadge = `<span style="color:#ef4444; font-weight:bold; font-size:0.8rem;">REJECTED</span>`;
-
-    let displayRefId =
-      t.transactionId || t.ticketId || t._id.substring(0, 10).toUpperCase();
-
-    html += `
-      <tr style="cursor: pointer; transition: 0.2s;" onmouseover="this.style.background='#f8fafc'" onmouseout="this.style.background='transparent'" onclick="openTellerPreviewSlip('${t._id}')">
-        <td style="font-size: 0.8rem; color: var(--text-muted);">${date}</td>
-        <td style="font-family: monospace; font-weight: bold; color: var(--text-main); font-size: 0.85rem;">${displayRefId}</td>
-        <td style="color: ${typeColor}; font-weight: bold; font-size: 0.85rem;">${t.requestType}</td>
-        <td style="font-family: monospace; font-size: 0.85rem;">${t.targetAcc}</td>
-        <td style="font-weight: bold; font-size: 0.9rem;">${t.currency === "USD" ? "$" : "៛"}${t.amount.toLocaleString()}</td>
-        <td>${statusBadge}</td>
-      </tr>`;
-  });
-
-  tbody.innerHTML = html;
-}
-
-// 🟢 មុខងារបើកវិក្កយបត្រ និងទាញព័ត៌មានអតិថិជនមកបង្ហាញភ្លាមៗ (កែប្រែត្រូវពេញលេញ ១០០%)
+/**
+ * 🔹 ៣.២ បើកមើលវិក្កយបត្រចាស់របស់បេឡាករ និងទាញព័ត៌មានអតិថិជនតាមរយៈ `t.userId` (`_id`) ជាអាទិភាពទី ១!
+ */
 window.openTellerPreviewSlip = async function (id) {
   const t = tellerPersonalTickets.find((x) => x._id === id);
   if (!t) return;
@@ -1037,45 +991,46 @@ window.openTellerPreviewSlip = async function (id) {
   const displayRefId =
     t.transactionId || t.ticketId || t._id.substring(0, 10).toUpperCase();
 
-  // ១. លាក់ផ្ទាំងស្ថិតិ និងប្រវត្តិ (Teller Dashboard) នៅខាងឆ្វេង
   const dashSection = document.getElementById("tellerDashboardSection");
   if (dashSection) dashSection.style.display = "none";
 
-  // ២. បង្ហាញកាតអតិថិជន (Target User Card) និងទម្រង់ Form នៅខាងស្តាំឱ្យបានត្រឹមត្រូវ
   const targetCard = document.getElementById("targetUserCard");
   const trxForm = document.getElementById("transactionForm");
   if (targetCard) targetCard.style.display = "block";
   if (trxForm) trxForm.style.display = "block";
 
-  // លាក់ Step 1 (Input Form) និងបង្ហាញ Step 2 (Preview Slip Form)
   const step1 = document.getElementById("step1_InputForm");
   const step2 = document.getElementById("step2_PreviewForm");
   if (step1) step1.style.display = "none";
   if (step2) step2.style.display = "block";
 
-  // ៣. 🚀 ទាញយកទិន្នន័យអតិថិជនពី Server មកបង្ហាញនៅកាតខាងឆ្វេងភ្លាមៗ ដោយស្វ័យប្រវត្តិ
+  // 🎯 ទាញយកទិន្នន័យអតិថិជនតាមរយៈ `t.userId` (MongoDB `_id`) មុនគេបង្អស់!
+  const lookupKey = t.userId || t.targetAcc;
   try {
-    const userRes = await fetch(`/api/admin/cashier/search/${t.targetAcc}`, {
-      headers: getAuthHeaders(),
-    });
+    const userRes = await fetch(
+      `/api/admin/cashier/search/${encodeURIComponent(lookupKey)}`,
+      {
+        headers: getAuthHeaders(),
+      },
+    );
     const userData = await userRes.json();
 
     if (userData.success && userData.user) {
       currentTargetUser = userData.user;
       const u = userData.user;
+      const canonicalId = String(u._id || u.id || "");
 
       document.getElementById("cardAvatar").src =
         u.profileImage || "../images/default-avatar.png";
       document.getElementById("cardName").textContent =
         `${u.fullName || u.username}`;
       document.getElementById("cardUserId").textContent =
-        `ID : ${u.userId || "N/A"}`;
+        `_id : ${canonicalId.slice(-8)}`;
       document.getElementById("cardUIdNum").textContent =
         `CARD ID : ${u.idNumber || "N/A"}`;
       document.getElementById("cardPhone").textContent = u.phone || "N/A";
       document.getElementById("cardEmail").textContent = u.email || "N/A";
 
-      // បង្ហាញសមតុល្យគណនីទាំងអស់របស់អតិថិជននៅកាតខាងឆ្វេង
       const balancesContainer = document.getElementById(
         "cardBalancesContainer",
       );
@@ -1126,7 +1081,6 @@ window.openTellerPreviewSlip = async function (id) {
     console.error("Error fetching target user data for slip:", err);
   }
 
-  // ៤. បំពេញទិន្នន័យចូល Pro Slip នៅផ្នែកខាងស្តាំ
   const titleText = document.getElementById("previewTitleText");
   if (titleText) {
     if (t.status === "rejected") {
@@ -1197,13 +1151,9 @@ window.openTellerPreviewSlip = async function (id) {
         : autoRemark;
   }
   document.getElementById("inlineSlipRemark").innerText = finalRemark;
-
-  let makerFullName = t.maker;
-  if (typeof globalAdminsList !== "undefined" && globalAdminsList.length > 0) {
-    const foundMaker = globalAdminsList.find((a) => a.username === t.maker);
-    if (foundMaker && foundMaker.fullName) makerFullName = foundMaker.fullName;
-  }
-  document.getElementById("inlineSlipMaker").innerText = makerFullName;
+  document.getElementById("inlineSlipMaker").innerText = getMakerFullName(
+    t.maker,
+  );
 
   const statusElem = document.getElementById("inlineSlipStatus");
   if (statusElem) {
@@ -1226,7 +1176,6 @@ window.openTellerPreviewSlip = async function (id) {
   if (successBtns) successBtns.style.display = "grid";
 };
 
-// 🟢 មុខងារកំណត់ថ្ងៃស្វ័យប្រវត្តិ (Today 00:00 ដល់ 23:59) ពេលបើកដំបូង
 function setDefaultDatesIfNeeded() {
   const startInput = document.getElementById("tellerStartDate");
   const endInput = document.getElementById("tellerEndDate");
@@ -1260,27 +1209,25 @@ function setDefaultDatesIfNeeded() {
   }
 }
 
-// 🟢 មុខងារសម្រាប់ Filter ប្រវត្តិប្រតិបត្តិការ និងគណនាស្ថិតិស្របតាម Date Range
 window.filterTellerPersonalTickets = function () {
-  setDefaultDatesIfNeeded(); // បើអត់ទាន់រើស ដាក់ថ្ងៃ Today ឱ្យស្វ័យប្រវត្តិ
+  setDefaultDatesIfNeeded();
 
-  const term = document
-    .getElementById("searchTellerTicket")
-    .value.toLowerCase();
-  const startDateVal = document.getElementById("tellerStartDate").value;
-  const endDateVal = document.getElementById("tellerEndDate").value;
-  const statusF = document.getElementById("tellerTicketStatus").value;
+  const term =
+    document.getElementById("searchTellerTicket")?.value.toLowerCase() || "";
+  const startDateVal = document.getElementById("tellerStartDate")?.value;
+  const endDateVal = document.getElementById("tellerEndDate")?.value;
+  const statusF = document.getElementById("tellerTicketStatus")?.value || "ALL";
 
   const startTimestamp = startDateVal ? new Date(startDateVal).getTime() : null;
   const endTimestamp = endDateVal ? new Date(endDateVal).getTime() : null;
 
-  // ត្រងទិន្នន័យសម្រាប់តារាង
   const filtered = tellerPersonalTickets.filter((t) => {
     let matchTerm = true;
     if (term) {
       matchTerm =
         (t.transactionId && t.transactionId.toLowerCase().includes(term)) ||
         (t._id && t._id.toLowerCase().includes(term)) ||
+        (t.userId && String(t.userId).toLowerCase().includes(term)) ||
         (t.targetAcc && t.targetAcc.toLowerCase().includes(term)) ||
         (t.depositorName && t.depositorName.toLowerCase().includes(term)) ||
         (t.slipData &&
@@ -1312,19 +1259,14 @@ window.filterTellerPersonalTickets = function () {
     return matchTerm && matchDate && matchStatus;
   });
 
-  // 🟢 ធ្វើបច្ចុប្បន្នភាពស្ថិតិ (Mini Dashboard) ឱ្យរត់តាមទិន្នន័យដែលបាន Filter (រួមទាំង Date Range)
   renderTellerDashboardStats(filtered);
-
-  // បង្ហាញចូលតារាង
   renderFilteredTellerTickets(filtered);
 };
 
-// 🟢 មុខងារបង្ហាញលទ្ធផលដែលបាន Filter រួចចូលទៅក្នុងតារាង និងបង្ហាញចំនួនសរុប
 function renderFilteredTellerTickets(items) {
   const tbody = document.getElementById("tellerPersonalTicketsBody");
   if (!tbody) return;
 
-  // 🟢 បង្ហាញចំនួនសរុបនៃប្រតិបត្តិការដែលបាន Filter ឃើញ
   const countNumElem = document.getElementById("tellerTotalCountNum");
   if (countNumElem) {
     countNumElem.innerText = items.length;
@@ -1375,27 +1317,24 @@ function renderFilteredTellerTickets(items) {
   tbody.innerHTML = html;
 }
 
-// 🟢 មុខងារបង្ហាញ ឬលាក់សញ្ញា X ក្នុងប្រអប់ Search
 window.checkTellerSearchInput = function () {
-  const val = document.getElementById("searchTellerTicket").value.trim();
+  const val = document.getElementById("searchTellerTicket")?.value.trim() || "";
   const btnClear = document.getElementById("btnClearTellerSearch");
   if (btnClear) {
     btnClear.style.display = val.length > 0 ? "block" : "none";
   }
 };
 
-// 🟢 មុខងារចុចលើសញ្ញា X ដើម្បីសម្អាតប្រអប់ Search និងបង្ហាញទិន្នន័យដើមឡើងវិញ
 window.resetTellerSearch = function () {
   const input = document.getElementById("searchTellerTicket");
   if (input) {
     input.value = "";
     checkTellerSearchInput();
-    filterTellerPersonalTickets(); // ហៅទិន្នន័យដើមមកវិញ
+    filterTellerPersonalTickets();
     input.focus();
   }
 };
 
-// 🟢 កែសម្រួលមុខងារ Auto-Refresh ឱ្យរក្សាស្ថានភាព Filter របស់អតិថិជនដដែល មិនឱ្យវាលោតមកទាំងអស់វិញទេ
 function startAutoRefresh() {
   setInterval(async () => {
     const cashierSec = document.getElementById("sec-cashier");
@@ -1443,9 +1382,7 @@ function startAutoRefresh() {
             return makerDB === targetUsername || makerDB === uiName;
           });
 
-          // អាប់ដេតស្ថិតិ និងរក្សាការ Filter ក្នុងតារាងដដែលដោយស្វ័យប្រវត្តិ
-          renderTellerDashboardStats();
-          filterTellerPersonalTickets(); // ប្រើប្រាស់មុខងារ Filter ជំនួសឱ្យការបង្ហាញទាំងអស់
+          filterTellerPersonalTickets();
         } else {
           allTickets = data.tickets;
           filterTickets();
@@ -1457,25 +1394,9 @@ function startAutoRefresh() {
   }, 5000);
 }
 
-// 🟢 ហៅបញ្ជាឱ្យវាចាប់ផ្តើម Auto-Refresh នៅពេលទំព័រត្រូវបាន Load រួចរាល់
-document.addEventListener("DOMContentLoaded", () => {
-  startAutoRefresh();
-});
-
-// 🟩🟩🟩🟩🟩🟩🟩🟩🟩🟩🟩🟩🟩🟩🟩🟩🟩🟩🟩🟩🟩🟩🟩🟩🟩🟩🟩🟩🟩🟩🟩🟩🟩🟩
-// ផ្នែកទី ២៖ ត្រួតពិនិត្យ & អនុម័ត (APPROVALS LOGIC) - អ្នកពិនិត្យ
-// 🟩🟩🟩🟩🟩🟩🟩🟩🟩🟩🟩🟩🟩🟩🟩🟩🟩🟩🟩🟩🟩🟩🟩🟩🟩🟩🟩🟩🟩🟩🟩🟩🟩🟩
-
-let allTickets = [];
-let filteredTickets = [];
-let currentTicketPage = 1;
-const TICKETS_PER_PAGE = 10;
-let viewingTicketId = null;
-
-// 🟢 ការកំណត់អថេរសម្រាប់ Filter Admin
-const storageKey = `makerFilters_${currentAdminUser}`;
-let selectedMakersFilter = JSON.parse(localStorage.getItem(storageKey)) || [];
-let globalAdminsList = [];
+// ============================================================================
+// ✅ ជំពូកទី ៤៖ ការត្រួតពិនិត្យ និងអនុម័តសំបុត្របេឡាករតាម `_id` (CHECKER APPROVALS BY `_id` & `fullName`)
+// ============================================================================
 
 async function fetchAdminsForFilter() {
   try {
@@ -1507,9 +1428,10 @@ window.loadCashierTickets = async function () {
 };
 
 window.filterTickets = function () {
-  const term = document.getElementById("searchTicket").value.toLowerCase();
-  const dateF = document.getElementById("ticketDate").value;
-  const statusF = document.getElementById("ticketStatus").value;
+  const term =
+    document.getElementById("searchTicket")?.value.toLowerCase() || "";
+  const dateF = document.getElementById("ticketDate")?.value || "";
+  const statusF = document.getElementById("ticketStatus")?.value || "ALL";
 
   filteredTickets = allTickets.filter((t) => {
     let matchTerm = true;
@@ -1517,6 +1439,7 @@ window.filterTickets = function () {
       matchTerm =
         (t.transactionId && t.transactionId.toLowerCase().includes(term)) ||
         (t._id && t._id.toLowerCase().includes(term)) ||
+        (t.userId && String(t.userId).toLowerCase().includes(term)) ||
         (t.targetAcc && t.targetAcc.toLowerCase().includes(term)) ||
         (t.depositorName && t.depositorName.toLowerCase().includes(term)) ||
         (t.slipData &&
@@ -1543,9 +1466,6 @@ window.filterTickets = function () {
   renderCashierTickets();
 };
 
-// =========================================================
-// 🟢 មុខងារថ្មី៖ បន្ថែម និង លុប តម្រង Admin (Maker Tags)
-// =========================================================
 window.addMakerFilterFromInput = function () {
   const input = document.getElementById("addMakerInput");
   let val = input.value.trim().replace("@", "").toLowerCase();
@@ -1560,25 +1480,25 @@ window.addMakerFilterFromInput = function () {
 
   const foundAdmin = globalAdminsList.find(
     (a) =>
+      String(a._id || a.id).toLowerCase() === val ||
       (a.username && a.username.toLowerCase() === val) ||
       (a.staffId && a.staffId.toLowerCase() === val) ||
       (a.fullName && a.fullName.toLowerCase() === val),
   );
 
   if (foundAdmin) {
-    // 🟢 ការពារមិនឱ្យ Admin Add ឈ្មោះខ្លួនឯង (ទាញយកទិន្នន័យជាក់ស្តែងភ្លាមៗ)
     const loggedInUser = (
       sessionStorage.getItem("adminUsername") || ""
     ).toLowerCase();
-    const loggedInName = document
-      .getElementById("adminNameDisplay")
-      .innerText.trim()
+    const loggedInName = (
+      document.getElementById("adminNameDisplay")?.innerText || ""
+    )
+      .trim()
       .toLowerCase();
 
     const targetUser = (foundAdmin.username || "").toLowerCase();
     const targetName = (foundAdmin.fullName || "").toLowerCase();
 
-    // ឆែកផ្ទៀងផ្ទាត់យ៉ាងតឹងរឹង ទាំង Username ទាំង Full Name
     if (
       (loggedInUser && targetUser === loggedInUser) ||
       (loggedInName && targetName === loggedInName) ||
@@ -1588,7 +1508,7 @@ window.addMakerFilterFromInput = function () {
       return Swal.fire({
         icon: "warning",
         title: "បម្រាម Maker-Checker",
-        text: "អ្នកមិនអាចត្រួតពិនិត្យ (Approve) ប្រតិបត្តិការខ្លួនឯងបានទេ ដូច្នេះមិនអាច Add ឈ្មោះខ្លួនឯងចូលតម្រងឡើយ!",
+        text: "អ្នកមិនអាចត្រួតពិនិត្យ (Approve) ប្រតិបត្តិការខ្លួនឯងបានទេ ដូច្នេះមិនអាចបន្ថែមឈ្មោះខ្លួនឯងចូលតម្រងឡើយ!",
         customClass: { popup: "premium-swal" },
       });
     }
@@ -1598,6 +1518,7 @@ window.addMakerFilterFromInput = function () {
     );
     if (!alreadyAdded) {
       selectedMakersFilter.push({
+        _id: String(foundAdmin._id || foundAdmin.id || ""),
         username: foundAdmin.username,
         fullName: foundAdmin.fullName || foundAdmin.username,
         staffId: foundAdmin.staffId || "N/A",
@@ -1609,7 +1530,7 @@ window.addMakerFilterFromInput = function () {
     } else {
       Swal.fire({
         icon: "warning",
-        text: "Admin នេះមានក្នុងបញ្ជីតម្រងរួចហើយ!",
+        text: "បុគ្គលិកនេះមានក្នុងបញ្ជីតម្រងរួចហើយ!",
         toast: true,
         position: "top-end",
         timer: 2000,
@@ -1620,7 +1541,7 @@ window.addMakerFilterFromInput = function () {
     Swal.fire({
       icon: "error",
       title: "រកមិនឃើញ",
-      text: `មិនមាន Admin ដែលមានទិន្នន័យ "${input.value}" ទេ!`,
+      text: `មិនមានបុគ្គលិកដែលមានទិន្នន័យ "${input.value}" ទេ!`,
       customClass: { popup: "premium-swal" },
     });
   }
@@ -1655,31 +1576,33 @@ window.renderMakerTags = function () {
   if (!container) return;
 
   if (selectedMakersFilter.length === 0) {
-    container.innerHTML = `<span style="font-size: 0.8rem; color: var(--text-muted);">កំពុងបង្ហាញប្រតិបត្តិការរបស់ Admin ទាំងអស់ (All Makers)</span>`;
+    container.innerHTML = `<span style="font-size: 0.8rem; color: var(--text-muted);">កំពុងបង្ហាញប្រតិបត្តិការរបស់បេឡាករទាំងអស់ (All Makers)</span>`;
     return;
   }
 
   let html = "";
   selectedMakersFilter.forEach((m) => {
     html += `
-        <div style="background: var(--secondary); color: white; padding: 6px 12px; border-radius: 8px; display: flex; align-items: center; gap: 12px; box-shadow: 0 2px 5px rgba(16,185,129,0.2); border: 1px solid rgba(255,255,255,0.2);">
-            <div style="display: flex; flex-direction: column; line-height: 1.2;">
-                <span style="font-weight: bold; font-size: 0.85rem;">${m.fullName}</span>
-                <span style="font-size: 0.65rem; color: rgba(255,255,255,0.8); font-family: 'JetBrains Mono', monospace;">ID: ${m.staffId}</span>
-            </div>
-            <div style="height: 100%; border-left: 1px solid rgba(255,255,255,0.3); padding-left: 10px; display: flex; align-items: center;">
-                <button onclick="removeMakerFilter('${m.username}', '${m.fullName}')" title="លុបតម្រងនេះ" style="background: none; border: none; color: white; cursor: pointer; padding: 0; display: flex; align-items: center; justify-content: center;">
-                    <i class="fa-solid fa-xmark" style="font-size: 1rem; opacity: 0.7; transition: 0.2s;" onmouseover="this.style.opacity='1'; this.style.transform='scale(1.2)'" onmouseout="this.style.opacity='0.7'; this.style.transform='scale(1)'"></i>
-                </button>
-            </div>
+      <div style="background: var(--secondary); color: white; padding: 6px 12px; border-radius: 8px; display: flex; align-items: center; gap: 12px; box-shadow: 0 2px 5px rgba(16,185,129,0.2); border: 1px solid rgba(255,255,255,0.2);">
+        <div style="display: flex; flex-direction: column; line-height: 1.2;">
+          <span style="font-weight: bold; font-size: 0.85rem;">${m.fullName}</span>
+          <span style="font-size: 0.65rem; color: rgba(255,255,255,0.8); font-family: 'JetBrains Mono', monospace;">ID: ${m.staffId}</span>
         </div>
-        `;
+        <div style="height: 100%; border-left: 1px solid rgba(255,255,255,0.3); padding-left: 10px; display: flex; align-items: center;">
+          <button onclick="removeMakerFilter('${m.username}', '${m.fullName}')" title="លុបតម្រងនេះ" style="background: none; border: none; color: white; cursor: pointer; padding: 0; display: flex; align-items: center; justify-content: center;">
+            <i class="fa-solid fa-xmark" style="font-size: 1rem; opacity: 0.7; transition: 0.2s;" onmouseover="this.style.opacity='1'; this.style.transform='scale(1.2)'" onmouseout="this.style.opacity='0.7'; this.style.transform='scale(1)'"></i>
+          </button>
+        </div>
+      </div>
+    `;
   });
   container.innerHTML = html;
 };
 
 function renderCashierTickets() {
   const tbody = document.getElementById("ticketsTableBody");
+  if (!tbody) return;
+
   if (filteredTickets.length === 0) {
     tbody.innerHTML = `<tr><td colspan="8" style="text-align: center; padding: 30px; color: var(--text-muted);">មិនមានទិន្នន័យទេ</td></tr>`;
     updateTicketPagination(0);
@@ -1705,14 +1628,9 @@ function renderCashierTickets() {
     else
       statusBadge = `<span style="background:#fee2e2; color:#ef4444; padding:4px 8px; border-radius:8px; font-size:0.75rem; font-weight:bold;">REJECTED</span>`;
 
-    let displayRefId = "N/A";
-    if (t.transactionId) {
-      displayRefId = t.transactionId;
-    } else if (t.ticketId) {
-      displayRefId = t.ticketId;
-    } else {
-      displayRefId = t._id.substring(0, 10).toUpperCase();
-    }
+    let displayRefId =
+      t.transactionId || t.ticketId || t._id.substring(0, 10).toUpperCase();
+    const makerFullName = getMakerFullName(t.maker);
 
     html += `
       <tr style="cursor: pointer; transition: 0.2s;" onmouseover="this.style.background='#f8fafc'" onmouseout="this.style.background='transparent'" onclick="openTicketDrawer('${t._id}')">
@@ -1721,7 +1639,7 @@ function renderCashierTickets() {
         <td style="color: ${typeColor}; font-weight: bold;">${t.requestType}</td>
         <td style="font-family: monospace;">${t.targetAcc}</td>
         <td style="font-weight: bold;">${t.currency === "USD" ? "$" : "៛"}${t.amount.toLocaleString()}</td>
-        <td>@${t.maker}</td>
+        <td style="font-weight: 700;">${makerFullName}</td>
         <td>${statusBadge}</td>
         <td style="text-align: right;">
           <button class="btn-action" style="color: #3b82f6; background: rgba(59, 130, 246, 0.1); border: 1px solid rgba(59, 130, 246, 0.2); padding: 8px 12px; border-radius: 8px; cursor: pointer; transition: 0.2s;" onmouseover="this.style.background='rgba(59, 130, 246, 0.2)'" onmouseout="this.style.background='rgba(59, 130, 246, 0.1)'">
@@ -1748,34 +1666,24 @@ function updateTicketPagination(totalPages) {
     totalPages === 0 ? "ទំព័រ 0" : `ទំព័រ ${currentTicketPage} / ${totalPages}`;
 }
 
-// =========================================================
-// 🟢 មុខងារបើក Drawer (Split UI - Customer Context + Pro Slip)
-// =========================================================
-// 🟢 មុខងារត្រលប់ទៅតារាងវិញ
 window.backToApprovalTable = function () {
   document.getElementById("viewApprovalDetail").style.display = "none";
   document.getElementById("viewApproval").style.display = "block";
 };
 
-// =========================================================
-// 🟢 មុខងារបើក Drawer (Split UI - Customer Context + Pro Slip)
-// =========================================================
+/**
+ * 🔹 ៤.៤ បើកផ្ទាំងពិនិត្យលម្អិតសំបុត្របេឡាករ (Approval Detail Split UI) ដោយទាញអតិថិជនតាម `t.userId` (`_id`)
+ */
 window.openTicketDrawer = async function (id) {
-  // 1. រកមើលសំបុត្រក្នុងបញ្ជី
   const t = allTickets.find((x) => x._id === id);
-  if (!t) {
-    console.error("រកមិនឃើញសំបុត្រលេខ ID:", id);
-    return;
-  }
+  if (!t) return;
 
   viewingTicketId = id;
   const isDeposit = t.requestType.toLowerCase() === "deposit";
   const curSymbol = t.currency === "USD" ? "$" : "៛";
-
-  let displayRefId =
+  const displayRefId =
     t.transactionId || t.ticketId || t._id.substring(0, 10).toUpperCase();
 
-  // 2. ផ្លាស់ប្តូរ View ភ្លាមៗ ដើម្បីឱ្យអ្នកប្រើប្រាស់ដឹងថាវាដើរ
   const viewTable = document.getElementById("viewApproval");
   const viewDetail = document.getElementById("viewApprovalDetail");
 
@@ -1784,9 +1692,8 @@ window.openTicketDrawer = async function (id) {
     viewDetail.style.display = "block";
   }
 
-  // 3. បំពេញទិន្នន័យចូល Pro Slip (Approval Detail View)
-  const safeSetText = (id, text, color = null) => {
-    const el = document.getElementById(id);
+  const safeSetText = (elId, text, color = null) => {
+    const el = document.getElementById(elId);
     if (el) {
       el.innerText = text;
       if (color) el.style.color = color;
@@ -1811,15 +1718,12 @@ window.openTicketDrawer = async function (id) {
     formatBal(t.amount),
     isDeposit ? "#10b981" : "#ef4444",
   );
-
-  // បញ្ចូលទឹកប្រាក់ជាអក្សរ (Word format)
   safeSetText(
     "approvalSlipAmountWords",
     t.currency === "USD"
       ? numberToWordsUSD(t.amount)
       : numberToWordsKHR(t.amount),
   );
-
   safeSetText("approvalSlipOldBal", formatBal(t.slipData?.priorBalance));
   safeSetText("approvalSlipNewBal", formatBal(t.slipData?.newBalance));
 
@@ -1838,14 +1742,11 @@ window.openTicketDrawer = async function (id) {
     t.depositorName || t.slipData?.customerName || "Unknown",
   );
 
-  // 🟢 ចងក្រង Auto Remark សម្រាប់បង្ហាញលើ Approval Slip ឱ្យដូច Teller Desk
   const autoRemark = isDeposit
     ? `ដាក់ប្រាក់ដោយ: ${t.depositorName || "Unknown"} (${t.slipData?.depositorAccount || "N/A"})`
     : `ដកប្រាក់ដោយ: ${t.depositorName || "Unknown"} (${t.slipData?.depositorAccount || "N/A"})`;
 
   let finalRemark = t.remark || "";
-
-  // ការពារកុំឱ្យវាបូកជាន់គ្នាពីរដង (ប្រសិនបើ Backend បាន Save ចូលរួចហើយ)
   if (
     !finalRemark.includes("ដាក់ប្រាក់ដោយ:") &&
     !finalRemark.includes("ដកប្រាក់ដោយ:")
@@ -1857,17 +1758,7 @@ window.openTicketDrawer = async function (id) {
   }
 
   safeSetText("approvalSlipRemark", finalRemark);
-
-  // 🟢 ទាញយកឈ្មោះពេញ (Full Name) របស់ Admin (Maker) មកបង្ហាញ
-  let makerFullName = t.maker; // ទុក Username ជាតម្លៃដើមសិន
-  if (typeof globalAdminsList !== "undefined" && globalAdminsList.length > 0) {
-    // ស្វែងរក Admin ក្នុងបញ្ជីដែលត្រូវនឹង Username
-    const foundMaker = globalAdminsList.find((a) => a.username === t.maker);
-    if (foundMaker && foundMaker.fullName) {
-      makerFullName = foundMaker.fullName;
-    }
-  }
-  safeSetText("approvalSlipMaker", makerFullName);
+  safeSetText("approvalSlipMaker", getMakerFullName(t.maker));
 
   const statusColor = t.status.includes("pending")
     ? "#d97706"
@@ -1876,12 +1767,10 @@ window.openTicketDrawer = async function (id) {
       : "#10b981";
   safeSetText("approvalSlipStatus", formatTicketStatus(t.status), statusColor);
 
-  // 4. រៀបចំ QR Code
   const qrEl = document.getElementById("approvalSlipQRCode");
   if (qrEl)
     qrEl.src = `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=https://u-pay-bank.fly.dev/receipt/${displayRefId}`;
 
-  // 5. គ្រប់គ្រង Action Buttons & Maker-Checker Warning
   const actionArea = document.getElementById("approvalActionArea");
   const existingMsg = document.getElementById("approvalMakerWarningMsg");
   const printArea = document.getElementById("approvalPrintArea");
@@ -1895,68 +1784,67 @@ window.openTicketDrawer = async function (id) {
       sessionStorage.getItem("adminUsername") || ""
     ).toLowerCase();
 
-    if (t.maker.toLowerCase() === actualLoggedInUser) {
+    if (t.maker && t.maker.toLowerCase() === actualLoggedInUser) {
       if (existingMsg) existingMsg.style.display = "block";
-    } else {
-      if (actionArea) {
-        // 🟢 កែប្រែ៖ ប្រើ Flexbox រៀបចំឱ្យនៅចំកណ្តាល និង Responsive ស្អាត
-        actionArea.style.display = "flex";
-        actionArea.style.justifyContent = "center";
-        actionArea.style.alignItems = "center";
-        actionArea.style.gap = "16px";
-        actionArea.style.flexWrap = "wrap";
-        actionArea.style.padding = "15px 0";
+    } else if (actionArea) {
+      actionArea.style.display = "flex";
+      actionArea.style.justifyContent = "center";
+      actionArea.style.alignItems = "center";
+      actionArea.style.gap = "16px";
+      actionArea.style.flexWrap = "wrap";
+      actionArea.style.padding = "15px 0";
 
-        const approveBtnText =
-          t.status === "pending_verify"
-            ? '<i class="fa-solid fa-check-circle"></i> ផ្ទៀងផ្ទាត់ (Verify)'
-            : '<i class="fa-solid fa-check-circle"></i> អនុម័ត (Approve)';
+      const approveBtnText =
+        t.status === "pending_verify"
+          ? '<i class="fa-solid fa-check-circle"></i> ផ្ទៀងផ្ទាត់ (Verify)'
+          : '<i class="fa-solid fa-check-circle"></i> អនុម័ត (Approve)';
 
-        actionArea.innerHTML = ` 
-            <!-- ប៊ូតុង បដិសេធ (Reject) -->
-            <button id="drawerBtnReject" class="btn-action kh-text" 
-                style="background: #fff5f5; color: #dc2626; border: 1px solid #fca5a5; padding: 12px 28px; border-radius: 8px; font-size: 1rem; font-weight: 600; display: flex; justify-content: center; align-items: center; gap: 8px; font-family: 'Kantumruy Pro', sans-serif; min-width: 160px; cursor: pointer; transition: all 0.2s ease;" 
-                onmouseover="this.style.background='#fee2e2'; this.style.borderColor='#ef4444';" 
-                onmouseout="this.style.background='#fff5f5'; this.style.borderColor='#fca5a5';"> 
-                <i class="fa-solid fa-xmark"></i> បដិសេធ (Reject) 
-            </button> 
+      actionArea.innerHTML = ` 
+        <button id="drawerBtnReject" class="btn-action kh-text" 
+          style="background: #fff5f5; color: #dc2626; border: 1px solid #fca5a5; padding: 12px 28px; border-radius: 8px; font-size: 1rem; font-weight: 600; display: flex; justify-content: center; align-items: center; gap: 8px; font-family: 'Kantumruy Pro', sans-serif; min-width: 160px; cursor: pointer; transition: all 0.2s ease;" 
+          onmouseover="this.style.background='#fee2e2'; this.style.borderColor='#ef4444';" 
+          onmouseout="this.style.background='#fff5f5'; this.style.borderColor='#fca5a5';"> 
+          <i class="fa-solid fa-xmark"></i> បដិសេធ (Reject) 
+        </button> 
 
-            <!-- ប៊ូតុង ផ្ទៀងផ្ទាត់ (Verify / Approve) -->
-            <button id="drawerBtnApprove" class="btn-primary kh-text" 
-                style="background: #10b981; color: white; border: none; padding: 12px 28px; border-radius: 8px; font-size: 1rem; font-weight: 600; display: flex; justify-content: center; align-items: center; gap: 8px; font-family: 'Kantumruy Pro', sans-serif; min-width: 160px; cursor: pointer; transition: all 0.2s ease; box-shadow: 0 2px 6px rgba(16, 185, 129, 0.2);" 
-                onmouseover="this.style.background='#059669'; this.style.boxShadow='0 4px 12px rgba(16, 185, 129, 0.3)';" 
-                onmouseout="this.style.background='#10b981'; this.style.boxShadow='0 2px 6px rgba(16, 185, 129, 0.2)';"> 
-                ${approveBtnText} 
-            </button> 
-        `;
+        <button id="drawerBtnApprove" class="btn-primary kh-text" 
+          style="background: #10b981; color: white; border: none; padding: 12px 28px; border-radius: 8px; font-size: 1rem; font-weight: 600; display: flex; justify-content: center; align-items: center; gap: 8px; font-family: 'Kantumruy Pro', sans-serif; min-width: 160px; cursor: pointer; transition: all 0.2s ease; box-shadow: 0 2px 6px rgba(16, 185, 129, 0.2);" 
+          onmouseover="this.style.background='#059669'; this.style.boxShadow='0 4px 12px rgba(16, 185, 129, 0.3)';" 
+          onmouseout="this.style.background='#10b981'; this.style.boxShadow='0 2px 6px rgba(16, 185, 129, 0.2)';"> 
+          ${approveBtnText} 
+        </button> 
+      `;
 
-        setTimeout(() => {
-          const btnReject = document.getElementById("drawerBtnReject");
-          const btnApprove = document.getElementById("drawerBtnApprove");
-          if (btnReject) btnReject.onclick = window.rejectTicket;
-          if (btnApprove) btnApprove.onclick = window.approveTicket;
-        }, 100);
-      }
+      setTimeout(() => {
+        const btnReject = document.getElementById("drawerBtnReject");
+        const btnApprove = document.getElementById("drawerBtnApprove");
+        if (btnReject) btnReject.onclick = window.rejectTicket;
+        if (btnApprove) btnApprove.onclick = window.approveTicket;
+      }, 100);
     }
-  } else {
-    // បើ Approved រួច លោតអោយ Print
-    if (printArea) printArea.style.display = "block";
+  } else if (printArea) {
+    printArea.style.display = "block";
   }
 
-  // 6. Fetch ព័ត៌មានអតិថិជន (Context) បង្ហាញខាងឆ្វេង
+  // 🎯 ទាញយកទិន្នន័យអតិថិជនតាមរយៈ `t.userId` (MongoDB `_id`) មុនគេបង្អស់!
   const ctxContainer = document.getElementById("approvalCustomerContext");
   if (!ctxContainer) return;
 
   ctxContainer.innerHTML = `<div style="text-align: center; color: var(--text-muted); font-size: 0.85rem; padding: 40px; font-family: 'Kantumruy Pro', sans-serif;"><i class="fa-solid fa-spinner fa-spin fa-2x"></i><br><br>កំពុងទាញយកទិន្នន័យ...</div>`;
 
+  const lookupKey = t.userId || t.targetAcc;
   try {
-    const res = await fetch(`/api/admin/cashier/search/${t.targetAcc}`, {
-      headers: getAuthHeaders(),
-    });
+    const res = await fetch(
+      `/api/admin/cashier/search/${encodeURIComponent(lookupKey)}`,
+      {
+        headers: getAuthHeaders(),
+      },
+    );
     const data = await res.json();
 
     if (data.success && data.user) {
       const u = data.user;
+      const canonicalId = String(u._id || u.id || "");
       const kycStat = (u.kycStatus || "unverified").toUpperCase();
       const isVerified = kycStat === "VERIFIED" || kycStat === "APPROVED";
       const isFrozen = u.isFrozen;
@@ -2006,13 +1894,12 @@ window.openTicketDrawer = async function (id) {
 
       let html = `
         <div style="border: 1px solid var(--border); padding: 24px; border-radius: 20px; background: var(--bg-body); text-align: left; box-shadow: 0 10px 25px rgba(0, 0, 0, 0.04);">
-          
           <div style="display: flex; align-items: center; gap: 15px; border-bottom: 1px solid var(--border); padding-bottom: 18px; margin-bottom: 18px;">
             <img src="${u.profileImage || "../images/default-avatar.png"}" style="width: 72px; height: 72px; border-radius: 50%; object-fit: cover; border: 3px solid var(--secondary); box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);">
             <div style="flex: 1; overflow: hidden">
               <h3 style="margin: 0; color: var(--text-main); font-size: 1.25rem; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-family: 'Kantumruy Pro', sans-serif;">${u.fullName || u.username}</h3>
               <div style="font-size: 0.85rem; color: var(--text-muted); margin-top: 5px; font-family: 'JetBrains Mono', monospace; display: flex; flex-direction: column; gap: 2px; font-weight: 600;">
-                <div>ID : ${u.userId || "N/A"}</div>
+                <div>_id : ${canonicalId.slice(-8)}</div>
                 <div>CARD ID : ${u.idNumber || "N/A"}</div>
               </div>
             </div>
@@ -2030,8 +1917,7 @@ window.openTicketDrawer = async function (id) {
             </div>
           </div>
           
-          <!-- 🟢 កែប្រែ៖ បន្ថែមប៊ូតុង "មើលអត្តសញ្ញាណប័ណ្ណ" (KYC Button) នៅទីនេះ -->
-          <button class="kh-text" style="width: 100%; padding: 13px; border-radius: 12px; cursor: pointer; font-weight: 700; font-size: 1rem; background: var(--bg-card); border: 1px solid var(--border); color: var(--text-main); display: flex; align-items: center; justify-content: center; gap: 8px; transition: 0.2s; box-shadow: 0 2px 5px rgba(0, 0, 0, 0.02); font-family: 'Kantumruy Pro', sans-serif;" onclick="viewCustomerKYC('${u.kycImage || ""}')">
+          <button class="kh-text" style="width: 100%; padding: 13px; border-radius: 12px; cursor: pointer; font-weight: 700; font-size: 1rem; background: var(--bg-card); border: 1px solid var(--border); color: var(--text-main); display: flex; align-items: center; justify-content: center; gap: 8px; transition: 0.2s; box-shadow: 0 2px 5px rgba(0, 0, 0, 0.02); font-family: 'Kantumruy Pro', sans-serif;" onclick="viewCustomerKYC('${u.kycDocument || u.kycImage || ""}')">
             <i class="fa-solid fa-id-card" style="color: var(--secondary)"></i> មើលអត្តសញ្ញាណប័ណ្ណ
           </button>
         </div>
@@ -2063,7 +1949,6 @@ window.openTicketDrawer = async function (id) {
   }
 };
 
-// 🟢 មុខងារសម្រាប់បើកផ្ទាំងរូបភាព KYC របស់អតិថិជន
 window.viewCustomerKYC = function (kycUrl) {
   if (!kycUrl || kycUrl === "") {
     return Swal.fire({
@@ -2083,13 +1968,11 @@ window.viewCustomerKYC = function (kycUrl) {
 };
 
 window.closeTicketDrawer = function () {
-  // 🟢 កែសម្រួល៖ ឆែកមើលសិនថាតើមាន Element នោះអត់ មុននឹងបញ្ជា remove class ដើម្បីការពារកុំឱ្យ Error
   const drawer = document.getElementById("ticketDrawer");
   if (drawer) {
     drawer.classList.remove("open");
   }
 
-  // បើទម្រង់របស់អ្នកប្រើប្រាស់ Master-Detail View (ប្ដូរ View មកវិញ)
   const viewDetail = document.getElementById("viewApprovalDetail");
   const viewApproval = document.getElementById("viewApproval");
   if (viewDetail && viewApproval) {
@@ -2100,9 +1983,11 @@ window.closeTicketDrawer = function () {
   viewingTicketId = null;
 };
 
-// 🟢 មុខងារព្រីនវិក្កយបត្រកណ្តាល (ប្រើរួមគ្នាទាំង Teller Desk និង Approval)
+// ============================================================================
+// 🖨️ ជំពូកទី ៥៖ ការបោះពុម្ពវិក្កយបត្រ និងសកម្មភាពអនុម័ត/បដិសេធ (PRINT SLIP & ACTIONS)
+// ============================================================================
+
 window.printInlineSlip = function (areaId = "inlineSlipArea") {
-  // ឆែកមើលថាតើទាញយក Slip ពី Teller (inlineSlipArea) ឬពី Approval (approvalPrintSlipArea)
   const printElement = document.getElementById(areaId);
   if (!printElement) {
     console.error("រកមិនឃើញកន្លែងព្រីន: " + areaId);
@@ -2119,7 +2004,6 @@ window.printInlineSlip = function (areaId = "inlineSlipArea") {
         <title>U-Pay Transaction Slip</title>
         <link href="https://fonts.googleapis.com/css2?family=Kantumruy+Pro:wght@400;600;700;800&family=JetBrains+Mono:wght@400;700;800&display=swap" rel="stylesheet">
         <style>
-          /* 🟢 រក្សាទម្រង់កូដ CSS ដើមរបស់ Teller Desk ១០០% */
           @page { size: A4 portrait; margin: 0 !important; }
           body { font-family: 'Kantumruy Pro', sans-serif; color: #0f172a; padding: 0; margin: 0; -webkit-print-color-adjust: exact !important; color-adjust: exact !important; box-sizing: border-box; background: white;}
           .page-container { display: flex; flex-direction: column; width: 210mm; height: 297mm; overflow: hidden; margin: 0 auto; background: white;}
@@ -2166,9 +2050,6 @@ window.printInlineSlip = function (areaId = "inlineSlipArea") {
   printWindow.document.close();
 };
 
-// ========================================================================
-// 🟢 មុខងារសម្រាប់ អនុម័ត (Approve / Verify) ប្រតិបត្តិការ
-// ========================================================================
 window.approveTicket = async function () {
   if (!viewingTicketId) return;
 
@@ -2201,7 +2082,6 @@ window.approveTicket = async function () {
         });
 
         const data = await res.json();
-        console.log("Approve Response Data:", data); // 🔍 មើលតម្លៃនេះក្នុង F12 Console ពេលមានបញ្ហា
 
         if (res.ok && data.success) {
           Swal.fire({
@@ -2221,11 +2101,10 @@ window.approveTicket = async function () {
           });
         }
       } catch (error) {
-        console.error("Approve Catch Error:", error); // 🔍 មើល Error ពិតប្រាកដនៅទីនេះ
         Swal.fire({
           icon: "error",
           title: "កំហុសប្រព័ន្ធ",
-          text: "មានបញ្តាក្នុងការបញ្ជូនទិន្នន័យទៅ Server!",
+          text: "មានបញ្ហាក្នុងការបញ្ជូនទិន្នន័យទៅ Server!",
           customClass: { popup: "premium-swal" },
         });
       }
@@ -2233,16 +2112,14 @@ window.approveTicket = async function () {
   });
 };
 
-// ========================================================================
-// 🔴 មុខងារសម្រាប់ បដិសេធ (Reject) ប្រតិបត្តិការ
-// ========================================================================
 window.rejectTicket = async function () {
   if (!viewingTicketId) return;
 
   Swal.fire({
     title: "បដិសេធប្រតិបត្តិការ?",
     input: "textarea",
-    inputLabel: "សូមបញ្ជាក់មូលហេតុ (ចំណាំ៖ លុយដែល Hold នឹងបង្វិលចូលកុងវិញ)",
+    inputLabel:
+      "សូមបញ្ជាក់មូលហេតុ (ចំណាំ៖ លុយដែល Hold នឹងបង្វិលចូលកុងអតិថិជនវិញ)",
     inputPlaceholder: "ឧ. ឯកសារមិនគ្រប់គ្រាន់, អតិថិជនសុំបោះបង់...",
     icon: "warning",
     showCancelButton: true,
@@ -2276,7 +2153,6 @@ window.rejectTicket = async function () {
         });
 
         const data = await res.json();
-        console.log("Reject Response Data:", data); // 🔍 មើលតម្លៃនេះក្នុង F12 Console
 
         if (res.ok && data.success) {
           Swal.fire({
@@ -2296,7 +2172,6 @@ window.rejectTicket = async function () {
           });
         }
       } catch (error) {
-        console.error("Reject Catch Error:", error); // 🔍 មើល Error ពិតប្រាកដ
         Swal.fire({
           icon: "error",
           title: "កំហុសប្រព័ន្ធ",
@@ -2307,3 +2182,14 @@ window.rejectTicket = async function () {
     }
   });
 };
+
+// ============================================================================
+// 🎬 ជំពូកទី ៦៖ ការចាប់ផ្តើមដំណើរការប្រព័ន្ធបេឡាករដោយស្វ័យប្រវត្តិ (AUTO-INIT HOOK)
+// ============================================================================
+document.addEventListener("DOMContentLoaded", () => {
+  const savedTab = sessionStorage.getItem("activeCashierTab") || "teller";
+  if (document.getElementById("sec-cashier")) {
+    switchCashierTab(savedTab);
+  }
+  startAutoRefresh();
+});

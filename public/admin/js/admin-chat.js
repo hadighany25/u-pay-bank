@@ -1,10 +1,14 @@
 // ============================================================================
 // ឯកសារ: js/admin-chat.js (100% Dedicated Admin Backend & Strict Escalation Queue)
-// អត្ថន័យ: ប្រើប្រាស់ /api/admin/chat/* សុទ្ធសាធ, ចាប់តាម User _id, បង្ហាញតែអ្នកសុំជួបភ្នាក់ងារ
+// អត្ថន័យ: ប្រើប្រាស់ /api/admin/chat/* សុទ្ធសាធ, ចាប់តាម User `_id`, បង្ហាញតែអ្នកសុំជួបភ្នាក់ងារ
+// ស្តង់ដារថ្មី: ចាប់ទិន្នន័យអតិថិជនតាម MongoDB `_id` សុទ្ធសាធ + បង្ហាញឈ្មោះពេញ (fullName)
 // ============================================================================
 
-let adminCurrentPartnerId = null; // 🆔 _id ពិតប្រាកដរបស់អតិថិជន
-let adminCurrentPartnerAcc = ""; // លេខគណនីសម្រាប់បង្ហាញ និងលោតទៅ Customer 360°
+// ============================================================================
+// 🔐 ជំពូកទី ១៖ អថេរសកល, អត្តសញ្ញាណមន្ត្រី ADMIN និងការភ្ជាប់ SOCKET (STATE & SOCKET INIT)
+// ============================================================================
+let adminCurrentPartnerId = null; // 🆔 MongoDB `_id` ពិតប្រាកដរបស់អតិថិជន
+let adminCurrentPartnerAcc = ""; // លេខគណនីសម្រាប់បង្ហាញលើផ្លាក
 let adminCurrentPartnerName = "";
 let adminCurrentPartnerAvatar = "";
 let adminChatInterval = null;
@@ -12,9 +16,12 @@ let adminLastMsgHash = "";
 let adminCachedContacts = [];
 let adminChatFilterStatus = "ACTIVE_QUEUE"; // "ACTIVE_QUEUE" | "urgent" | "pending" | "resolved" | "BOT_LOGS"
 let resolvedAdminUsername = "";
+let resolvedAdminFullName = "";
 let prevEscalatedUnreadCount = -1;
 
-// 🔊 សំឡេងជូនដំណឹងស្រទន់ពេលមានអតិថិជនស្នើសុំជំនួយថ្មី
+/**
+ * 🔹 ១.១ សំឡេងជូនដំណឹងស្រទន់ពេលមានអតិថិជនស្នើសុំជំនួយថ្មី
+ */
 function playAdminSupportAlertSound() {
   try {
     const AudioCtx = window.AudioContext || window.webkitAudioContext;
@@ -35,67 +42,80 @@ function playAdminSupportAlertSound() {
   } catch (e) {}
 }
 
-// 🔐 ១. ទាញយក @username ពិតប្រាកដរបស់បុគ្គលិក Admin
-function decodeJwtUsername() {
+/**
+ * 🔹 ១.២ ទាញយកឈ្មោះពេញ (Full Name) និងអត្តសញ្ញាណពិតប្រាកដរបស់មន្ត្រី Admin
+ */
+function decodeJwtAdminPayload() {
   try {
     const tk = sessionStorage.getItem("adminToken");
-    if (!tk) return "";
+    if (!tk) return {};
     const base64Url = tk.split(".")[1];
-    if (!base64Url) return "";
+    if (!base64Url) return {};
     const base64 = base64Url.replace(/-/g, "+").replace(/_/g, "/");
-    const payload = JSON.parse(window.atob(base64));
-    return payload.username || "";
+    return JSON.parse(window.atob(base64)) || {};
   } catch (e) {
-    return "";
+    return {};
   }
 }
 
-async function ensureAdminUsernameLoaded() {
-  if (resolvedAdminUsername) return resolvedAdminUsername;
+async function ensureAdminIdentityLoaded() {
+  if (resolvedAdminFullName && resolvedAdminUsername) {
+    return { username: resolvedAdminUsername, fullName: resolvedAdminFullName };
+  }
 
-  const fromJwt = decodeJwtUsername();
-  const fromStorage =
+  const jwtPayload = decodeJwtAdminPayload();
+  const fromStorageUser =
+    jwtPayload.username ||
     sessionStorage.getItem("adminUsername") ||
     localStorage.getItem("adminUsername") ||
     "";
+  const fromStorageName =
+    jwtPayload.fullName ||
+    sessionStorage.getItem("adminFullName") ||
+    document.getElementById("adminNameDisplay")?.innerText?.trim() ||
+    "";
 
-  if (fromJwt) {
-    resolvedAdminUsername = fromJwt;
-    sessionStorage.setItem("adminUsername", fromJwt);
-    return resolvedAdminUsername;
+  if (fromStorageUser) resolvedAdminUsername = fromStorageUser;
+  if (fromStorageName) resolvedAdminFullName = fromStorageName;
+
+  if (!resolvedAdminFullName || !resolvedAdminUsername) {
+    try {
+      const res = await fetch("/api/admin/me", { headers: getAuthHeaders() });
+      const data = await res.json();
+      if (data.success && data.admin) {
+        resolvedAdminUsername = data.admin.username || "admin";
+        resolvedAdminFullName =
+          data.admin.fullName ||
+          data.admin.nickname ||
+          "មន្ត្រីប្រតិបត្តិ U-Pay";
+        sessionStorage.setItem("adminUsername", resolvedAdminUsername);
+        sessionStorage.setItem("adminFullName", resolvedAdminFullName);
+      }
+    } catch (e) {}
   }
-  if (fromStorage) {
-    resolvedAdminUsername = fromStorage;
-    return resolvedAdminUsername;
-  }
 
-  try {
-    const res = await fetch("/api/admin/me", { headers: getAuthHeaders() });
-    const data = await res.json();
-    if (data.success && data.admin && data.admin.username) {
-      resolvedAdminUsername = data.admin.username;
-      sessionStorage.setItem("adminUsername", data.admin.username);
-      return resolvedAdminUsername;
-    }
-  } catch (e) {}
-
-  return "admin";
-}
-
-function getAdminDisplayInfo() {
-  const uname =
-    resolvedAdminUsername ||
-    decodeJwtUsername() ||
-    sessionStorage.getItem("adminUsername") ||
-    localStorage.getItem("adminUsername") ||
-    "admin";
-  const cleanUsername = String(uname).replace(/^@/, "").trim();
   return {
-    username: cleanUsername,
-    handle: `@${cleanUsername}`,
+    username: resolvedAdminUsername || "admin",
+    fullName: resolvedAdminFullName || "មន្ត្រីប្រតិបត្តិ U-Pay",
   };
 }
 
+function getAdminDisplayInfo() {
+  const fullName =
+    resolvedAdminFullName ||
+    sessionStorage.getItem("adminFullName") ||
+    document.getElementById("adminNameDisplay")?.innerText?.trim() ||
+    "មន្ត្រីប្រតិបត្តិ U-Pay";
+  const cleanName = String(fullName).replace(/^@/, "").trim();
+  return {
+    fullName: cleanName,
+    label: cleanName,
+  };
+}
+
+/**
+ * 🔹 ១.៣ បម្លែងស្ថានភាព Online / សកម្មចុងក្រោយរបស់អតិថិជន
+ */
 function formatCustomerPresenceText(isOnline, lastActiveIso) {
   if (isOnline) return "🟢 កំពុងសកម្ម (Online)";
   if (!lastActiveIso) return "Offline";
@@ -110,9 +130,11 @@ function formatCustomerPresenceText(isOnline, lastActiveIso) {
   return "Offline";
 }
 
-ensureAdminUsernameLoaded();
+ensureAdminIdentityLoaded();
 
-// ភ្ជាប់ Socket.io សម្រាប់ទទួលសារថ្មី និងធីក ២ (✓✓) ភ្លាមៗ
+/**
+ * 🔹 ១.៤ ភ្ជាប់ Socket.io សម្រាប់ទទួលសារថ្មី និងសញ្ញាធីក ២ (✓✓) ភ្លាមៗ
+ */
 try {
   if (typeof io === "function") {
     const adminSocket = io();
@@ -136,9 +158,13 @@ try {
   }
 } catch (e) {}
 
-// ========================================================================
-// 📋 ២. ទាញយកបញ្ជីអតិថិជនពី `/api/admin/chat/queue` (Strict Escalation Queue)
-// ========================================================================
+// ============================================================================
+// 📋 ជំពូកទី ២៖ ការទាញយកបញ្ជីអតិថិជនក្នុងជួររង់ចាំតាម `_id` (SUPPORT QUEUE BY `_id`)
+// ============================================================================
+
+/**
+ * 🔹 ២.១ កំណត់តម្រងស្ថានភាពបញ្ជីសន្ទនា (ACTIVE_QUEUE, urgent, pending, resolved)
+ */
 window.setAdminChatFilter = function (filterKey) {
   adminChatFilterStatus = filterKey === "ALL" ? "ACTIVE_QUEUE" : filterKey;
   document.querySelectorAll(".achat-pill-btn").forEach((btn) => {
@@ -151,6 +177,9 @@ window.setAdminChatFilter = function (filterKey) {
   fetchAdminContacts(false);
 };
 
+/**
+ * 🔹 ២.២ ទាញយកបញ្ជីអតិថិជនពី `/api/admin/chat/queue`
+ */
 async function fetchAdminContacts(showSpin = false) {
   const spin = document.getElementById("achat-refresh-spin");
   if (showSpin && spin) spin.classList.add("fa-spin");
@@ -190,6 +219,9 @@ async function fetchAdminContacts(showSpin = false) {
   }
 }
 
+/**
+ * 🔹 ២.៣ គូរតារាងឈ្មោះអតិថិជននៅរបារខាងឆ្វេងដោយចាប់តាម `partnerId` (`_id`) សុទ្ធសាធ!
+ */
 window.renderAdminContactsList = function () {
   const list = document.getElementById("adminContactList");
   if (!list) return;
@@ -200,7 +232,6 @@ window.renderAdminContactsList = function () {
     .toLowerCase()
     .trim();
 
-  // រាប់ចំនួនតែអតិថិជនដែលស្នើសុំជំនួយពិតប្រាកដ (needsSupport: true)
   const activeSupportList = adminCachedContacts.filter((c) => c.needsSupport);
   const urgentCount = activeSupportList.filter(
     (c) => c.status === "urgent",
@@ -232,14 +263,14 @@ window.renderAdminContactsList = function () {
     }
 
     if (kw) {
-      const nameStr = String(c.name || c.fullName || "").toLowerCase();
+      const idStr = String(c._id || c.partnerId || "").toLowerCase();
+      const nameStr = String(c.fullName || c.name || "").toLowerCase();
       const accStr = String(c.accountNumber || "").toLowerCase();
-      const uStr = String(c.username || "").toLowerCase();
       const msgStr = String(c.lastMessage || "").toLowerCase();
       return (
+        idStr.includes(kw) ||
         nameStr.includes(kw) ||
         accStr.includes(kw) ||
-        uStr.includes(kw) ||
         msgStr.includes(kw)
       );
     }
@@ -259,8 +290,9 @@ window.renderAdminContactsList = function () {
 
   list.innerHTML = filtered
     .map((c) => {
-      const pId = c.partnerId || c.accountNumber;
-      const isSelected = String(adminCurrentPartnerId) === String(pId);
+      // 🎯 ចាប់យក MongoDB `_id` របស់អតិថិជនជា Primary Key
+      const pId = String(c._id || c.partnerId || c.accountNumber);
+      const isSelected = String(adminCurrentPartnerId) === pId;
       const moodEmoji =
         c.sentiment === "angry" ? "😡" : c.sentiment === "happy" ? "😍" : "🙂";
 
@@ -285,7 +317,8 @@ window.renderAdminContactsList = function () {
         ? `<img src="${c.profileImage}" onerror="this.outerHTML='<i class=\\'fa-solid fa-user\\'></i>'">`
         : `<i class="fa-solid fa-user"></i>`;
 
-      const safeName = String(c.name || c.accountNumber).replace(/'/g, "\\'");
+      const displayFullName = c.fullName || c.name || "អតិថិជន U-Pay";
+      const safeName = String(displayFullName).replace(/'/g, "\\'");
       const safeAvatar = String(c.profileImage || "").replace(/'/g, "\\'");
       const cleanPreview = String(c.lastMessage || "")
         .replace(/<[^>]*>?/gm, "")
@@ -304,14 +337,13 @@ window.renderAdminContactsList = function () {
           <div style="flex:1; min-width:0">
             <div style="display:flex; justify-content:space-between; align-items:center; gap:6px">
               <h4 style="margin:0; font-size:0.9rem; font-weight:800; color:var(--text-main); white-space:nowrap; overflow:hidden; text-overflow:ellipsis">
-                ${c.name || c.accountNumber}
+                ${displayFullName}
               </h4>
               <span style="font-size:0.68rem; color:var(--text-muted); font-weight:700; flex-shrink:0">${displayTime}</span>
             </div>
 
             <div style="display:flex; align-items:center; gap:6px; margin:3px 0">
-              <span style="font-family:'JetBrains Mono',monospace; font-size:0.7rem; color:#0d9488; font-weight:700">#${c.accountNumber}</span>
-              ${statusBadge}
+              <span style="font-family:'JetBrains Mono',monospace; font-size:0.7rem; color:#0d9488; font-weight:700">#${c.accountNumber}</span>${statusBadge}
             </div>
 
             <div style="display:flex; justify-content:space-between; align-items:center; gap:6px">
@@ -331,15 +363,17 @@ window.renderAdminContactsList = function () {
     .join("");
 };
 
-// ➕ ចាប់ផ្តើមឆាតទៅកាន់អតិថិជនណាម្នាក់មុនតាមរយៈ `/api/admin/chat/start`
+/**
+ * 🔹 ២.៤ ចាប់ផ្តើមឆាតទៅកាន់អតិថិជនណាម្នាក់មុនតាមរយៈ `/api/admin/chat/start`
+ */
 window.promptStartNewAdminChat = async function () {
   const { value: targetIdentifier } = await Swal.fire({
     title: "ចាប់ផ្តើមការសន្ទនាទៅកាន់អតិថិជន",
     html: `
       <p style="font-size:0.85rem; color:#64748b; margin:0 0 12px">
-        វាយបញ្ចូល <b>លេខគណនី, @username, ឬលេខទូរស័ព្ទ</b> របស់អតិថិជនដែលអ្នកចង់ទាក់ទង៖
+        វាយបញ្ចូល <b>ឈ្មោះពេញ, លេខគណនី, លេខទូរស័ព្ទ, ឬ _id</b> របស់អតិថិជនដែលអ្នកចង់ទាក់ទង៖
       </p>
-      <input type="text" id="swalAdminNewChatAcc" class="swal2-input" style="margin:0; width:100%" placeholder="ឧ. 100100100 ឬ @dara...">
+      <input type="text" id="swalAdminNewChatAcc" class="swal2-input" style="margin:0; width:100%" placeholder="ឧ. 100100100 ឬ ឈ្មោះអតិថិជន...">
     `,
     showCancelButton: true,
     confirmButtonColor: "#004d40",
@@ -347,7 +381,7 @@ window.promptStartNewAdminChat = async function () {
     cancelButtonText: "បោះបង់",
     preConfirm: () => {
       const v = document.getElementById("swalAdminNewChatAcc").value.trim();
-      if (!v) Swal.showValidationMessage("សូមបញ្ចូលលេខគណនី ឬ @username!");
+      if (!v) Swal.showValidationMessage("សូមបញ្ចូលអត្តសញ្ញាណអតិថិជន!");
       return v;
     },
   });
@@ -371,7 +405,7 @@ window.promptStartNewAdminChat = async function () {
 
     await fetchAdminContacts(false);
     openAdminChat(
-      data.partnerId,
+      data._id || data.partnerId,
       data.name,
       "pending",
       data.profileImage || "",
@@ -382,24 +416,28 @@ window.promptStartNewAdminChat = async function () {
   }
 };
 
-// ========================================================================
-// 💬 ៣. បើកបន្ទប់សន្ទនា និងទាញប្រវត្តិសារតាម `/api/admin/chat/history` (តាម _id)
-// ========================================================================
+// ============================================================================
+// 💬 ជំពូកទី ៣៖ ការបើកបន្ទប់សន្ទនា និងទាញប្រវត្តិសារតាម `_id` (CHAT ROOM & HISTORY BY `_id`)
+// ============================================================================
+
+/**
+ * 🔹 ៣.១ បើកបន្ទប់សន្ទនាជាមួយអតិថិជនតាមរយៈ MongoDB `_id`
+ */
 window.openAdminChat = async function (
-  partnerIdOrAcc,
+  partnerId,
   name,
   currentStatus = "pending",
   avatarUrl = "",
   accountNumberDisplay = "",
 ) {
-  await ensureAdminUsernameLoaded();
-  adminCurrentPartnerId = String(partnerIdOrAcc);
-  adminCurrentPartnerAcc = accountNumberDisplay || String(partnerIdOrAcc);
+  await ensureAdminIdentityLoaded();
+  adminCurrentPartnerId = String(partnerId);
+  adminCurrentPartnerAcc = accountNumberDisplay || String(partnerId);
   adminCurrentPartnerName = name;
   adminCurrentPartnerAvatar = avatarUrl;
   adminLastMsgHash = "";
 
-  const { handle } = getAdminDisplayInfo();
+  const { fullName: adminFullName } = getAdminDisplayInfo();
   const avatarHtml = avatarUrl
     ? `<img src="${avatarUrl}" onerror="this.outerHTML='<i class=\\'fa-solid fa-user\\'></i>'">`
     : `<i class="fa-solid fa-user"></i>`;
@@ -417,10 +455,10 @@ window.openAdminChat = async function (
               #${adminCurrentPartnerAcc}
             </span>
           </div>
-          <div style="font-size:0.74rem; color:var(--text-muted); margin-top:2px; font-weight:700; display:flex; align-items:center; gap:8px">
+         <div style="font-size:0.74rem; color:var(--text-muted); margin-top:2px; font-weight:700; display:flex; align-items:center; gap:8px">
             <span id="adminHeaderPresenceText">កំពុងពិនិត្យស្ថានភាព...</span>
             <span>•</span>
-            <span>ភ្នាក់ងារ៖ <b style="color:#10b981; font-family:'JetBrains Mono',monospace">${handle}</b></span>
+            <span>មន្ត្រីប្រតិបត្តិ៖ <b style="color:#10b981;">@${resolvedAdminUsername || "admin"}</b></span>
           </div>
         </div>
       </div>
@@ -439,7 +477,7 @@ window.openAdminChat = async function (
         <button
           type="button"
           onclick="jumpToCustomer360FromChat()"
-          title="មើលព័ត៌មានលម្អិតរបស់អតិថិជននេះក្នុង Customer 360°"
+          title="មើលព័ត៌មានលម្អិតរបស់អតិថិជននេះក្នុង Customer 360° តាម _id"
           style="height:36px; padding:0 12px; border-radius:10px; border:1px solid rgba(59,130,246,0.35); background:rgba(59,130,246,0.1); color:#3b82f6; font-weight:800; font-size:0.78rem; cursor:pointer; display:inline-flex; align-items:center; gap:6px"
         >
           <i class="fa-solid fa-users-viewfinder"></i> Customer 360°
@@ -465,6 +503,9 @@ window.openAdminChat = async function (
   adminChatInterval = setInterval(fetchAdminMessages, 2000);
 };
 
+/**
+ * 🔹 ៣.២ កែប្រែស្ថានភាពសន្ទនា និងលោតទៅ Customer 360° តាមរយៈ MongoDB `_id`
+ */
 window.updateAdminChatStatus = async function (targetId, newStatus) {
   try {
     await fetch("/api/admin/chat/status", {
@@ -485,8 +526,13 @@ window.updateAdminChatStatus = async function (targetId, newStatus) {
 };
 
 window.jumpToCustomer360FromChat = function () {
-  const searchKey = adminCurrentPartnerAcc || adminCurrentPartnerId;
+  // 🎯 បោះ MongoDB `_id` (`adminCurrentPartnerId`) ទៅកាន់ Customer 360° ជាអាទិភាពទី ១!
+  const searchKey = adminCurrentPartnerId || adminCurrentPartnerAcc;
   if (!searchKey) return;
+  if (typeof goToCustomer360 === "function") {
+    goToCustomer360(searchKey);
+    return;
+  }
   if (typeof showSection === "function") {
     showSection("customer-360");
     setTimeout(() => {
@@ -499,6 +545,9 @@ window.jumpToCustomer360FromChat = function () {
   }
 };
 
+/**
+ * 🔹 ៣.៣ ទាញយកប្រវត្តិសារសន្ទនារបស់អតិថិជនតាមរយៈ `_id` និងបង្ហាញឈ្មោះពេញរបស់មន្ត្រីប្រតិបត្តិ
+ */
 async function fetchAdminMessages() {
   if (!adminCurrentPartnerId) return;
   try {
@@ -536,7 +585,7 @@ async function fetchAdminMessages() {
     if (currentHash === adminLastMsgHash) return;
     adminLastMsgHash = currentHash;
 
-    const { handle } = getAdminDisplayInfo();
+    const { fullName: adminFullName } = getAdminDisplayInfo();
     const body = document.getElementById("adminChatBody");
     body.innerHTML = "";
 
@@ -562,21 +611,15 @@ async function fetchAdminMessages() {
           ? "from-admin from-bot"
           : "from-admin";
 
-      let rawAdminName = String(m.adminName || handle).trim();
-      if (
-        !isBot &&
-        isSent &&
-        !rawAdminName.startsWith("@") &&
-        !rawAdminName.includes(" ")
-      ) {
-        rawAdminName = "@" + rawAdminName;
-      }
+      const adminUsernameDisplay = String(resolvedAdminUsername || "admin")
+        .replace(/^@/, "")
+        .trim();
 
       const senderLabel = !isSent
         ? adminCurrentPartnerName || `#${adminCurrentPartnerAcc}`
         : isBot
           ? "🤖 U-PAY Smart Bot"
-          : `👨‍💻 ${rawAdminName}`;
+          : `👨‍💻 @${adminUsernameDisplay}`;
 
       const timeDisplay = m.timestamp
         ? new Date(m.timestamp).toLocaleTimeString("en-US", {
@@ -643,14 +686,12 @@ async function fetchAdminMessages() {
 
       wrap.innerHTML = `
         <div class="achat-bubble">
-          ${mediaHtml}
-          ${cleanText ? `<div>${cleanText}</div>` : ""}
+          ${mediaHtml}${cleanText ? `<div>${cleanText}</div>` : ""}
         </div>
         <div class="achat-meta-line">
           <span>${timeDisplay}</span>
           <span>•</span>
-          <span style="color:${!isSent ? "#0d9488" : isBot ? "#94a3b8" : "#3b82f6"}; font-family:'JetBrains Mono','Kantumruy Pro',sans-serif">${senderLabel}</span>
-          ${checkIconHtml}
+          <span style="color:${!isSent ? "#0d9488" : isBot ? "#94a3b8" : "#3b82f6"}; font-weight:700;">${senderLabel}</span>${checkIconHtml}
         </div>
       `;
 
@@ -663,9 +704,13 @@ async function fetchAdminMessages() {
   }
 }
 
-// ========================================================================
-// 🚀 ៤. ផ្ញើសារ និងបញ្ចប់ការសន្ទនាតាម `/api/admin/chat/send` & `/api/admin/chat/end`
-// ========================================================================
+// ============================================================================
+// 🚀 ជំពូកទី ៤៖ ការផ្ញើសារ, ផ្ញើរូបភាព/ឯកសារ និងបញ្ចប់ការសន្ទនាតាម `_id` (SEND & END SESSION)
+// ============================================================================
+
+/**
+ * 🔹 ៤.១ ផ្ញើសារអត្ថបទទៅកាន់អតិថិជនតាមរយៈ MongoDB `_id`
+ */
 window.sendAdminChat = async function () {
   const input = document.getElementById("adminChatInput");
   const text = (input?.value || "").trim();
@@ -686,6 +731,9 @@ window.sendAdminChat = async function () {
   fetchAdminContacts(false);
 };
 
+/**
+ * 🔹 ៤.២ បង្ហោះ និងផ្ញើរូបភាព ឬឯកសារទៅកាន់អតិថិជនតាមរយៈ MongoDB `_id`
+ */
 window.handleAdminChatFileUpload = async function (e) {
   const file = e.target.files[0];
   if (!file || !adminCurrentPartnerId) return;
@@ -739,12 +787,15 @@ window.handleAdminChatFileUpload = async function (e) {
   e.target.value = "";
 };
 
+/**
+ * 🔹 ៤.៣ បញ្ចប់ការសន្ទនា និងប្តូរអតិថិជនទៅជាដោះស្រាយរួចរាល់ (Resolved)
+ */
 window.endAdminChat = function () {
   if (!adminCurrentPartnerId) return;
 
   Swal.fire({
     title: "បញ្ចប់ការសន្ទនានេះ?",
-    text: "ប្រព័ន្ធនឹងផ្ញើសារជម្រាបលាអតិថិជន ហើយប្តូរគាត់ចេញពីជួររង់ចាំទៅជាដោះស្រាយរួចរាល់ (Resolved)។",
+    text: `ប្រព័ន្ធនឹងផ្ញើសារជម្រាបលាទៅកាន់ "${adminCurrentPartnerName}" ហើយប្តូរគាត់ចេញពីជួររង់ចាំទៅជាដោះស្រាយរួចរាល់ (Resolved)។`,
     icon: "question",
     showCancelButton: true,
     confirmButtonColor: "#ef4444",
@@ -783,11 +834,11 @@ window.endAdminChat = function () {
   });
 };
 
-// ========================================================================
-// ⚡ ៥. ឃ្លាំងសារគំរូរហ័ស (FLOATING QUICK REPLIES POPOVER)
-// ========================================================================
+// ============================================================================
+// ⚡ ជំពូកទី ៥៖ ឃ្លាំងសារគំរូរហ័ស និងជំនួយការឆ្លើយតបឆ្លាតវៃ AI (QUICK REPLIES & AI)
+// ============================================================================
 const DEFAULT_QUICK_REPLIES = [
-  "សួស្តីបង! 🙏 តើមានអ្វីឱ្យភ្នាក់ងារធនាគារ U-PAY យើងខ្ញុំជួយបងបានដែរ?",
+  "សួស្តីបង! 🙏 តើមានអ្វីឱ្យមន្ត្រីធនាគារ U-PAY យើងខ្ញុំជួយបងបានដែរ?",
   "សូមបងមេត្តារង់ចាំបន្តិច ប្អូនកំពុងត្រួតពិនិត្យទិន្នន័យក្នុងប្រព័ន្ធជូនបងហើយ... 👨‍💻",
   "សូមបងមេត្តាផ្ញើលេខយោងវិក្កយបត្រ (Ref ID) ឬរូបភាពប្រតិបត្តិការមកកាន់ប្អូនបន្តិចណាបង។",
   "ប្រតិបត្តិការ និងសំណើរបស់បងត្រូវបានដោះស្រាយរួចរាល់ ១០០% ហើយបង! ✅",
@@ -805,6 +856,9 @@ function getSavedQuickReplies() {
   return DEFAULT_QUICK_REPLIES;
 }
 
+/**
+ * 🔹 ៥.១ បើកផ្ទាំងជ្រើសរើសសារគំរូរហ័ស (Floating Quick Replies Popover)
+ */
 window.openQuickReplies = function (event) {
   if (event) event.stopPropagation();
   const existingPopup = document.getElementById("quickRepliesPopover");
@@ -929,9 +983,9 @@ window.addCustomQuickReplyPrompt = async function () {
   }
 };
 
-// ========================================================================
-// 🤖 ៦. មុខងារ AI ជំនួយការឆ្លើយតបឆ្លាតវៃ
-// ========================================================================
+/**
+ * 🔹 ៥.២ មុខងារ AI ជំនួយការតាក់តែងចម្លើយឆ្លាតវៃ
+ */
 window.generateAIReply = async function (selectedTone = "polite") {
   if (!adminCurrentPartnerId) return;
 
@@ -1012,7 +1066,9 @@ window.generateAIReply = async function (selectedTone = "polite") {
   }
 };
 
-// ដំណើរការទាញបញ្ជីអតិថិជនក្នុង Queue រៀងរាល់ ៣ វិនាទីម្ដង
+// ============================================================================
+// 🎬 ជំពូកទី ៦៖ ការចាប់ផ្តើមទាញបញ្ជីសន្ទនាដោយស្វ័យប្រវត្តិ (AUTO-POLLING INIT)
+// ============================================================================
 setInterval(() => {
   fetchAdminContacts(false);
 }, 3000);

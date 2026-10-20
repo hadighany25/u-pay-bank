@@ -29,7 +29,7 @@
 
     <style>
       /* =========================================================
-         🎨 U-PAY JUNIOR PARENTAL CONTROL DESIGN SYSTEM
+         🎨 U-PAY JUNIOR PARENTAL CONTROL & MULTI-SCREEN FLOW
          (ភ្ជាប់ Dark Mode & ភាសាជាមួយ Setting ដោយស្វ័យប្រវត្តិ ១០០%)
          ========================================================= */
       :root {
@@ -97,11 +97,33 @@
         display: flex;
         flex-direction: column;
         overflow-x: hidden;
-        padding-bottom: 40px;
         box-shadow: 0 0 35px rgba(0, 0, 0, 0.25);
       }
 
-      /* ក្បាលទំព័រ (Topbar - ស្អាត គ្មានប៊ូតុងដូរ Mode រញ៉េរញ៉ៃ) */
+      /* 🎬 ប្រព័ន្ធប្តូរអេក្រង់មួយផ្ទាំងៗ (Full-Screen Transitions) */
+      .jr-screen {
+        display: none;
+        flex-direction: column;
+        flex: 1;
+        min-height: 100dvh;
+        background: var(--bg-main);
+        animation: jrSlideIn 0.24s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+      }
+      .jr-screen.active {
+        display: flex;
+      }
+      @keyframes jrSlideIn {
+        from {
+          opacity: 0;
+          transform: translateX(18px);
+        }
+        to {
+          opacity: 1;
+          transform: translateX(0);
+        }
+      }
+
+      /* ក្បាលទំព័រ (Topbar) */
       .jr-topbar {
         background: linear-gradient(
           135deg,
@@ -114,9 +136,11 @@
         display: flex;
         align-items: center;
         justify-content: space-between;
+        gap: 12px;
         position: sticky;
         top: 0;
         z-index: 30;
+        box-shadow: 0 4px 15px rgba(190, 24, 93, 0.18);
       }
       .jr-back-btn {
         width: 38px;
@@ -130,10 +154,30 @@
         justify-content: center;
         font-size: 1rem;
         cursor: pointer;
+        flex-shrink: 0;
         transition: transform 0.18s;
       }
       .jr-back-btn:active {
         transform: scale(0.9);
+      }
+
+      /* របារបង្ហាញជំហាននៃការបង្កើតគណនីកូន (3-Step Progress Header) */
+      .jr-step-indicator {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 14px 20px 6px;
+        gap: 8px;
+      }
+      .jr-step-pill {
+        flex: 1;
+        height: 6px;
+        border-radius: 10px;
+        background: var(--border-color);
+        transition: 0.3s;
+      }
+      .jr-step-pill.done {
+        background: linear-gradient(90deg, #be185d, #ec4899);
       }
 
       /* ផ្ទាំង Hero គ្រួសារ និងរទេះជ្រើសរើសកូនៗ */
@@ -205,6 +249,12 @@
         font-size: 0.95rem;
         position: relative;
         flex-shrink: 0;
+        overflow: hidden;
+      }
+      .jr-kid-avatar img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
       }
       .jr-online-dot {
         position: absolute;
@@ -245,6 +295,31 @@
       }
       .jr-wallet-banner.frozen-wallet {
         background: linear-gradient(135deg, #334155 0%, #1e293b 100%);
+      }
+
+      /* របារជូនដំណឹងពីស្ថានភាពសំបុត្រកំណើត KYC របស់កូន */
+      .jr-kyc-notice {
+        display: none;
+        align-items: flex-start;
+        gap: 10px;
+        padding: 12px 14px;
+        border-radius: 16px;
+        margin: 12px 16px 0;
+        font-size: 0.78rem;
+        font-weight: 700;
+        line-height: 1.45;
+      }
+      .jr-kyc-notice.pending {
+        display: flex;
+        background: rgba(245, 158, 11, 0.12);
+        border: 1px solid rgba(245, 158, 11, 0.35);
+        color: #d97706;
+      }
+      .jr-kyc-notice.rejected {
+        display: flex;
+        background: rgba(239, 68, 68, 0.12);
+        border: 1px solid rgba(239, 68, 68, 0.35);
+        color: #ef4444;
       }
 
       /* ប៊ូតុងបញ្ជារបស់ប៉ាម៉ាក់ទាំង ៤ (Parental Quick Actions) */
@@ -337,6 +412,188 @@
         border-bottom: none;
       }
 
+      /* 📝 ប្រអប់បញ្ចូលទិន្នន័យក្នុងផ្ទាំងបង្កើតគណនីកូន (Full-Screen Form Styles) */
+      .jr-form-group {
+        margin-bottom: 14px;
+      }
+      .jr-form-label {
+        display: block;
+        font-size: 0.8rem;
+        font-weight: 800;
+        color: var(--text-muted);
+        margin-bottom: 6px;
+      }
+      .jr-input {
+        width: 100%;
+        padding: 13px 14px;
+        border-radius: 14px;
+        border: 1.5px solid var(--border-color);
+        background: var(--bg-subtle);
+        color: var(--text-main);
+        font-size: 0.92rem;
+        font-weight: 600;
+        outline: none;
+        transition: border-color 0.2s;
+      }
+      .jr-input:focus {
+        border-color: var(--jr-pink);
+      }
+
+      .jr-curr-tabs {
+        display: flex;
+        background: var(--bg-subtle);
+        border: 1px solid var(--border-color);
+        border-radius: 14px;
+        padding: 4px;
+      }
+      .jr-curr-tab {
+        flex: 1;
+        text-align: center;
+        padding: 10px 6px;
+        font-weight: 800;
+        font-size: 0.82rem;
+        color: var(--text-muted);
+        border-radius: 10px;
+        cursor: pointer;
+        transition: 0.2s;
+      }
+      .jr-curr-tab.active {
+        background: linear-gradient(135deg, #be185d, #db2777);
+        color: #ffffff;
+        box-shadow: 0 3px 10px rgba(219, 39, 119, 0.28);
+      }
+
+      .jr-upload-box {
+        height: 112px;
+        border: 2px dashed var(--border-color);
+        border-radius: 18px;
+        background: var(--bg-subtle);
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        text-align: center;
+        padding: 8px;
+        overflow: hidden;
+        position: relative;
+        transition: 0.2s;
+      }
+      .jr-upload-box:active {
+        transform: scale(0.98);
+      }
+
+      /* 👑 ផ្សារជ្រើសរើសលេខគណនីកូន (ដូចគ្នាបេះបិទនឹង new-account.html) */
+      .jr-num-search-hero {
+        background: linear-gradient(
+          135deg,
+          #831843 0%,
+          #be185d 60%,
+          #db2777 100%
+        );
+        padding: 16px;
+        border-radius: 22px;
+        color: white;
+        margin-bottom: 14px;
+        box-shadow: 0 10px 25px rgba(190, 24, 93, 0.22);
+      }
+      .jr-num-search-wrap {
+        background: rgba(255, 255, 255, 0.16);
+        border: 1.5px solid rgba(255, 255, 255, 0.3);
+        border-radius: 16px;
+        padding: 10px 14px;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin-top: 10px;
+      }
+      .jr-num-search-wrap input {
+        background: transparent;
+        border: none;
+        color: #ffffff;
+        font-size: 1.25rem;
+        font-weight: 900;
+        width: 100%;
+        outline: none;
+        letter-spacing: 2px;
+      }
+      .jr-num-search-wrap input::placeholder {
+        color: rgba(255, 255, 255, 0.7);
+        font-size: 0.88rem;
+        letter-spacing: 0;
+      }
+
+      .jr-num-grid {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 10px;
+      }
+      .jr-num-card {
+        background: var(--bg-card);
+        border: 1.5px solid var(--border-color);
+        border-radius: 18px;
+        padding: 14px 10px;
+        text-align: center;
+        cursor: pointer;
+        transition: all 0.18s ease;
+      }
+      .jr-num-card:active {
+        transform: scale(0.96);
+      }
+      .jr-num-card.tier-vvip {
+        border-color: rgba(245, 158, 11, 0.55);
+        background: linear-gradient(
+          180deg,
+          rgba(245, 158, 11, 0.08) 0%,
+          var(--bg-card) 100%
+        );
+      }
+      .jr-num-card.tier-vip {
+        border-color: rgba(219, 39, 119, 0.45);
+        background: linear-gradient(
+          180deg,
+          rgba(219, 39, 119, 0.07) 0%,
+          var(--bg-card) 100%
+        );
+      }
+      .jr-highlight-digit {
+        color: #f59e0b;
+        text-decoration: underline;
+        text-underline-offset: 3px;
+      }
+
+      .jr-bottom-bar {
+        position: fixed;
+        bottom: 0;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 100%;
+        max-width: 480px;
+        background: var(--bg-card);
+        border-top: 1px solid var(--border-color);
+        padding: 14px 18px max(16px, env(safe-area-inset-bottom));
+        z-index: 40;
+      }
+      .jr-btn-primary {
+        width: 100%;
+        background: linear-gradient(135deg, #be185d, #db2777);
+        color: #ffffff;
+        border: none;
+        padding: 15px;
+        border-radius: 16px;
+        font-size: 1rem;
+        font-weight: 900;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        box-shadow: 0 8px 20px rgba(219, 39, 119, 0.3);
+      }
+      .jr-btn-primary:active {
+        transform: scale(0.98);
+      }
+
       .premium-swal {
         border-radius: 22px !important;
       }
@@ -353,611 +610,1289 @@
   <body>
     <div class="app-container">
       <!-- =========================================================
-           ១. ក្បាលទំព័រ (HEADER BAR)
-           ========================================================= -->
-      <div class="jr-topbar">
-        <button
-          type="button"
-          class="jr-back-btn"
-          onclick="window.location.href = 'dashboard.html'"
-        >
-          <i class="fa-solid fa-arrow-left"></i>
-        </button>
-
-        <div style="text-align: center">
-          <h2
-            style="margin: 0; font-size: 1.05rem; font-weight: 800"
-            data-i18n="manage_kids_title"
-          >
-            គ្រប់គ្រងគណនីកូនៗ (Manage Kids)
-          </h2>
-          <span
-            style="font-size: 0.68rem; opacity: 0.88"
-            data-i18n="manage_kids_sub"
-          >
-            U-PAY Junior & Parental Control
-          </span>
-        </div>
-
-        <button
-          type="button"
-          class="jr-back-btn"
-          onclick="window.location.href = 'new-account.html?flow=junior'"
-          title="បង្កើតគណនីកូនថ្មី"
-        >
-          <i class="fa-solid fa-user-plus"></i>
-        </button>
-      </div>
-
-      <!-- =========================================================
-           ២. ផ្ទាំងសង្ខេបគ្រួសារ & បញ្ជីជ្រើសរើសកូនៗ (KIDS SELECTOR)
-           ========================================================= -->
-      <div class="jr-hero">
-        <div class="jr-summary-strip">
-          <div>
-            <div
-              style="font-size: 0.72rem; opacity: 0.85"
-              data-i18n="kids_total_count"
-            >
-              គណនីកូនៗសរុប
-            </div>
-            <div
-              id="totalKidsCount"
-              class="mono-num"
-              style="font-size: 1.25rem; font-weight: 900; margin-top: 2px"
-            >
-              0 នាក់
-            </div>
-          </div>
-          <div
-            style="
-              border-left: 1px solid rgba(255, 255, 255, 0.22);
-              padding-left: 12px;
-            "
-          >
-            <div
-              style="font-size: 0.72rem; opacity: 0.85"
-              data-i18n="kids_total_balance"
-            >
-              សមតុល្យកូនៗសរុប
-            </div>
-            <div
-              id="totalKidsBalanceText"
-              class="mono-num"
-              style="font-size: 1.05rem; font-weight: 900; margin-top: 3px"
-            >
-              $0.00 / ៛0
-            </div>
-          </div>
-        </div>
-
-        <div
-          style="
-            font-size: 0.76rem;
-            font-weight: 700;
-            opacity: 0.9;
-            margin-bottom: 8px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-          "
-        >
-          <span data-i18n="select_child_label"
-            >ជ្រើសរើសកូនដើម្បីគ្រប់គ្រង៖</span
-          >
-          <span
-            onclick="window.location.href = 'new-account.html?flow=junior'"
-            style="
-              cursor: pointer;
-              background: rgba(255, 255, 255, 0.2);
-              padding: 3px 10px;
-              border-radius: 12px;
-              font-size: 0.72rem;
-            "
-          >
-            + បន្ថែមកូនថ្មី
-          </span>
-        </div>
-
-        <!-- រទេះជ្រើសរើសកូនម្នាក់ៗ -->
-        <div class="jr-kids-carousel" id="kidsCarouselContainer"></div>
-      </div>
-
-      <!-- =========================================================
-           ៣. ផ្ទាំងទទេពេលមិនទាន់មានគណនីកូន (EMPTY STATE)
+           🖥️ SCREEN 1: ផ្ទាំងគ្រប់គ្រងគណនីកូនៗ (MAIN JUNIOR DASHBOARD)
            ========================================================= -->
       <div
-        id="emptyKidsState"
-        class="jr-card"
-        style="display: none; text-align: center; padding: 38px 20px"
+        id="screen-dashboard"
+        class="jr-screen active"
+        style="padding-bottom: 40px"
       >
-        <div
-          style="
-            width: 74px;
-            height: 74px;
-            border-radius: 50%;
-            background: rgba(219, 39, 119, 0.12);
-            color: #db2777;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 2.2rem;
-            margin: 0 auto 14px;
-          "
-        >
-          <i class="fa-solid fa-child-reaching"></i>
+        <div class="jr-topbar">
+          <button
+            type="button"
+            class="jr-back-btn"
+            onclick="window.location.href = 'dashboard.html'"
+          >
+            <i class="fa-solid fa-arrow-left"></i>
+          </button>
+
+          <div style="text-align: center">
+            <h2
+              style="margin: 0; font-size: 1.05rem; font-weight: 800"
+              data-i18n="manage_kids_title"
+            >
+              គ្រប់គ្រងគណនីកូនៗ (Manage Kids)
+            </h2>
+            <span
+              style="font-size: 0.68rem; opacity: 0.88"
+              data-i18n="manage_kids_sub"
+            >
+              U-PAY Junior & Parental Control
+            </span>
+          </div>
+
+          <button
+            type="button"
+            class="jr-back-btn"
+            onclick="startCreateJuniorFlow()"
+            title="បង្កើតគណនីកូនថ្មី"
+          >
+            <i class="fa-solid fa-user-plus"></i>
+          </button>
         </div>
-        <h3 style="margin: 0 0 6px; font-size: 1.05rem; font-weight: 900">
-          មិនទាន់មានគណនីកុមារនៅឡើយទេ
-        </h3>
-        <p
-          style="
-            margin: 0 0 18px;
-            font-size: 0.82rem;
-            color: var(--text-muted);
-            line-height: 1.5;
-          "
+
+        <!-- ផ្ទាំងសង្ខេបគ្រួសារ & បញ្ជីជ្រើសរើសកូនៗ -->
+        <div class="jr-hero">
+          <div class="jr-summary-strip">
+            <div>
+              <div
+                style="font-size: 0.72rem; opacity: 0.85"
+                data-i18n="kids_total_count"
+              >
+                គណនីកូនៗសរុប
+              </div>
+              <div
+                id="totalKidsCount"
+                class="mono-num"
+                style="font-size: 1.25rem; font-weight: 900; margin-top: 2px"
+              >
+                0 នាក់
+              </div>
+            </div>
+            <div
+              style="
+                border-left: 1px solid rgba(255, 255, 255, 0.22);
+                padding-left: 12px;
+              "
+            >
+              <div
+                style="font-size: 0.72rem; opacity: 0.85"
+                data-i18n="kids_total_balance"
+              >
+                សមតុល្យកូនៗសរុប
+              </div>
+              <div
+                id="totalKidsBalanceText"
+                class="mono-num"
+                style="font-size: 1.05rem; font-weight: 900; margin-top: 3px"
+              >
+                $0.00 / ៛0
+              </div>
+            </div>
+          </div>
+
+          <div
+            style="
+              font-size: 0.76rem;
+              font-weight: 700;
+              opacity: 0.9;
+              margin-bottom: 8px;
+              display: flex;
+              justify-content: space-between;
+              align-items: center;
+            "
+          >
+            <span data-i18n="select_child_label"
+              >ជ្រើសរើសកូនដើម្បីគ្រប់គ្រង៖</span
+            >
+            <span
+              onclick="startCreateJuniorFlow()"
+              style="
+                cursor: pointer;
+                background: rgba(255, 255, 255, 0.22);
+                padding: 4px 11px;
+                border-radius: 12px;
+                font-size: 0.72rem;
+                font-weight: 800;
+              "
+            >
+              + បន្ថែមកូនថ្មី
+            </span>
+          </div>
+
+          <!-- រទេះជ្រើសរើសកូនម្នាក់ៗ -->
+          <div class="jr-kids-carousel" id="kidsCarouselContainer"></div>
+        </div>
+
+        <!-- ផ្ទាំងទទេពេលមិនទាន់មានគណនីកូន -->
+        <div
+          id="emptyKidsState"
+          class="jr-card"
+          style="display: none; text-align: center; padding: 38px 20px"
         >
-          បង្កើតគណនី U-PAY Junior ឱ្យកូនៗរបស់អ្នក ដើម្បីបង្រៀនពួកគេពីការសន្សំ
-          ដាក់កម្រិតការចាយវាយប្រចាំថ្ងៃ
-          និងតាមដានរាល់ការទិញទំនិញពីចម្ងាយដោយសុវត្ថិភាព!
-        </p>
-        <button
-          type="button"
-          onclick="window.location.href = 'new-account.html?flow=junior'"
-          style="
-            border: none;
-            background: linear-gradient(135deg, #be185d, #db2777);
-            color: white;
-            padding: 13px 22px;
-            border-radius: 14px;
-            font-size: 0.9rem;
-            font-weight: 800;
-            cursor: pointer;
-            box-shadow: 0 6px 16px rgba(219, 39, 119, 0.3);
-          "
-        >
-          <i class="fa-solid fa-plus"></i> បង្កើតគណនីឱ្យកូនឥឡូវនេះ
-        </button>
+          <div
+            style="
+              width: 74px;
+              height: 74px;
+              border-radius: 50%;
+              background: rgba(219, 39, 119, 0.12);
+              color: #db2777;
+              display: flex;
+              align-items: center;
+              justify-content: center;
+              font-size: 2.2rem;
+              margin: 0 auto 14px;
+            "
+          >
+            <i class="fa-solid fa-child-reaching"></i>
+          </div>
+          <h3 style="margin: 0 0 6px; font-size: 1.05rem; font-weight: 900">
+            មិនទាន់មានគណនីកុមារនៅឡើយទេ
+          </h3>
+          <p
+            style="
+              margin: 0 0 18px;
+              font-size: 0.82rem;
+              color: var(--text-muted);
+              line-height: 1.5;
+            "
+          >
+            បង្កើតគណនី U-PAY Junior ឱ្យកូនៗរបស់អ្នកដោយភ្ជាប់សំបុត្រកំណើត
+            ដើម្បីបង្រៀនពួកគេពីការសន្សំ ដាក់កម្រិតការចាយវាយប្រចាំថ្ងៃ
+            និងតាមដានរាល់ការទិញទំនិញពីចម្ងាយដោយសុវត្ថិភាព!
+          </p>
+          <button
+            type="button"
+            onclick="startCreateJuniorFlow()"
+            class="jr-btn-primary"
+          >
+            <i class="fa-solid fa-plus"></i> បង្កើតគណនីឱ្យកូនឥឡូវនេះ
+          </button>
+        </div>
+
+        <!-- ផ្ទាំងគ្រប់គ្រងលម្អិតសម្រាប់កូនដែលបានជ្រើសរើស -->
+        <div id="activeChildWorkspace" style="display: none">
+          <div id="childKycAlertBanner" class="jr-kyc-notice"></div>
+
+          <!-- កាតកាបូបលុយរបស់កូន -->
+          <div class="jr-wallet-banner" id="childWalletBanner">
+            <div
+              style="
+                display: flex;
+                justify-content: space-between;
+                align-items: flex-start;
+              "
+            >
+              <div style="display: flex; align-items: center; gap: 12px">
+                <!-- ចុចលើរូបថតកូនដើម្បីប្តូររូប Profile ថ្មី (មិនប៉ះពាល់រូបថត KYC ដើមក្នុង Database ទេ!) -->
+                <div
+                  id="activeChildAvatar"
+                  onclick="
+                    document.getElementById('changeChildProfileInput').click()
+                  "
+                  title="ចុចដើម្បីប្តូររូបថត Profile របស់កូន"
+                  style="
+                    width: 52px;
+                    height: 52px;
+                    border-radius: 16px;
+                    background: rgba(255, 255, 255, 0.2);
+                    border: 2px solid rgba(255, 255, 255, 0.4);
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    font-size: 1.3rem;
+                    font-weight: 900;
+                    overflow: hidden;
+                    flex-shrink: 0;
+                    cursor: pointer;
+                    position: relative;
+                  "
+                >
+                  K
+                </div>
+                <input
+                  type="file"
+                  id="changeChildProfileInput"
+                  accept="image/*"
+                  style="display: none"
+                  onchange="handleUpdateChildProfilePhoto(event)"
+                />
+
+                <div>
+                  <div
+                    style="
+                      display: flex;
+                      align-items: center;
+                      gap: 8px;
+                      flex-wrap: wrap;
+                    "
+                  >
+                    <h3
+                      id="activeChildName"
+                      style="margin: 0; font-size: 1.08rem; font-weight: 900"
+                    >
+                      ...
+                    </h3>
+                    <span
+                      id="activeChildStatusBadge"
+                      style="
+                        font-size: 0.65rem;
+                        padding: 2px 8px;
+                        border-radius: 10px;
+                        font-weight: 800;
+                        background: rgba(16, 185, 129, 0.25);
+                        color: #6ee7b7;
+                      "
+                    >
+                      🟢 ACTIVE
+                    </span>
+                  </div>
+                  <div
+                    id="activeChildHandle"
+                    class="mono-num"
+                    style="font-size: 0.74rem; opacity: 0.85; margin-top: 3px"
+                  >
+                    @username
+                  </div>
+                </div>
+              </div>
+
+              <button
+                type="button"
+                onclick="openChildSecurityModal()"
+                style="
+                  border: 1px solid rgba(255, 255, 255, 0.25);
+                  background: rgba(255, 255, 255, 0.14);
+                  color: white;
+                  padding: 6px 11px;
+                  border-radius: 10px;
+                  font-size: 0.72rem;
+                  font-weight: 700;
+                  cursor: pointer;
+                  flex-shrink: 0;
+                "
+              >
+                <i class="fa-solid fa-key"></i> សុវត្ថិភាពកូន
+              </button>
+            </div>
+
+            <!-- សមតុល្យ USD និង KHR របស់កូន -->
+            <div
+              style="
+                display: grid;
+                grid-template-columns: 1fr 1fr;
+                gap: 10px;
+                margin-top: 18px;
+                background: rgba(0, 0, 0, 0.22);
+                padding: 13px;
+                border-radius: 16px;
+              "
+            >
+              <div>
+                <div style="font-size: 0.7rem; opacity: 0.8">
+                  គណនីដុល្លារ (USD)
+                </div>
+                <div
+                  id="activeChildUsdBal"
+                  class="mono-num"
+                  style="font-size: 1.35rem; font-weight: 900; margin-top: 2px"
+                >
+                  $0.00
+                </div>
+                <div
+                  id="activeChildUsdAcc"
+                  class="mono-num"
+                  style="font-size: 0.68rem; opacity: 0.75; margin-top: 2px"
+                >
+                  #...
+                </div>
+              </div>
+
+              <div
+                style="
+                  border-left: 1px solid rgba(255, 255, 255, 0.15);
+                  padding-left: 12px;
+                "
+              >
+                <div style="font-size: 0.7rem; opacity: 0.8">គណនីរៀល (KHR)</div>
+                <div
+                  id="activeChildKhrBal"
+                  class="mono-num"
+                  style="
+                    font-size: 1.35rem;
+                    font-weight: 900;
+                    color: #fbcfe8;
+                    margin-top: 2px;
+                  "
+                >
+                  ៛0
+                </div>
+                <div
+                  id="activeChildKhrAcc"
+                  class="mono-num"
+                  style="font-size: 0.68rem; opacity: 0.75; margin-top: 2px"
+                >
+                  មិនទាន់បើក
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- ប៊ូតុងបញ្ជារបស់ប៉ាម៉ាក់ទាំង ៤ -->
+          <div class="jr-actions-grid">
+            <button
+              type="button"
+              class="jr-action-btn"
+              onclick="openParentTransferModal('TOPUP')"
+            >
+              <div
+                class="jr-action-icon"
+                style="background: rgba(16, 185, 129, 0.14); color: #10b981"
+              >
+                <i class="fa-solid fa-circle-plus"></i>
+              </div>
+              <span style="font-size: 0.73rem; font-weight: 800"
+                >ដាក់លុយឱ្យកូន</span
+              >
+            </button>
+
+            <button
+              type="button"
+              class="jr-action-btn"
+              onclick="openParentTransferModal('RECALL')"
+            >
+              <div
+                class="jr-action-icon"
+                style="background: rgba(14, 165, 233, 0.14); color: #0ea5e9"
+              >
+                <i class="fa-solid fa-rotate-left"></i>
+              </div>
+              <span style="font-size: 0.73rem; font-weight: 800"
+                >ដកលុយមកវិញ</span
+              >
+            </button>
+
+            <button
+              type="button"
+              class="jr-action-btn"
+              onclick="openUpdateLimitModal()"
+            >
+              <div
+                class="jr-action-icon"
+                style="background: rgba(245, 158, 11, 0.14); color: #f59e0b"
+              >
+                <i class="fa-solid fa-sliders"></i>
+              </div>
+              <span style="font-size: 0.73rem; font-weight: 800"
+                >កំណត់ Limit</span
+              >
+            </button>
+
+            <button
+              type="button"
+              class="jr-action-btn"
+              onclick="promptToggleChildFreeze()"
+            >
+              <div
+                class="jr-action-icon"
+                id="btnFreezeActionIcon"
+                style="background: rgba(239, 68, 68, 0.14); color: #ef4444"
+              >
+                <i class="fa-solid fa-snowflake"></i>
+              </div>
+              <span
+                id="btnFreezeActionText"
+                style="font-size: 0.73rem; font-weight: 800"
+                >ផ្អាកគណនី</span
+              >
+            </button>
+          </div>
+
+          <!-- កាតតាមដានរនាំងចំណាយប្រចាំថ្ងៃរបស់កូន -->
+          <div class="jr-card">
+            <div
+              style="
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+              "
+            >
+              <div>
+                <h4 style="margin: 0; font-size: 0.9rem; font-weight: 900">
+                  <i
+                    class="fa-solid fa-shield-halved"
+                    style="color: #db2777"
+                  ></i>
+                  រនាំងចំណាយប្រចាំថ្ងៃ (Daily Spending Limit)
+                </h4>
+                <p
+                  style="
+                    margin: 2px 0 0;
+                    font-size: 0.73rem;
+                    color: var(--text-muted);
+                  "
+                >
+                  កូនមិនអាចចាយលើសចំនួនកំណត់នេះក្នុង ១ ថ្ងៃបានឡើយ
+                </p>
+              </div>
+              <span
+                id="dailyLimitPctBadge"
+                class="mono-num"
+                style="
+                  font-size: 0.76rem;
+                  font-weight: 900;
+                  padding: 3px 9px;
+                  border-radius: 10px;
+                  background: rgba(16, 185, 129, 0.12);
+                  color: #10b981;
+                "
+              >
+                0%
+              </span>
+            </div>
+
+            <div class="jr-limit-bar-bg">
+              <div id="dailyLimitBarFill" class="jr-limit-bar-fill"></div>
+            </div>
+
+            <div
+              style="
+                display: flex;
+                justify-content: space-between;
+                font-size: 0.76rem;
+                font-weight: 700;
+              "
+            >
+              <span>
+                ចាយថ្ងៃនេះ៖
+                <b
+                  id="childSpentTodayText"
+                  class="mono-num"
+                  style="color: #ef4444"
+                  >$0.00</b
+                >
+              </span>
+              <span>
+                កម្រិតកំណត់៖
+                <b
+                  id="childDailyLimitText"
+                  class="mono-num"
+                  style="color: var(--text-main)"
+                  >$20.00 / ថ្ងៃ</b
+                >
+              </span>
+            </div>
+          </div>
+
+          <!-- សង្ខេបថាកូនចាយលើអ្វីខ្លះ -->
+          <div class="jr-card">
+            <h4 style="margin: 0 0 12px; font-size: 0.9rem; font-weight: 900">
+              <i class="fa-solid fa-chart-pie" style="color: #8b5cf6"></i>
+              សង្ខេបសកម្មភាពចំណាយរបស់កូន (Spending Insights)
+            </h4>
+
+            <div
+              style="
+                display: grid;
+                grid-template-columns: 1fr 1fr 1fr;
+                gap: 8px;
+              "
+            >
+              <div
+                style="
+                  background: var(--bg-subtle);
+                  padding: 10px;
+                  border-radius: 14px;
+                  text-align: center;
+                "
+              >
+                <div style="font-size: 0.68rem; color: var(--text-muted)">
+                  ទិញទំនិញ & QR
+                </div>
+                <div
+                  id="insightShopSpent"
+                  class="mono-num"
+                  style="
+                    font-size: 0.95rem;
+                    font-weight: 900;
+                    color: #f59e0b;
+                    margin-top: 3px;
+                  "
+                >
+                  $0.00
+                </div>
+              </div>
+
+              <div
+                style="
+                  background: var(--bg-subtle);
+                  padding: 10px;
+                  border-radius: 14px;
+                  text-align: center;
+                "
+              >
+                <div style="font-size: 0.68rem; color: var(--text-muted)">
+                  ផ្ទេរឱ្យមិត្តភក្តិ
+                </div>
+                <div
+                  id="insightTransferSpent"
+                  class="mono-num"
+                  style="
+                    font-size: 0.95rem;
+                    font-weight: 900;
+                    color: #0ea5e9;
+                    margin-top: 3px;
+                  "
+                >
+                  $0.00
+                </div>
+              </div>
+
+              <div
+                style="
+                  background: var(--bg-subtle);
+                  padding: 10px;
+                  border-radius: 14px;
+                  text-align: center;
+                "
+              >
+                <div style="font-size: 0.68rem; color: var(--text-muted)">
+                  លុយប៉ាម៉ាក់ឱ្យ
+                </div>
+                <div
+                  id="insightParentGiven"
+                  class="mono-num"
+                  style="
+                    font-size: 0.95rem;
+                    font-weight: 900;
+                    color: #10b981;
+                    margin-top: 3px;
+                  "
+                >
+                  +$0.00
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- ប្រវត្តិប្រតិបត្តិការលម្អិតរបស់កូន -->
+          <div class="jr-card">
+            <div
+              style="
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                margin-bottom: 10px;
+              "
+            >
+              <h4 style="margin: 0; font-size: 0.9rem; font-weight: 900">
+                <i
+                  class="fa-solid fa-clock-rotate-left"
+                  style="color: #0d9488"
+                ></i>
+                សកម្មភាពប្រើប្រាស់លុយរបស់កូន
+              </h4>
+              <span
+                id="childTrxCountBadge"
+                class="mono-num"
+                style="
+                  font-size: 0.72rem;
+                  color: var(--text-muted);
+                  font-weight: 800;
+                "
+              >
+                0 ប្រតិបត្តិការ
+              </span>
+            </div>
+
+            <div class="jr-filter-chips">
+              <button
+                type="button"
+                class="jr-chip active"
+                onclick="setChildTrxFilter('ALL', this)"
+              >
+                ទាំងអស់
+              </button>
+              <button
+                type="button"
+                class="jr-chip"
+                onclick="setChildTrxFilter('SPENT', this)"
+              >
+                🔻 កូនចាយចេញ
+              </button>
+              <button
+                type="button"
+                class="jr-chip"
+                onclick="setChildTrxFilter('RECEIVED', this)"
+              >
+                🔺 លុយចូលគណនីកូន
+              </button>
+            </div>
+
+            <div id="childTransactionsContainer"></div>
+          </div>
+        </div>
       </div>
 
       <!-- =========================================================
-           ៤. ផ្ទាំងគ្រប់គ្រងលម្អិតសម្រាប់កូនដែលបានជ្រើសរើស (ACTIVE CHILD WORKSPACE)
+           📝 SCREEN 2: ជំហានទី ១ - បំពេញព័ត៌មានកូន & UPLOAD សំបុត្រកំណើត (FULL SCREEN)
            ========================================================= -->
-      <div id="activeChildWorkspace" style="display: none">
-        <!-- កាតកាបូបលុយរបស់កូន -->
-        <div class="jr-wallet-banner" id="childWalletBanner">
-          <div
-            style="
-              display: flex;
-              justify-content: space-between;
-              align-items: flex-start;
-            "
+      <div id="screen-create-step1" class="jr-screen">
+        <div class="jr-topbar">
+          <button
+            type="button"
+            class="jr-back-btn"
+            onclick="switchJuniorScreen('screen-dashboard')"
           >
-            <div style="display: flex; align-items: center; gap: 12px">
+            <i class="fa-solid fa-arrow-left"></i>
+          </button>
+          <div style="flex: 1">
+            <h2 style="margin: 0; font-size: 1.02rem; font-weight: 800">
+              ជំហានទី ១៖ ព័ត៌មានកូន & សំបុត្រកំណើត
+            </h2>
+            <span style="font-size: 0.68rem; opacity: 0.85">
+              បំពេញអត្តសញ្ញាណកូនសម្រាប់ផ្ទៀងផ្ទាត់ KYC
+            </span>
+          </div>
+        </div>
+
+        <div class="jr-step-indicator">
+          <div class="jr-step-pill done"></div>
+          <div class="jr-step-pill"></div>
+          <div class="jr-step-pill"></div>
+        </div>
+
+        <div style="padding: 10px 16px 115px; flex: 1">
+          <!-- ១. ប្រអប់ Upload សំបុត្រកំណើត និង រូបថតមុខកូន (KYC) -->
+          <div class="jr-card" style="margin: 6px 0 14px">
+            <h4
+              style="
+                margin: 0 0 6px;
+                font-size: 0.9rem;
+                font-weight: 900;
+                color: var(--jr-pink);
+              "
+            >
+              <i class="fa-solid fa-id-card-clip"></i> ១.
+              ឯកសារបញ្ជាក់អត្តសញ្ញាណកូន (Junior KYC)
+            </h4>
+            <p
+              style="
+                margin: 0 0 12px;
+                font-size: 0.74rem;
+                color: var(--text-muted);
+                line-height: 1.45;
+              "
+            >
+              រូបថតមុខកូននេះនឹងត្រូវរក្សាទុកជាឯកសារ KYC ផ្លូវការផង និងដាក់ជារូប
+              Profile ដំបូងរបស់កូនផង (អាចប្តូររូប Profile
+              តាមក្រោយបានដោយមិនប៉ះពាល់រូប KYC)។
+            </p>
+
+            <div
+              style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px"
+            >
               <div
-                id="activeChildAvatar"
-                style="
-                  width: 48px;
-                  height: 48px;
-                  border-radius: 15px;
-                  background: rgba(255, 255, 255, 0.2);
-                  display: flex;
-                  align-items: center;
-                  justify-content: center;
-                  font-size: 1.3rem;
-                  font-weight: 900;
-                "
+                class="jr-upload-box"
+                id="jrBirthCertPreview"
+                onclick="document.getElementById('jrBirthCertFile').click()"
+                style="border-color: rgba(219, 39, 119, 0.45)"
               >
-                K
+                <i
+                  class="fa-solid fa-file-contract"
+                  style="font-size: 1.55rem; color: #db2777"
+                ></i>
+                <span
+                  style="font-size: 0.74rem; font-weight: 800; margin-top: 6px"
+                >
+                  Upload សំបុត្រកំណើត <span style="color: #ef4444">*</span>
+                </span>
               </div>
-              <div>
-                <div style="display: flex; align-items: center; gap: 8px">
-                  <h3
-                    id="activeChildName"
-                    style="margin: 0; font-size: 1.1rem; font-weight: 900"
-                  >
-                    ...
-                  </h3>
-                  <span
-                    id="activeChildStatusBadge"
-                    style="
-                      font-size: 0.65rem;
-                      padding: 2px 8px;
-                      border-radius: 10px;
-                      font-weight: 800;
-                      background: rgba(16, 185, 129, 0.25);
-                      color: #6ee7b7;
-                    "
-                  >
-                    🟢 ACTIVE
-                  </span>
+              <input
+                type="file"
+                id="jrBirthCertFile"
+                accept="image/*"
+                style="display: none"
+                onchange="
+                  uploadJuniorDocToCloud(
+                    event,
+                    'birthCert',
+                    'jrBirthCertPreview',
+                  )
+                "
+              />
+
+              <div
+                class="jr-upload-box"
+                id="jrChildPhotoPreview"
+                onclick="document.getElementById('jrChildPhotoFile').click()"
+                style="border-color: rgba(14, 165, 233, 0.45)"
+              >
+                <i
+                  class="fa-solid fa-camera-retro"
+                  style="font-size: 1.55rem; color: #0ea5e9"
+                ></i>
+                <span
+                  style="font-size: 0.74rem; font-weight: 800; margin-top: 6px"
+                >
+                  Upload រូបថតមុខកូន <span style="color: #ef4444">*</span>
+                </span>
+              </div>
+              <input
+                type="file"
+                id="jrChildPhotoFile"
+                accept="image/*"
+                style="display: none"
+                onchange="
+                  uploadJuniorDocToCloud(
+                    event,
+                    'childPhoto',
+                    'jrChildPhotoPreview',
+                  )
+                "
+              />
+            </div>
+          </div>
+
+          <!-- ២. ព័ត៌មានអត្តសញ្ញាណកូនតាមសំបុត្រកំណើត -->
+          <div class="jr-card" style="margin: 0 0 14px">
+            <h4 style="margin: 0 0 12px; font-size: 0.9rem; font-weight: 900">
+              <i class="fa-solid fa-child" style="color: #0ea5e9"></i> ២.
+              ព័ត៌មានកូនតាមសំបុត្រកំណើត
+            </h4>
+
+            <div class="jr-form-group">
+              <label class="jr-form-label">
+                ឈ្មោះពេញរបស់កូន (ជាអក្សរឡាតាំង ឬខ្មែរ)
+                <span style="color: #ef4444">*</span>
+              </label>
+              <input
+                type="text"
+                id="jrFullName"
+                class="jr-input"
+                placeholder="ឧ. SOK DARA JUNIOR"
+                oninput="this.value = this.value.toUpperCase()"
+              />
+            </div>
+
+            <div
+              style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px"
+            >
+              <div class="jr-form-group">
+                <label class="jr-form-label">
+                  ថ្ងៃខែឆ្នាំកំណើតកូន <span style="color: #ef4444">*</span>
+                </label>
+                <input type="date" id="jrDob" class="jr-input" />
+              </div>
+
+              <div class="jr-form-group">
+                <label class="jr-form-label">
+                  ភេទ <span style="color: #ef4444">*</span>
+                </label>
+                <select id="jrGender" class="jr-input">
+                  <option value="Male">ប្រុស (Male)</option>
+                  <option value="Female">ស្រី (Female)</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="jr-form-group" style="margin-bottom: 0">
+              <label class="jr-form-label">
+                លេខសំបុត្រកំណើត (Birth Certificate No.)
+                <span style="color: #ef4444">*</span>
+              </label>
+              <input
+                type="text"
+                id="jrBirthCertNum"
+                class="jr-input mono-num"
+                placeholder="ឧ. 01234/2016"
+              />
+            </div>
+          </div>
+
+          <!-- ៣. គណនី Login & រូបិយប័ណ្ណ និងរនាំងចំណាយប្រចាំថ្ងៃ -->
+          <div class="jr-card" style="margin: 0">
+            <h4 style="margin: 0 0 12px; font-size: 0.9rem; font-weight: 900">
+              <i class="fa-solid fa-user-lock" style="color: #10b981"></i> ៣.
+              គណនី Login និងរនាំងចំណាយ
+            </h4>
+
+            <div class="jr-form-group">
+              <label class="jr-form-label">ជ្រើសរើសរូបិយប័ណ្ណគណនីកូន</label>
+              <div class="jr-curr-tabs">
+                <div
+                  class="jr-curr-tab"
+                  id="jrCurTabUSD"
+                  onclick="selectJrCreateCurrency('USD')"
+                >
+                  USD ($)
                 </div>
                 <div
-                  id="activeChildHandle"
+                  class="jr-curr-tab"
+                  id="jrCurTabKHR"
+                  onclick="selectJrCreateCurrency('KHR')"
+                >
+                  KHR (៛)
+                </div>
+                <div
+                  class="jr-curr-tab active"
+                  id="jrCurTabBOTH"
+                  onclick="selectJrCreateCurrency('BOTH')"
+                >
+                  ទាំងពីរ (BOTH)
+                </div>
+              </div>
+            </div>
+
+            <div
+              style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px"
+            >
+              <div class="jr-form-group">
+                <label class="jr-form-label">
+                  Username សម្រាប់កូន Login
+                  <span style="color: #ef4444">*</span>
+                </label>
+                <input
+                  type="text"
+                  id="jrUsername"
+                  class="jr-input mono-num"
+                  placeholder="ឧ. dara_jr"
+                  oninput="
+                    this.value = this.value
+                      .replace(/[^a-zA-Z0-9_]/g, '')
+                      .toLowerCase()
+                  "
+                />
+              </div>
+
+              <div class="jr-form-group">
+                <label class="jr-form-label">
+                  Password ចូល App <span style="color: #ef4444">*</span>
+                </label>
+                <input
+                  type="text"
+                  id="jrPassword"
+                  class="jr-input mono-num"
+                  placeholder="យ៉ាងតិច ៤ ខ្ទង់"
+                  value="1234"
+                />
+              </div>
+            </div>
+
+            <div class="jr-form-group" style="margin-bottom: 0">
+              <label class="jr-form-label">
+                កំណត់រនាំងចំណាយប្រចាំថ្ងៃរបស់កូន (Daily Limit $)
+              </label>
+              <input
+                type="number"
+                id="jrDailyLimit"
+                class="jr-input mono-num"
+                value="20"
+                min="1"
+              />
+            </div>
+          </div>
+        </div>
+
+        <div class="jr-bottom-bar">
+          <button
+            type="button"
+            class="jr-btn-primary"
+            onclick="goToStep2ChooseNumber()"
+          >
+            <span>បន្តទៅជ្រើសរើសលេខគណនីកូន</span>
+            <i class="fa-solid fa-arrow-right"></i>
+          </button>
+        </div>
+      </div>
+
+      <!-- =========================================================
+           👑 SCREEN 3: ជំហានទី ២ - ជ្រើសរើសលេខគណនីឱ្យកូន (ដូច new-account.html 100%)
+           ========================================================= -->
+      <div id="screen-create-step2" class="jr-screen">
+        <div class="jr-topbar">
+          <button
+            type="button"
+            class="jr-back-btn"
+            onclick="switchJuniorScreen('screen-create-step1')"
+          >
+            <i class="fa-solid fa-arrow-left"></i>
+          </button>
+          <div style="flex: 1">
+            <h2 style="margin: 0; font-size: 1.02rem; font-weight: 800">
+              ជំហានទី ២៖ ជ្រើសរើសលេខគណនីកូន
+            </h2>
+            <span style="font-size: 0.68rem; opacity: 0.85">
+              ជ្រើសរើសលេខធម្មតា ($5) ឬលេខហុងស៊ុយពិសេសឱ្យកូន
+            </span>
+          </div>
+          <button
+            type="button"
+            class="jr-back-btn"
+            onclick="generateJuniorNumbersList()"
+            title="ប្តូរលេខណែនាំថ្មី"
+          >
+            <i class="fa-solid fa-rotate"></i>
+          </button>
+        </div>
+
+        <div class="jr-step-indicator">
+          <div class="jr-step-pill done"></div>
+          <div class="jr-step-pill done"></div>
+          <div class="jr-step-pill"></div>
+        </div>
+
+        <div style="padding: 10px 16px 40px; flex: 1">
+          <div class="jr-num-search-hero">
+            <div
+              style="
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+              "
+            >
+              <span style="font-size: 0.78rem; font-weight: 700; opacity: 0.92">
+                <i
+                  class="fa-solid fa-wand-magic-sparkles"
+                  style="color: #fcd34d"
+                ></i>
+                ស្វែងរកលេខគណនីឱ្យកូន (៦ ទៅ ៩ ខ្ទង់)
+              </span>
+              <span
+                onclick="pickRandomJuniorNumberNow()"
+                style="
+                  font-size: 0.72rem;
+                  background: rgba(255, 255, 255, 0.22);
+                  padding: 4px 10px;
+                  border-radius: 12px;
+                  font-weight: 800;
+                  cursor: pointer;
+                "
+              >
+                🎲 លេខចៃដន្យ ($5)
+              </span>
+            </div>
+
+            <div class="jr-num-search-wrap">
+              <i class="fa-solid fa-magnifying-glass" style="opacity: 0.85"></i>
+              <input
+                type="text"
+                id="jrSearchNumInput"
+                class="mono-num"
+                maxlength="9"
+                placeholder="វាយលេខ ឧ. 168, 8888, ឆ្នាំកំណើតកូន..."
+                oninput="
+                  this.value = this.value.replace(/[^0-9]/g, '');
+                  handleJuniorLiveNumSearch();
+                "
+              />
+            </div>
+          </div>
+
+          <!-- របារច្រោះប្រភេទលេខហុងស៊ុយ -->
+          <div class="jr-filter-chips" style="margin-bottom: 12px">
+            <button
+              type="button"
+              class="jr-chip active"
+              onclick="setJuniorNumTierFilter('ALL', this)"
+            >
+              🌟 ទាំងអស់
+            </button>
+            <button
+              type="button"
+              class="jr-chip"
+              onclick="setJuniorNumTierFilter('VVIP', this)"
+            >
+              👑 លេខអធិរាជ ($100-$250)
+            </button>
+            <button
+              type="button"
+              class="jr-chip"
+              onclick="setJuniorNumTierFilter('FORTUNE', this)"
+            >
+              🔥 លេខហុងស៊ុយ 168/888 ($50)
+            </button>
+            <button
+              type="button"
+              class="jr-chip"
+              onclick="setJuniorNumTierFilter('SHORT6', this)"
+            >
+              ✨ លេខខ្លី ៦ ខ្ទង់ ($100)
+            </button>
+            <button
+              type="button"
+              class="jr-chip"
+              onclick="setJuniorNumTierFilter('BUDGET', this)"
+            >
+              🍀 លេខសន្សំសំចៃ ($5-$20)
+            </button>
+          </div>
+
+          <div id="jrSuggestedNumbersGrid" class="jr-num-grid"></div>
+        </div>
+      </div>
+
+      <!-- =========================================================
+           ✅ SCREEN 4: ជំហានទី ៣ - ពិនិត្យផ្ទៀងផ្ទាត់ និងបង់ប្រាក់បើកគណនីកូន
+           ========================================================= -->
+      <div id="screen-create-step3" class="jr-screen">
+        <div class="jr-topbar">
+          <button
+            type="button"
+            class="jr-back-btn"
+            onclick="switchJuniorScreen('screen-create-step2')"
+          >
+            <i class="fa-solid fa-arrow-left"></i>
+          </button>
+          <div style="flex: 1">
+            <h2 style="margin: 0; font-size: 1.02rem; font-weight: 800">
+              ជំហានទី ៣៖ បញ្ជាក់ការបើកគណនីកូន
+            </h2>
+            <span style="font-size: 0.68rem; opacity: 0.85">
+              ពិនិត្យព័ត៌មានកូន និងថ្លៃសេវាមុនពេលផ្ទៀងផ្ទាត់ PIN
+            </span>
+          </div>
+        </div>
+
+        <div class="jr-step-indicator">
+          <div class="jr-step-pill done"></div>
+          <div class="jr-step-pill done"></div>
+          <div class="jr-step-pill done"></div>
+        </div>
+
+        <div style="padding: 10px 16px 115px; flex: 1">
+          <!-- កាតបង្ហាញលេខគណនីកូនដែលបានជ្រើសរើស -->
+          <div
+            style="
+              background: linear-gradient(135deg, #831843, #be185d, #db2777);
+              color: white;
+              border-radius: 24px;
+              padding: 22px 18px;
+              text-align: center;
+              margin-bottom: 14px;
+              box-shadow: 0 12px 28px rgba(190, 24, 93, 0.25);
+            "
+          >
+            <span
+              id="jrConfirmTierBadge"
+              style="
+                background: rgba(255, 255, 255, 0.2);
+                color: #fde047;
+                padding: 4px 12px;
+                border-radius: 20px;
+                font-size: 0.74rem;
+                font-weight: 800;
+              "
+            >
+              👶 JUNIOR ACCOUNT NUMBER
+            </span>
+
+            <h1
+              id="jrConfirmAccountNum"
+              class="mono-num"
+              style="
+                margin: 12px 0 6px;
+                font-size: 2.1rem;
+                font-weight: 900;
+                letter-spacing: 2px;
+              "
+            >
+              ...
+            </h1>
+
+            <div style="font-size: 0.88rem; opacity: 0.95">
+              ថ្លៃសេវាបើកគណនី៖
+              <b
+                id="jrConfirmPrice"
+                class="mono-num"
+                style="color: #fde047; font-size: 1.25rem"
+                >$5.00</b
+              >
+            </div>
+          </div>
+
+          <!-- សង្ខេបព័ត៌មានកូន និងឯកសារ KYC -->
+          <div class="jr-card" style="margin: 0 0 14px">
+            <h4 style="margin: 0 0 12px; font-size: 0.9rem; font-weight: 900">
+              ព័ត៌មានគណនីកុមារ និងឯកសារ KYC៖
+            </h4>
+
+            <div
+              style="
+                display: flex;
+                align-items: center;
+                gap: 12px;
+                padding-bottom: 12px;
+                border-bottom: 1px dashed var(--border-color);
+                margin-bottom: 12px;
+              "
+            >
+              <img
+                id="jrConfirmPhotoThumb"
+                src=""
+                style="
+                  width: 54px;
+                  height: 54px;
+                  border-radius: 16px;
+                  object-fit: cover;
+                  border: 2px solid #db2777;
+                "
+              />
+              <div style="flex: 1">
+                <div
+                  id="jrConfirmChildName"
+                  style="font-size: 0.98rem; font-weight: 900"
+                >
+                  ...
+                </div>
+                <div
+                  id="jrConfirmChildUsername"
                   class="mono-num"
-                  style="font-size: 0.75rem; opacity: 0.85; margin-top: 3px"
+                  style="font-size: 0.78rem; color: #db2777; font-weight: 800"
                 >
                   @username
                 </div>
               </div>
+              <img
+                id="jrConfirmBirthCertThumb"
+                src=""
+                title="រូបសំបុត្រកំណើត"
+                style="
+                  width: 54px;
+                  height: 54px;
+                  border-radius: 12px;
+                  object-fit: cover;
+                  border: 1px solid var(--border-color);
+                "
+              />
             </div>
 
-            <button
-              type="button"
-              onclick="openChildSecurityModal()"
+            <div
               style="
-                border: 1px solid rgba(255, 255, 255, 0.25);
-                background: rgba(255, 255, 255, 0.14);
-                color: white;
-                padding: 6px 11px;
-                border-radius: 10px;
-                font-size: 0.72rem;
-                font-weight: 700;
-                cursor: pointer;
+                display: grid;
+                grid-template-columns: 1fr 1fr;
+                gap: 10px;
+                font-size: 0.8rem;
               "
             >
-              <i class="fa-solid fa-key"></i> ប្តូរលេខសម្ងាត់កូន
-            </button>
+              <div>
+                <span style="color: var(--text-muted)">ថ្ងៃខែឆ្នាំកំណើត៖</span>
+                <div
+                  id="jrConfirmDobGender"
+                  style="font-weight: 800; margin-top: 2px"
+                >
+                  ...
+                </div>
+              </div>
+              <div>
+                <span style="color: var(--text-muted)">លេខសំបុត្រកំណើត៖</span>
+                <div
+                  id="jrConfirmBirthCertNo"
+                  class="mono-num"
+                  style="font-weight: 800; margin-top: 2px"
+                >
+                  ...
+                </div>
+              </div>
+              <div>
+                <span style="color: var(--text-muted)">រូបិយប័ណ្ណគណនី៖</span>
+                <div
+                  id="jrConfirmCurrency"
+                  class="mono-num"
+                  style="font-weight: 800; margin-top: 2px; color: #0ea5e9"
+                >
+                  ...
+                </div>
+              </div>
+              <div>
+                <span style="color: var(--text-muted)"
+                  >រនាំងចំណាយប្រចាំថ្ងៃ៖</span
+                >
+                <div
+                  id="jrConfirmLimit"
+                  class="mono-num"
+                  style="font-weight: 800; margin-top: 2px; color: #10b981"
+                >
+                  ...
+                </div>
+              </div>
+            </div>
           </div>
 
-          <!-- សមតុល្យ USD និង KHR របស់កូន -->
-          <div
+          <label
             style="
-              display: grid;
-              grid-template-columns: 1fr 1fr;
+              display: flex;
+              align-items: flex-start;
               gap: 10px;
-              margin-top: 18px;
-              background: rgba(0, 0, 0, 0.22);
-              padding: 13px;
+              background: var(--bg-card);
+              border: 1px solid var(--border-color);
+              padding: 14px;
               border-radius: 16px;
+              cursor: pointer;
+              font-size: 0.78rem;
+              line-height: 1.45;
             "
           >
-            <div>
-              <div style="font-size: 0.7rem; opacity: 0.8">
-                គណនីដុល្លារ (USD)
-              </div>
-              <div
-                id="activeChildUsdBal"
-                class="mono-num"
-                style="font-size: 1.35rem; font-weight: 900; margin-top: 2px"
-              >
-                $0.00
-              </div>
-              <div
-                id="activeChildUsdAcc"
-                class="mono-num"
-                style="font-size: 0.68rem; opacity: 0.75; margin-top: 2px"
-              >
-                #...
-              </div>
-            </div>
-
-            <div
+            <input
+              type="checkbox"
+              id="jrConfirmTnc"
+              checked
               style="
-                border-left: 1px solid rgba(255, 255, 255, 0.15);
-                padding-left: 12px;
+                width: 20px;
+                height: 20px;
+                accent-color: #db2777;
+                margin-top: 2px;
               "
-            >
-              <div style="font-size: 0.7rem; opacity: 0.8">គណនីរៀល (KHR)</div>
-              <div
-                id="activeChildKhrBal"
-                class="mono-num"
-                style="
-                  font-size: 1.35rem;
-                  font-weight: 900;
-                  color: #fbcfe8;
-                  margin-top: 2px;
-                "
-              >
-                ៛0
-              </div>
-              <div
-                id="activeChildKhrAcc"
-                class="mono-num"
-                style="font-size: 0.68rem; opacity: 0.75; margin-top: 2px"
-              >
-                មិនទាន់បើក
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- ⚡ ប៊ូតុងបញ្ជារបស់ប៉ាម៉ាក់ទាំង ៤ (ដាក់លុយ, ដកលុយមកវិញ, កំណត់ Limit, បិទ/ផ្អាកគណនី) -->
-        <div class="jr-actions-grid">
-          <button
-            type="button"
-            class="jr-action-btn"
-            onclick="openParentTransferModal('TOPUP')"
-          >
-            <div
-              class="jr-action-icon"
-              style="background: rgba(16, 185, 129, 0.14); color: #10b981"
-            >
-              <i class="fa-solid fa-circle-plus"></i>
-            </div>
-            <span style="font-size: 0.73rem; font-weight: 800"
-              >ដាក់លុយឱ្យកូន</span
-            >
-          </button>
-
-          <button
-            type="button"
-            class="jr-action-btn"
-            onclick="openParentTransferModal('RECALL')"
-          >
-            <div
-              class="jr-action-icon"
-              style="background: rgba(14, 165, 233, 0.14); color: #0ea5e9"
-            >
-              <i class="fa-solid fa-rotate-left"></i>
-            </div>
-            <span style="font-size: 0.73rem; font-weight: 800">ដកលុយមកវិញ</span>
-          </button>
-
-          <button
-            type="button"
-            class="jr-action-btn"
-            onclick="openUpdateLimitModal()"
-          >
-            <div
-              class="jr-action-icon"
-              style="background: rgba(245, 158, 11, 0.14); color: #f59e0b"
-            >
-              <i class="fa-solid fa-sliders"></i>
-            </div>
-            <span style="font-size: 0.73rem; font-weight: 800"
-              >កំណត់ Limit</span
-            >
-          </button>
-
-          <button
-            type="button"
-            class="jr-action-btn"
-            onclick="promptToggleChildFreeze()"
-          >
-            <div
-              class="jr-action-icon"
-              id="btnFreezeActionIcon"
-              style="background: rgba(239, 68, 68, 0.14); color: #ef4444"
-            >
-              <i class="fa-solid fa-snowflake"></i>
-            </div>
-            <span
-              id="btnFreezeActionText"
-              style="font-size: 0.73rem; font-weight: 800"
-              >ផ្អាកគណនី</span
-            >
-          </button>
-        </div>
-
-        <!-- 🛡️ កាតតាមដានរនាំងចំណាយប្រចាំថ្ងៃរបស់កូន (DAILY SPENDING LIMIT TRACKER) -->
-        <div class="jr-card">
-          <div
-            style="
-              display: flex;
-              justify-content: space-between;
-              align-items: center;
-            "
-          >
-            <div>
-              <h4 style="margin: 0; font-size: 0.9rem; font-weight: 900">
-                <i class="fa-solid fa-shield-halved" style="color: #db2777"></i>
-                រនាំងចំណាយប្រចាំថ្ងៃ (Daily Spending Limit)
-              </h4>
-              <p
-                style="
-                  margin: 2px 0 0;
-                  font-size: 0.73rem;
-                  color: var(--text-muted);
-                "
-              >
-                កូនមិនអាចចាយលើសចំនួនកំណត់នេះក្នុង ១ ថ្ងៃបានឡើយ
-              </p>
-            </div>
-            <span
-              id="dailyLimitPctBadge"
-              class="mono-num"
-              style="
-                font-size: 0.76rem;
-                font-weight: 900;
-                padding: 3px 9px;
-                border-radius: 10px;
-                background: rgba(16, 185, 129, 0.12);
-                color: #10b981;
-              "
-            >
-              0%
-            </span>
-          </div>
-
-          <div class="jr-limit-bar-bg">
-            <div id="dailyLimitBarFill" class="jr-limit-bar-fill"></div>
-          </div>
-
-          <div
-            style="
-              display: flex;
-              justify-content: space-between;
-              font-size: 0.76rem;
-              font-weight: 700;
-            "
-          >
+            />
             <span>
-              ចាយថ្ងៃនេះ៖
-              <b
-                id="childSpentTodayText"
-                class="mono-num"
-                style="color: #ef4444"
-                >$0.00</b
-              >
+              ខ្ញុំសូមធានាថាសំបុត្រកំណើត និងរូបថតកូនពិតជាត្រឹមត្រូវ
+              ហើយយល់ព្រមទូទាត់ថ្លៃសេវាបើកគណនី។
+              គណនីកូននឹងបើកដំណើរការដោយស្វ័យប្រវត្តិភ្លាមៗបន្ទាប់ពី Admin អនុម័ត
+              KYC។
             </span>
-            <span>
-              កម្រិតកំណត់៖
-              <b
-                id="childDailyLimitText"
-                class="mono-num"
-                style="color: var(--text-main)"
-                >$20.00 / ថ្ងៃ</b
-              >
-            </span>
-          </div>
+          </label>
         </div>
 
-        <!-- 📊 សង្ខេបថាកូនចាយលើអ្វីខ្លះ (WHERE YOUR CHILD SPENDS) -->
-        <div class="jr-card">
-          <h4 style="margin: 0 0 12px; font-size: 0.9rem; font-weight: 900">
-            <i class="fa-solid fa-chart-pie" style="color: #8b5cf6"></i>
-            សង្ខេបសកម្មភាពចំណាយរបស់កូន (Spending Insights)
-          </h4>
-
-          <div
-            style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px"
+        <div class="jr-bottom-bar">
+          <button
+            type="button"
+            class="jr-btn-primary"
+            onclick="submitFinalJuniorAccountCreation()"
           >
-            <div
-              style="
-                background: var(--bg-subtle);
-                padding: 10px;
-                border-radius: 14px;
-                text-align: center;
-              "
-            >
-              <div style="font-size: 0.68rem; color: var(--text-muted)">
-                ទិញទំនិញ & QR
-              </div>
-              <div
-                id="insightShopSpent"
-                class="mono-num"
-                style="
-                  font-size: 0.95rem;
-                  font-weight: 900;
-                  color: #f59e0b;
-                  margin-top: 3px;
-                "
-              >
-                $0.00
-              </div>
-            </div>
-
-            <div
-              style="
-                background: var(--bg-subtle);
-                padding: 10px;
-                border-radius: 14px;
-                text-align: center;
-              "
-            >
-              <div style="font-size: 0.68rem; color: var(--text-muted)">
-                ផ្ទេរឱ្យមិត្តភក្តិ
-              </div>
-              <div
-                id="insightTransferSpent"
-                class="mono-num"
-                style="
-                  font-size: 0.95rem;
-                  font-weight: 900;
-                  color: #0ea5e9;
-                  margin-top: 3px;
-                "
-              >
-                $0.00
-              </div>
-            </div>
-
-            <div
-              style="
-                background: var(--bg-subtle);
-                padding: 10px;
-                border-radius: 14px;
-                text-align: center;
-              "
-            >
-              <div style="font-size: 0.68rem; color: var(--text-muted)">
-                លុយប៉ាម៉ាក់ឱ្យ
-              </div>
-              <div
-                id="insightParentGiven"
-                class="mono-num"
-                style="
-                  font-size: 0.95rem;
-                  font-weight: 900;
-                  color: #10b981;
-                  margin-top: 3px;
-                "
-              >
-                +$0.00
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- 🧾 ប្រវត្តិប្រតិបត្តិការលម្អិតរបស់កូន (CHILD ACTIVITY LOG) -->
-        <div class="jr-card">
-          <div
-            style="
-              display: flex;
-              justify-content: space-between;
-              align-items: center;
-              margin-bottom: 10px;
-            "
-          >
-            <h4 style="margin: 0; font-size: 0.9rem; font-weight: 900">
-              <i
-                class="fa-solid fa-clock-rotate-left"
-                style="color: #0d9488"
-              ></i>
-              សកម្មភាពប្រើប្រាស់លុយរបស់កូន
-            </h4>
-            <span
-              id="childTrxCountBadge"
-              class="mono-num"
-              style="
-                font-size: 0.72rem;
-                color: var(--text-muted);
-                font-weight: 800;
-              "
-            >
-              0 ប្រតិបត្តិការ
-            </span>
-          </div>
-
-          <div class="jr-filter-chips">
-            <button
-              type="button"
-              class="jr-chip active"
-              onclick="setChildTrxFilter('ALL', this)"
-            >
-              ទាំងអស់
-            </button>
-            <button
-              type="button"
-              class="jr-chip"
-              onclick="setChildTrxFilter('SPENT', this)"
-            >
-              🔻 កូនចាយចេញ
-            </button>
-            <button
-              type="button"
-              class="jr-chip"
-              onclick="setChildTrxFilter('RECEIVED', this)"
-            >
-              🔺 លុយចូលគណនីកូន
-            </button>
-          </div>
-
-          <div id="childTransactionsContainer"></div>
+            <i class="fa-solid fa-shield-halved"></i>
+            <span>ផ្ទៀងផ្ទាត់ PIN ប៉ាម៉ាក់ & បង្កើតគណនីកូន</span>
+          </button>
         </div>
       </div>
     </div>
 
     <script>
       // =========================================================
-      // 🧠 U-PAY JUNIOR PARENTAL CONTROL ENGINE
+      // 🧠 U-PAY JUNIOR PARENTAL CONTROL & MULTI-SCREEN ENGINE
       // =========================================================
       let childrenList = [];
       let activeChild = null;
       let parentMainAccounts = { USD: {}, KHR: {} };
       let childTrxFilterMode = "ALL";
+
+      // អថេរសម្រាប់រក្សាទុកទិន្នន័យបង្កើតគណនីកូនតាមជំហាន (Step 1 -> Step 2 -> Step 3)
+      let juniorOnboardingDraft = {
+        childName: "",
+        childDob: "",
+        childGender: "Male",
+        birthCertNumber: "",
+        birthCertUrl: "",
+        childKycPhotoUrl: "",
+        childUsername: "",
+        childPassword: "1234",
+        currencyOption: "BOTH",
+        dailyLimit: 20,
+        requestedNumber: "",
+        price: 5,
+      };
+
+      let juniorAllCandidateNumbers = [];
+      let juniorNumTierFilter = "ALL";
 
       document.addEventListener("DOMContentLoaded", async () => {
         if (!window.currentUser) {
@@ -974,9 +1909,13 @@
 
         await loadJuniorDashboardData();
         document.body.classList.add("loaded");
+
+        const urlParams = new URLSearchParams(window.location.search);
+        if (urlParams.get("action") === "create") {
+          startCreateJuniorFlow();
+        }
       });
 
-      // 🌙 ចាប់យក Dark Mode ដោយស្វ័យប្រវត្តិពី Setting ("theme_" + username)
       function applyThemeFromSetting() {
         const u = window.currentUser;
         if (u && u.username) {
@@ -993,6 +1932,14 @@
           applyThemeFromSetting();
         }
       });
+
+      window.switchJuniorScreen = function (screenId) {
+        document
+          .querySelectorAll(".jr-screen")
+          .forEach((s) => s.classList.remove("active"));
+        document.getElementById(screenId)?.classList.add("active");
+        window.scrollTo(0, 0);
+      };
 
       function formatAccNum(num) {
         return String(num || "").replace(/(\d{3})(?=\d)/g, "$1 ");
@@ -1015,7 +1962,6 @@
           }
         } catch (e) {}
 
-        // 🛡️ Fallback បើ Server មិនទាន់ Restart ទាញចេញពី subAccounts ប្រភេទ junior របស់ប៉ាម៉ាក់
         const u = window.currentUser || {};
         parentMainAccounts = {
           USD: u.mainAccounts?.USD || {},
@@ -1039,6 +1985,7 @@
                 "",
               ),
               isFrozen: Boolean(s.isLocked || s.isFrozen),
+              kycStatus: "verified",
               dailyLimit: Number(s.dailyLimit || 20),
               spentTodayUSD: 0,
               accounts: { USD: null, KHR: null },
@@ -1101,19 +2048,21 @@
         activeChild = childrenList.find((c) => c.username === username);
         if (!activeChild) return;
 
-        // ១. គូររទេះជ្រើសរើសកូនៗខាងលើ
         const carousel = document.getElementById("kidsCarouselContainer");
         carousel.innerHTML = childrenList
           .map((c) => {
             const isSel = c.username === activeChild.username;
             const initial = (c.fullName || c.username).charAt(0).toUpperCase();
+            const avatarInner = c.profileImage
+              ? `<img src="${c.profileImage}" onerror="this.outerHTML='${initial}'" />`
+              : initial;
             return `
               <div
                 class="jr-kid-pill ${isSel ? "active" : ""}"
                 onclick="selectActiveChild('${c.username}')"
               >
                 <div class="jr-kid-avatar">
-                  ${initial}
+                  ${avatarInner}
                   ${c.isOnline ? '<span class="jr-online-dot"></span>' : ""}
                 </div>
                 <div>
@@ -1127,43 +2076,79 @@
           })
           .join("");
 
-        // ២. អាប់ដេតកាតកាបូបលុយរបស់កូន
         const banner = document.getElementById("childWalletBanner");
         banner.classList.toggle("frozen-wallet", activeChild.isFrozen);
 
-        document.getElementById("activeChildAvatar").innerText = (
-          activeChild.fullName || activeChild.username
-        )
+        const avEl = document.getElementById("activeChildAvatar");
+        const initChar = (activeChild.fullName || activeChild.username)
           .charAt(0)
           .toUpperCase();
+        avEl.innerHTML = activeChild.profileImage
+          ? `<img src="${activeChild.profileImage}" style="width:100%; height:100%; object-fit:cover" onerror="this.outerHTML='${initChar}'" />`
+          : initChar;
+
         document.getElementById("activeChildName").innerText =
           activeChild.fullName;
         document.getElementById("activeChildHandle").innerText =
-          `@${activeChild.username}`;
+          `@${activeChild.username}${activeChild.dob ? ` • DOB: ${activeChild.dob}` : ""}`;
 
         const stBadge = document.getElementById("activeChildStatusBadge");
+        const kycBanner = document.getElementById("childKycAlertBanner");
         const frzIcon = document.getElementById("btnFreezeActionIcon");
         const frzTxt = document.getElementById("btnFreezeActionText");
 
-        if (activeChild.isFrozen) {
-          stBadge.innerText = "❄️ FROZEN (ផ្អាក)";
+        const kycSt = String(activeChild.kycStatus || "verified").toLowerCase();
+
+        if (kycSt === "pending") {
+          stBadge.innerText = "⏳ រង់ចាំអនុម័ត KYC";
+          stBadge.style.background = "rgba(245,158,11,0.28)";
+          stBadge.style.color = "#fcd34d";
+          kycBanner.className = "jr-kyc-notice pending";
+          kycBanner.innerHTML = `
+            <i class="fa-solid fa-clock" style="font-size:1.1rem; margin-top:2px"></i>
+            <div>
+              <b>សំបុត្រកំណើតកូនកំពុងរង់ចាំ Admin ពិនិត្យ (Pending KYC Approval)</b><br/>
+              នៅពេល Admin ចុចអនុម័ត (Approve) គណនីកូននឹងបើកដំណើរការដោយស្វ័យប្រវត្តិភ្លាមៗ!
+            </div>
+          `;
+        } else if (kycSt === "rejected") {
+          stBadge.innerText = "❌ KYC បដិសេធ";
           stBadge.style.background = "rgba(239,68,68,0.28)";
           stBadge.style.color = "#fca5a5";
+          kycBanner.className = "jr-kyc-notice rejected";
+          kycBanner.innerHTML = `
+            <i class="fa-solid fa-circle-exclamation" style="font-size:1.1rem; margin-top:2px"></i>
+            <div>
+              <b>សំបុត្រកំណើតត្រូវបានបដិសេធដោយ Admin</b><br/>
+              មូលហេតុ៖ ${activeChild.kycRejectReason || "ឯកសារមិនច្បាស់"}
+            </div>
+          `;
+        } else {
+          kycBanner.className = "jr-kyc-notice";
+          kycBanner.innerHTML = "";
+          if (activeChild.isFrozen) {
+            stBadge.innerText = "❄️ FROZEN (ផ្អាក)";
+            stBadge.style.background = "rgba(239,68,68,0.28)";
+            stBadge.style.color = "#fca5a5";
+          } else {
+            stBadge.innerText = "🟢 ACTIVE (ដំណើរការ)";
+            stBadge.style.background = "rgba(16,185,129,0.25)";
+            stBadge.style.color = "#6ee7b7";
+          }
+        }
+
+        if (activeChild.isFrozen) {
           frzIcon.innerHTML = '<i class="fa-solid fa-unlock"></i>';
           frzIcon.style.background = "rgba(16,185,129,0.14)";
           frzIcon.style.color = "#10b981";
           frzTxt.innerText = "ដោះសោគណនី";
         } else {
-          stBadge.innerText = "🟢 ACTIVE (ដំណើរការ)";
-          stBadge.style.background = "rgba(16,185,129,0.25)";
-          stBadge.style.color = "#6ee7b7";
           frzIcon.innerHTML = '<i class="fa-solid fa-snowflake"></i>';
           frzIcon.style.background = "rgba(239,68,68,0.14)";
           frzIcon.style.color = "#ef4444";
           frzTxt.innerText = "ផ្អាកគណនី";
         }
 
-        // សមតុល្យ USD & KHR
         const usdObj = activeChild.accounts?.USD;
         const khrObj = activeChild.accounts?.KHR;
 
@@ -1181,7 +2166,6 @@
           ? `#${formatAccNum(khrObj.accountNumber)}`
           : "មិនមានគណនី KHR";
 
-        // ៣. អាប់ដេតរបាររនាំងចំណាយប្រចាំថ្ងៃ (Daily Spending Limit)
         const limitVal = Number(activeChild.dailyLimit || 20);
         const spentToday = Number(activeChild.spentTodayUSD || 0);
         const pct =
@@ -1204,7 +2188,6 @@
               ? "#f59e0b"
               : "linear-gradient(90deg, #10b981, #0d9488)";
 
-        // ៤. គណនាសង្ខេបថាកូនចាយលើអ្វីខ្លះ
         let shopUSD = 0,
           transferUSD = 0,
           parentGivenUSD = 0;
@@ -1238,10 +2221,71 @@
         renderChildTransactions();
       };
 
+      // 🖼️ ប្តូររូបថត Profile របស់កូនតាមក្រោយ (រក្សាទុកក្នុង profileImage ដោយមិនប៉ះពាល់រូបថត KYC selfieUrl ឡើយ!)
+      window.handleUpdateChildProfilePhoto = async function (event) {
+        const file = event.target.files[0];
+        if (!file || !activeChild) return;
+
+        Swal.fire({
+          title: "កំពុងប្តូររូបថត Profile កូន...",
+          allowOutsideClick: false,
+          didOpen: () => Swal.showLoading(),
+        });
+
+        const formData = new FormData();
+        formData.append("file", file);
+        formData.append("upload_preset", "iaxuqmpb");
+
+        try {
+          const cRes = await fetch(
+            "https://api.cloudinary.com/v1_1/jp9yg3dj/image/upload",
+            { method: "POST", body: formData },
+          );
+          const cData = await cRes.json();
+          if (!cData.secure_url) throw new Error("Upload failed");
+
+          Swal.close();
+          requestPinVerification(
+            "បញ្ជាក់លេខកូដ PIN ប៉ាម៉ាក់",
+            "ដើម្បីផ្លាស់ប្តូររូបថត Profile របស់កូន",
+            async function (pinCode) {
+              const finalPin =
+                pinCode || document.getElementById("hiddenGlobalPin")?.value;
+              const res = await fetch("/api/account/junior/reset-credentials", {
+                method: "POST",
+                headers: window.authHeaders,
+                body: JSON.stringify({
+                  parentUsername: window.currentUser.username,
+                  childUsername: activeChild.username,
+                  newProfileImage: cData.secure_url,
+                  pin: finalPin,
+                }),
+              });
+              const data = await res.json();
+              if (data.success) {
+                await loadJuniorDashboardData(activeChild.username);
+                Swal.fire({
+                  toast: true,
+                  position: "top-end",
+                  icon: "success",
+                  title: "បានប្តូររូបថត Profile កូនជោគជ័យ!",
+                  showConfirmButton: false,
+                  timer: 1500,
+                });
+              } else {
+                Swal.fire("បរាជ័យ", data.message, "error");
+              }
+            },
+          );
+        } catch (err) {
+          Swal.fire("Error", "មិនអាច Upload រូបភាពបានទេ", "error");
+        }
+      };
+
       window.setChildTrxFilter = function (mode, btnEl) {
         childTrxFilterMode = mode;
         document
-          .querySelectorAll(".jr-chip")
+          .querySelectorAll("#screen-dashboard .jr-chip")
           .forEach((b) => b.classList.remove("active"));
         if (btnEl) btnEl.classList.add("active");
         renderChildTransactions();
@@ -1323,12 +2367,475 @@
       }
 
       // =========================================================
-      // 💸 ១. ដាក់ប្រាក់ឱ្យកូន (TOP-UP) ឬ ដកប្រាក់ពីកូនមកវិញ (RECALL)
+      // 🎬 ៥. លំហូរបង្កើតគណនីកូនថ្មី ៣ ផ្ទាំងពេញអេក្រង់ (STEP 1 -> STEP 2 -> STEP 3)
+      // =========================================================
+      window.startCreateJuniorFlow = function () {
+        juniorOnboardingDraft = {
+          childName: "",
+          childDob: "",
+          childGender: "Male",
+          birthCertNumber: "",
+          birthCertUrl: "",
+          childKycPhotoUrl: "",
+          childUsername: "",
+          childPassword: "1234",
+          currencyOption: "BOTH",
+          dailyLimit: 20,
+          requestedNumber: "",
+          price: 5,
+        };
+
+        document.getElementById("jrFullName").value = "";
+        document.getElementById("jrDob").value = "";
+        document.getElementById("jrBirthCertNum").value = "";
+        document.getElementById("jrUsername").value = "";
+        document.getElementById("jrPassword").value = "1234";
+        document.getElementById("jrDailyLimit").value = "20";
+
+        document.getElementById("jrBirthCertPreview").innerHTML = `
+          <i class="fa-solid fa-file-contract" style="font-size: 1.55rem; color: #db2777"></i>
+          <span style="font-size: 0.74rem; font-weight: 800; margin-top: 6px">Upload សំបុត្រកំណើត <span style="color: #ef4444">*</span></span>
+        `;
+        document.getElementById("jrChildPhotoPreview").innerHTML = `
+          <i class="fa-solid fa-camera-retro" style="font-size: 1.55rem; color: #0ea5e9"></i>
+          <span style="font-size: 0.74rem; font-weight: 800; margin-top: 6px">Upload រូបថតមុខកូន <span style="color: #ef4444">*</span></span>
+        `;
+
+        selectJrCreateCurrency("BOTH");
+        switchJuniorScreen("screen-create-step1");
+      };
+
+      window.selectJrCreateCurrency = function (cur) {
+        juniorOnboardingDraft.currencyOption = cur;
+        ["USD", "KHR", "BOTH"].forEach((c) => {
+          document
+            .getElementById(`jrCurTab${c}`)
+            ?.classList.toggle("active", c === cur);
+        });
+      };
+
+      window.uploadJuniorDocToCloud = async function (
+        event,
+        targetType,
+        previewBoxId,
+      ) {
+        const file = event.target.files[0];
+        if (!file) return;
+
+        const box = document.getElementById(previewBoxId);
+        if (box) {
+          box.innerHTML = `<i class="fa-solid fa-spinner fa-spin" style="color:#db2777; font-size:1.4rem"></i><div style="font-size:0.72rem; margin-top:5px">កំពុង Upload...</div>`;
+        }
+
+        const formData = new FormData();
+        formData.append("file", file);
+        formData.append("upload_preset", "iaxuqmpb");
+
+        try {
+          const res = await fetch(
+            "https://api.cloudinary.com/v1_1/jp9yg3dj/image/upload",
+            { method: "POST", body: formData },
+          );
+          const data = await res.json();
+          if (data.secure_url) {
+            if (targetType === "birthCert") {
+              juniorOnboardingDraft.birthCertUrl = data.secure_url;
+            } else {
+              juniorOnboardingDraft.childKycPhotoUrl = data.secure_url;
+            }
+            if (box) {
+              box.innerHTML = `<img src="${data.secure_url}" style="width:100%; height:100%; object-fit:cover; border-radius:14px" />`;
+            }
+          }
+        } catch (e) {
+          if (box) box.innerText = "Upload បរាជ័យ!";
+        }
+      };
+
+      // ➡️ ទៅកាន់ជំហានទី ២ (ផ្សារជ្រើសរើសលេខគណនីកូន)
+      window.goToStep2ChooseNumber = function () {
+        const name = document.getElementById("jrFullName").value.trim();
+        const dob = document.getElementById("jrDob").value;
+        const gender = document.getElementById("jrGender").value;
+        const bcNum = document.getElementById("jrBirthCertNum").value.trim();
+        const uname = document.getElementById("jrUsername").value.trim();
+        const pass = document.getElementById("jrPassword").value.trim();
+        const lim =
+          parseFloat(document.getElementById("jrDailyLimit").value) || 20;
+
+        if (
+          !juniorOnboardingDraft.birthCertUrl ||
+          !juniorOnboardingDraft.childKycPhotoUrl
+        ) {
+          return Swal.fire(
+            "ខ្វះឯកសារ KYC",
+            "សូម Upload រូបថតសំបុត្រកំណើតកូន និងរូបថតមុខកូនជាមុនសិន!",
+            "warning",
+          );
+        }
+        if (!name || !dob || !bcNum || !uname) {
+          return Swal.fire(
+            "ខ្វះព័ត៌មាន",
+            "សូមបំពេញឈ្មោះកូន ថ្ងៃខែឆ្នាំកំណើត លេខសំបុត្រកំណើត និង Username ឱ្យបានគ្រប់គ្រាន់!",
+            "warning",
+          );
+        }
+        if (pass.length < 4) {
+          return Swal.fire(
+            "ពាក្យសម្ងាត់ខ្លីពេក",
+            "Password សម្រាប់កូនត្រូវមានយ៉ាងតិច ៤ ខ្ទង់!",
+            "warning",
+          );
+        }
+
+        juniorOnboardingDraft.childName = name;
+        juniorOnboardingDraft.childDob = dob;
+        juniorOnboardingDraft.childGender = gender;
+        juniorOnboardingDraft.birthCertNumber = bcNum;
+        juniorOnboardingDraft.childUsername = uname;
+        juniorOnboardingDraft.childPassword = pass;
+        juniorOnboardingDraft.dailyLimit = lim;
+
+        document.getElementById("jrSearchNumInput").value = "";
+        generateJuniorNumbersList();
+        switchJuniorScreen("screen-create-step2");
+      };
+
+      // 👑 មុខងារគណនាតម្លៃ និងបង្ហាញលេខគណនីកូន (ដូចក្នុង new-account.html 100%)
+      function calculateJuniorNumPrice(numStr) {
+        if (numStr.length === 6) return 100;
+        if (numStr.length !== 9) return 0;
+        if (numStr.includes("88888") || numStr.includes("99999")) return 250;
+        if (
+          numStr.includes("8888") ||
+          numStr.includes("9999") ||
+          numStr.includes("168168")
+        )
+          return 100;
+        if (
+          numStr.includes("888") ||
+          numStr.includes("999") ||
+          numStr.includes("168")
+        )
+          return 50;
+        if (/(.)\1{3}/.test(numStr)) return 20;
+        if (/(.)\1{2}/.test(numStr)) return 15;
+        if (
+          numStr.endsWith("00") ||
+          numStr.endsWith("88") ||
+          numStr.endsWith("99")
+        )
+          return 10;
+        return 5;
+      }
+
+      function getJuniorNumTierMeta(numStr, price) {
+        if (price >= 250) {
+          return {
+            group: "VVIP",
+            cardClass: "tier-vvip",
+            badgeText: "👑 លេខអធិរាជ ៥ ខ្ទង់",
+            badgeBg: "rgba(245,158,11,0.18)",
+            badgeColor: "#d97706",
+          };
+        }
+        if (numStr.length === 6) {
+          return {
+            group: "SHORT6",
+            cardClass: "tier-vip",
+            badgeText: "✨ លេខខ្លី ៦ ខ្ទង់ VIP",
+            badgeBg: "rgba(219,39,119,0.15)",
+            badgeColor: "#db2777",
+          };
+        }
+        if (price === 100) {
+          return {
+            group: "VVIP",
+            cardClass: "tier-vvip",
+            badgeText: "💎 លេខសេដ្ឋីការ៉េ ៤",
+            badgeBg: "rgba(245,158,11,0.16)",
+            badgeColor: "#d97706",
+          };
+        }
+        if (price === 50) {
+          return {
+            group: "FORTUNE",
+            cardClass: "tier-vip",
+            badgeText: "🔥 លេខហុងស៊ុយ 168/888",
+            badgeBg: "rgba(239,68,68,0.14)",
+            badgeColor: "#ef4444",
+          };
+        }
+        return {
+          group: "BUDGET",
+          cardClass: "",
+          badgeText: price >= 15 ? "🌟 លេខការ៉េ ៣ ខ្ទង់" : "🍀 លេខនាំសំណាង",
+          badgeBg: "rgba(16,185,129,0.14)",
+          badgeColor: "#10b981",
+        };
+      }
+
+      function highlightDigitsHtml(numStr) {
+        const spaced = String(numStr).replace(/(\d{3})(?=\d)/g, "$1 ");
+        return spaced.replace(
+          /(88888|99999|8888|9999|168|888|999|777|4444)/g,
+          '<span class="jr-highlight-digit">$1</span>',
+        );
+      }
+
+      window.setJuniorNumTierFilter = function (tierKey, btnEl) {
+        juniorNumTierFilter = tierKey;
+        document
+          .querySelectorAll("#screen-create-step2 .jr-chip")
+          .forEach((b) => b.classList.remove("active"));
+        if (btnEl) btnEl.classList.add("active");
+        renderJuniorNumbersGrid();
+      };
+
+      window.generateJuniorNumbersList = function () {
+        juniorAllCandidateNumbers = [];
+        const generators = [
+          () => Math.floor(1000 + Math.random() * 8999).toString() + "88888",
+          () => Math.floor(1000 + Math.random() * 8999).toString() + "99999",
+          () => Math.floor(10000 + Math.random() * 89999).toString() + "8888",
+          () =>
+            "168" + Math.floor(100 + Math.random() * 899).toString() + "168",
+          () => Math.floor(100000 + Math.random() * 899999).toString(),
+          () => "168" + Math.floor(100 + Math.random() * 899).toString(),
+          () => Math.floor(100000 + Math.random() * 899999).toString() + "168",
+          () => Math.floor(100000 + Math.random() * 899999).toString() + "888",
+          () => Math.floor(100000 + Math.random() * 899999).toString() + "999",
+          () => Math.floor(10000 + Math.random() * 89999).toString() + "7777",
+          () => Math.floor(100000 + Math.random() * 899999).toString() + "777",
+          () => Math.floor(1000000 + Math.random() * 8999999).toString() + "88",
+          () => Math.floor(1000000 + Math.random() * 8999999).toString() + "99",
+          () => Math.floor(100000000 + Math.random() * 899999999).toString(),
+        ];
+
+        generators.forEach((fn) => {
+          const n = fn();
+          juniorAllCandidateNumbers.push({
+            number: n,
+            price: calculateJuniorNumPrice(n),
+          });
+        });
+
+        renderJuniorNumbersGrid();
+      };
+
+      window.handleJuniorLiveNumSearch = function () {
+        const q = document.getElementById("jrSearchNumInput").value.trim();
+        if (!q) {
+          generateJuniorNumbersList();
+          return;
+        }
+
+        juniorAllCandidateNumbers = [];
+        const suffixes = [
+          "88888",
+          "9999",
+          "168",
+          "888",
+          "999",
+          "777",
+          "88",
+          "00",
+        ];
+        suffixes.forEach((suf) => {
+          const padLen = Math.max(0, 9 - q.length - suf.length);
+          const mid =
+            padLen > 0
+              ? Math.floor(Math.random() * Math.pow(10, padLen))
+                  .toString()
+                  .padStart(padLen, "0")
+              : "";
+          const candidate = (q + mid + suf).substring(0, 9);
+          juniorAllCandidateNumbers.push({
+            number: candidate,
+            price: calculateJuniorNumPrice(candidate),
+          });
+        });
+
+        if (q.length <= 6) {
+          const short6 = (
+            q + Math.floor(100000 + Math.random() * 899999).toString()
+          ).substring(0, 6);
+          juniorAllCandidateNumbers.unshift({
+            number: short6,
+            price: calculateJuniorNumPrice(short6),
+          });
+        }
+
+        renderJuniorNumbersGrid();
+      };
+
+      function renderJuniorNumbersGrid() {
+        const grid = document.getElementById("jrSuggestedNumbersGrid");
+        const filtered = juniorAllCandidateNumbers.filter((item) => {
+          const meta = getJuniorNumTierMeta(item.number, item.price);
+          if (juniorNumTierFilter === "ALL") return true;
+          return meta.group === juniorNumTierFilter;
+        });
+
+        if (filtered.length === 0) {
+          grid.innerHTML = `<div style="grid-column:span 2; text-align:center; padding:30px; color:var(--text-muted)">មិនមានលេខក្នុងប្រភេទនេះទេ សូមចុចប្តូរលេខថ្មី</div>`;
+          return;
+        }
+
+        grid.innerHTML = filtered
+          .map((item) => {
+            const meta = getJuniorNumTierMeta(item.number, item.price);
+            return `
+              <div
+                class="jr-num-card ${meta.cardClass}"
+                onclick="selectJuniorNumberAndGoToStep3('${item.number}', ${item.price})"
+              >
+                <span
+                  style="
+                    display:inline-block;
+                    font-size:0.63rem;
+                    font-weight:800;
+                    padding:2px 8px;
+                    border-radius:10px;
+                    margin-bottom:6px;
+                    background:${meta.badgeBg};
+                    color:${meta.badgeColor};
+                  "
+                >
+                  ${meta.badgeText}
+                </span>
+                <div
+                  class="mono-num"
+                  style="font-size:1.02rem; font-weight:900; color:var(--text-main); margin:4px 0 6px"
+                >
+                  ${highlightDigitsHtml(item.number)}
+                </div>
+                <div
+                  class="mono-num"
+                  style="font-size:0.86rem; font-weight:900; color:#10b981"
+                >
+                  $${item.price}.00
+                </div>
+              </div>
+            `;
+          })
+          .join("");
+      }
+
+      window.pickRandomJuniorNumberNow = function () {
+        let num = Math.floor(100000000 + Math.random() * 899999999).toString();
+        while (calculateJuniorNumPrice(num) !== 5) {
+          num = Math.floor(100000000 + Math.random() * 899999999).toString();
+        }
+        selectJuniorNumberAndGoToStep3(num, 5);
+      };
+
+      // ➡️ ទៅកាន់ជំហានទី ៣ (ពិនិត្យផ្ទៀងផ្ទាត់ និងបង់ប្រាក់)
+      window.selectJuniorNumberAndGoToStep3 = function (numStr, price) {
+        juniorOnboardingDraft.requestedNumber = numStr;
+        juniorOnboardingDraft.price = price;
+
+        const meta = getJuniorNumTierMeta(numStr, price);
+        document.getElementById("jrConfirmTierBadge").innerText =
+          meta.badgeText;
+        document.getElementById("jrConfirmAccountNum").innerText =
+          formatAccNum(numStr);
+        document.getElementById("jrConfirmPrice").innerText = `$${price}.00`;
+
+        document.getElementById("jrConfirmPhotoThumb").src =
+          juniorOnboardingDraft.childKycPhotoUrl;
+        document.getElementById("jrConfirmBirthCertThumb").src =
+          juniorOnboardingDraft.birthCertUrl;
+        document.getElementById("jrConfirmChildName").innerText =
+          juniorOnboardingDraft.childName;
+        document.getElementById("jrConfirmChildUsername").innerText =
+          `@${juniorOnboardingDraft.childUsername}`;
+        document.getElementById("jrConfirmDobGender").innerText =
+          `${juniorOnboardingDraft.childDob} (${juniorOnboardingDraft.childGender})`;
+        document.getElementById("jrConfirmBirthCertNo").innerText =
+          juniorOnboardingDraft.birthCertNumber;
+        document.getElementById("jrConfirmCurrency").innerText =
+          juniorOnboardingDraft.currencyOption === "BOTH"
+            ? "USD & KHR"
+            : juniorOnboardingDraft.currencyOption;
+        document.getElementById("jrConfirmLimit").innerText =
+          `$${juniorOnboardingDraft.dailyLimit}.00 / ថ្ងៃ`;
+
+        switchJuniorScreen("screen-create-step3");
+      };
+
+      window.submitFinalJuniorAccountCreation = function () {
+        if (!document.getElementById("jrConfirmTnc").checked) {
+          return showToast("សូមធីកយល់ព្រមលើលក្ខខណ្ឌជាមុនសិន!", "error");
+        }
+
+        requestPinVerification(
+          "បញ្ជាក់លេខកូដ PIN ប៉ាម៉ាក់",
+          `ទូទាត់ថ្លៃសេវា $${juniorOnboardingDraft.price}.00 ដើម្បីបើកគណនីកូន`,
+          async function (pinCode) {
+            const finalPin =
+              pinCode || document.getElementById("hiddenGlobalPin")?.value;
+
+            Swal.fire({
+              title: "កំពុងបង្កើតគណនីកូន និងបញ្ជូនសំបុត្រកំណើត...",
+              allowOutsideClick: false,
+              didOpen: () => Swal.showLoading(),
+            });
+
+            try {
+              const res = await fetch("/api/account/junior/create", {
+                method: "POST",
+                headers: window.authHeaders,
+                body: JSON.stringify({
+                  parentUsername: window.currentUser.username,
+                  ...juniorOnboardingDraft,
+                  pin: finalPin,
+                }),
+              });
+              const data = await res.json();
+              if (data.success) {
+                Swal.close();
+                if (data.user) {
+                  sessionStorage.setItem("user", JSON.stringify(data.user));
+                }
+                await loadJuniorDashboardData(
+                  juniorOnboardingDraft.childUsername,
+                );
+                switchJuniorScreen("screen-dashboard");
+
+                if (data.transaction && typeof openGlobalSlip === "function") {
+                  openGlobalSlip(data.transaction);
+                } else {
+                  Swal.fire("ជោគជ័យ! 🎉", data.message, "success");
+                }
+              } else {
+                Swal.fire("បរាជ័យ", data.message, "error");
+              }
+            } catch (e) {
+              Swal.fire("Error", "មានបញ្ហាតភ្ជាប់ទៅកាន់ Server", "error");
+            }
+          },
+        );
+      };
+
+      // =========================================================
+      // 💸 មុខងារ ដាក់ប្រាក់ឱ្យកូន, ដកប្រាក់មកវិញ, កំណត់ Limit, ផ្អាកគណនី & ប្តូរ Password
       // =========================================================
       window.openParentTransferModal = async function (direction = "TOPUP") {
         if (!activeChild) return;
-        const isTopUp = direction === "TOPUP";
 
+        const kycSt = String(activeChild.kycStatus || "verified").toLowerCase();
+        if (kycSt !== "verified" && kycSt !== "approved") {
+          return Swal.fire({
+            icon: "info",
+            title: "រង់ចាំការអនុម័តសំបុត្រកំណើត ⏳",
+            text: "គណនីកូនកំពុងរង់ចាំ Admin ពិនិត្យសំបុត្រកំណើត (Pending KYC)។ បន្ទាប់ពី Admin អនុម័តរួច គណនីកូននឹងបើកឱ្យដាក់ប្រាក់ដោយស្វ័យប្រវត្តិ!",
+            confirmButtonColor: "#db2777",
+            customClass: { popup: "premium-swal" },
+          });
+        }
+
+        const isTopUp = direction === "TOPUP";
         const hasUSD = Boolean(activeChild.accounts?.USD?.accountNumber);
         const hasKHR = Boolean(activeChild.accounts?.KHR?.accountNumber);
 
@@ -1431,9 +2938,6 @@
         );
       };
 
-      // =========================================================
-      // 🛡️ ២. កំណត់រនាំងចំណាយប្រចាំថ្ងៃ (UPDATE DAILY LIMIT)
-      // =========================================================
       window.openUpdateLimitModal = async function () {
         if (!activeChild) return;
 
@@ -1499,11 +3003,20 @@
         );
       };
 
-      // =========================================================
-      // ❄️ ៣. ផ្អាក ឬ បើកសោគណនីកូនពីចម្ងាយ (REMOTE FREEZE / UNFREEZE)
-      // =========================================================
       window.promptToggleChildFreeze = function () {
         if (!activeChild) return;
+
+        const kycSt = String(activeChild.kycStatus || "verified").toLowerCase();
+        if (kycSt !== "verified" && kycSt !== "approved") {
+          return Swal.fire({
+            icon: "info",
+            title: "រង់ចាំការអនុម័តសំបុត្រកំណើត ⏳",
+            text: "គណនីកូនកំពុងរង់ចាំ Admin ពិនិត្យសំបុត្រកំណើត (Pending KYC) មិនទាន់អាចដោះសោបានទេ។ ពេល Admin អនុម័តរួច គណនីកូននឹងបើកដោយស្វ័យប្រវត្តិ!",
+            confirmButtonColor: "#db2777",
+            customClass: { popup: "premium-swal" },
+          });
+        }
+
         const willFreeze = !activeChild.isFrozen;
 
         Swal.fire({
@@ -1562,9 +3075,6 @@
         });
       };
 
-      // =========================================================
-      // 🔑 ៤. ប្តូរលេខសម្ងាត់ Login ឬ PIN ឱ្យកូនដោយប៉ាម៉ាក់
-      // =========================================================
       window.openChildSecurityModal = async function () {
         if (!activeChild) return;
 

@@ -1,8 +1,12 @@
-// ========================================================================
+// ============================================================================
 // ឯកសារ: js/admin-core.js (Pro Modular Core + Smart Resizable Sidebar Engine)
 // អត្ថន័យ: បង្កើត Sidebar ស្វ័យប្រវត្តិ, អូសពង្រីក/បង្រួមទទឹង, បិទ/បើកម៉ឺនុយ & គ្រប់គ្រងសិទ្ធិ
-// ========================================================================
+// ស្តង់ដារថ្មី: ចាប់ទិន្នន័យអតិថិជន និងកាតតាម MongoDB `_id` សុទ្ធសាធ ១០០%
+// ============================================================================
 
+// ============================================================================
+// 🔐 ជំពូកទី ១៖ អថេរសកល, ការផ្ទៀងផ្ទាត់សិទ្ធិ និងអនុគមន៍ចាប់តាម `_id` (GLOBAL AUTH & ID HELPERS)
+// ============================================================================
 const adminToken = sessionStorage.getItem("adminToken");
 const adminRole = sessionStorage.getItem("adminRole");
 let myAdminPermissions = null;
@@ -22,10 +26,57 @@ const getAuthHeaders = () => {
   };
 };
 
-// ========================================================================
-// 🗂️ SECTION 1: SMART SIDEBAR GENERATOR & DRAG-TO-RESIZE ENGINE
-// រៀបចំលំដាប់ក្រុមម៉ឺនុយស្តង់ដារធនាគារ និងកាត់បន្ថយកូដក្នុង index.html
-// ========================================================================
+/**
+ * 🔹 ១.១ ទាញយក MongoDB `_id` ពិតប្រាកដរបស់អតិថិជន (Strict Primary Key Extractor)
+ */
+window.getEntityId = function (entity) {
+  if (!entity) return "";
+  if (typeof entity === "string") return entity.trim();
+  return String(entity._id || entity.id || "").trim();
+};
+
+/**
+ * 🔹 ១.២ ទាញយកឈ្មោះពេញរបស់អតិថិជនសម្រាប់បង្ហាញលើ UI និងសារជូនដំណឹង
+ */
+window.getCustomerFullName = function (userObj, fallback = "អតិថិជន U-Pay") {
+  if (!userObj) return fallback;
+  if (userObj.fullName && String(userObj.fullName).trim() !== "") {
+    return String(userObj.fullName).trim();
+  }
+  if (userObj.name && String(userObj.name).trim() !== "") {
+    return String(userObj.name).trim();
+  }
+  return userObj.username || fallback;
+};
+
+/**
+ * 🔹 ១.៣ ស្វែងរកអតិថិជនក្នុង `globalUsersData` ដោយផ្តល់អាទិភាពទី ១ លើ `_id`
+ */
+window.findGlobalUserById = function (identifier) {
+  if (!identifier) return null;
+  const clean = String(identifier).trim();
+  const list = Array.isArray(window.globalUsersData)
+    ? window.globalUsersData
+    : [];
+
+  // អាទិភាពទី ១៖ ចាប់តាម MongoDB `_id`
+  let found = list.find((u) => String(u._id || u.id) === clean);
+  if (found) return found;
+
+  // Fallback សម្រាប់កន្លែងដែលបោះ username ឬលេខគណនីមក
+  return (
+    list.find(
+      (u) =>
+        String(u.username || "").toLowerCase() === clean.toLowerCase() ||
+        u.mainAccounts?.USD?.accountNumber === clean ||
+        u.mainAccounts?.KHR?.accountNumber === clean,
+    ) || null
+  );
+};
+
+// ============================================================================
+// 🗂️ ជំពូកទី ២៖ ម៉ាស៊ីនបង្កើតម៉ឺនុយ និងអូសពង្រីក/បង្រួមទទឹង (SMART SIDEBAR & RESIZER)
+// ============================================================================
 const ADMIN_SIDEBAR_SCHEMA = [
   {
     groupId: "label-main",
@@ -227,10 +278,8 @@ function buildSmartSidebar() {
   }).join("");
 
   sb.innerHTML = `
-    <!-- របារចាប់ទាញពង្រីក/បង្រួមទទឹង Sidebar -->
     <div class="sb-resizer-handle" id="sbResizerHandle" title="ចុចឱ្យជាប់រួចអូសឆ្វេង/ស្តាំដើម្បីសេរ៉េទទឹងម៉ឺនុយ (Double-click ដើម្បីកំណត់ទំហំដើម)"></div>
 
-    <!-- ប្រអប់ព័ត៌មាន និងរូបថត Profile បុគ្គលិក Admin -->
     <div class="sb-profile-box">
       <div class="sb-avatar-circle" id="sbAdminAvatarBox">
         <i class="fa-solid fa-user-shield"></i>
@@ -245,18 +294,15 @@ function buildSmartSidebar() {
       </div>
     </div>
 
-    <!-- ប្រអប់ស្វែងរកម៉ឺនុយរហ័ស -->
     <div class="sb-quick-filter-wrap">
       <i class="fa-solid fa-magnifying-glass"></i>
       <input type="text" id="sbMenuQuickSearch" class="sb-quick-filter-input" placeholder="ស្វែងរកម៉ឺនុយរហ័ស..." oninput="filterSidebarMenuItems(this.value)" />
     </div>
 
-    <!-- បញ្ជីម៉ឺនុយតាមក្រុម -->
     <div style="flex: 1; overflow-y: auto; overflow-x: hidden; padding-right: 2px;">
       ${groupsHtml}
     </div>
 
-    <!-- ប៊ូតុងចាកចេញពីប្រព័ន្ធ -->
     <div class="menu-item logout-btn" onclick="logout()" style="margin-top: 12px; border-top: 1px solid rgba(255,255,255,0.08); padding-top: 14px;" title="ចាកចេញពីប្រព័ន្ធ (Secure Logout)">
       <i class="fa-solid fa-right-from-bracket"></i>
       <span class="sb-menu-text" data-i18n="menu-logout">ចាកចេញពីប្រព័ន្ធ (Logout)</span>
@@ -288,7 +334,6 @@ window.filterSidebarMenuItems = function (keyword) {
     });
 };
 
-// 🖱️ មុខងារចាប់ទាញពង្រីក/បង្រួមទទឹង Sidebar និងប៊ូតុងបង្រួម/លាក់ម៉ឺនុយ
 function initSidebarResizeAndCollapseState() {
   const savedWidth = parseInt(localStorage.getItem("adminSidebarWidth"), 10);
   if (savedWidth && savedWidth >= 190 && savedWidth <= 440) {
@@ -395,9 +440,9 @@ document.addEventListener("keydown", (e) => {
   }
 });
 
-// ========================================================================
-// 🌙 SECTION 2: UI & THEME MANAGEMENT
-// ========================================================================
+// ============================================================================
+// 🌙 ជំពូកទី ៣៖ ការគ្រប់គ្រងពណ៌ផ្ទៃ និងការបិទ/បើកម៉ឺនុយទូរស័ព្ទ (UI & THEME MANAGEMENT)
+// ============================================================================
 let isDarkMode = localStorage.getItem("adminDarkMode") === "true";
 
 function toggleTheme() {
@@ -436,9 +481,9 @@ function toggleSidebar(force) {
   }
 }
 
-// ========================================================================
-// 🧭 SECTION 3: MODULAR MENU NAVIGATION
-// ========================================================================
+// ============================================================================
+// 🧭 ជំពូកទី ៤៖ ការប្តូរទំព័រម៉ឺនុយនីមួយៗ (MODULAR SECTION NAVIGATION)
+// ============================================================================
 function showSection(id, btn) {
   sessionStorage.setItem("activeSection", id);
   const sections = [
@@ -532,21 +577,35 @@ function logout() {
   });
 }
 
-// ========================================================================
-// 🔄 SECTION 4: LIGHTWEIGHT SHARED LOADERS (Fixed Global & Window Sync 100%)
-// ========================================================================
+// ============================================================================
+// 🔄 ជំពូកទី ៥៖ ម៉ាស៊ីនទាញទិន្នន័យរួម និងផ្គូផ្គងតាម `_id` សុទ្ធ (SHARED DATA LOADERS BY `_id`)
+// ============================================================================
+
+/**
+ * 🔹 ៥.១ ទាញយកបញ្ជីអតិថិជនទាំងអស់ និងធានាថាគ្រប់ Object មាន `_id` ច្បាស់លាស់
+ */
 async function loadUsersModuleData() {
   try {
     const res = await fetch("/api/users", { headers: getAuthHeaders() });
     const raw = await res.json();
-    const users = Array.isArray(raw)
+    const rawList = Array.isArray(raw)
       ? raw
       : Array.isArray(raw?.users)
         ? raw.users
         : [];
 
-    globalUsersData = users;
-    window.globalUsersData = users;
+    // ធានាថាគ្រប់ User ទាំងអស់មាន `_id` ជា String ស្តង់ដារតែមួយ
+    const normalizedUsers = rawList.map((u) => {
+      const canonicalId = String(u._id || u.id || "");
+      return {
+        ...u,
+        _id: canonicalId,
+        id: canonicalId,
+      };
+    });
+
+    globalUsersData = normalizedUsers;
+    window.globalUsersData = normalizedUsers;
 
     if (typeof filterUsers === "function") {
       filterUsers();
@@ -559,6 +618,9 @@ async function loadUsersModuleData() {
   }
 }
 
+/**
+ * 🔹 ៥.២ ទាញយកទិន្នន័យកាតទាំងអស់ និងចាប់គូជាមួយម្ចាស់គណនីតាម `userId` (`_id`) ជាអាទិភាពទី ១!
+ */
 async function loadCardsModuleData() {
   try {
     const [userRes, cardsRes] = await Promise.all([
@@ -568,11 +630,16 @@ async function loadCardsModuleData() {
       ),
     ]);
     const rawUsers = await userRes.json();
-    const users = Array.isArray(rawUsers)
+    const rawList = Array.isArray(rawUsers)
       ? rawUsers
       : Array.isArray(rawUsers?.users)
         ? rawUsers.users
         : [];
+
+    const users = rawList.map((u) => {
+      const canonicalId = String(u._id || u.id || "");
+      return { ...u, _id: canonicalId, id: canonicalId };
+    });
 
     let allCardsList = [];
     if (cardsRes && cardsRes.ok) {
@@ -585,12 +652,19 @@ async function loadCardsModuleData() {
 
     const allIssuedCards = [];
     allCardsList.forEach((c) => {
-      const owner = users.find((u) => u.username === c.username) || {
-        username: c.username || "Unknown",
-        fullName: c.username || "Unknown",
-      };
+      const cardOwnerId = String(c.userId || "");
+      // 🎯 ចាប់គូម្ចាស់កាតតាម MongoDB `_id` មុនគេបង្អស់!
+      const owner = users.find(
+        (u) => cardOwnerId && String(u._id) === cardOwnerId,
+      ) ||
+        users.find((u) => u.username === c.username) || {
+          _id: cardOwnerId || "",
+          username: c.username || "Unknown",
+          fullName: c.username || "អតិថិជនមិនស្គាល់អត្តសញ្ញាណ",
+        };
       allIssuedCards.push({ user: owner, card: c });
     });
+
     window.globalCardsData = allIssuedCards;
     if (typeof renderCardTablePage === "function") renderCardTablePage();
   } catch (e) {}
@@ -607,17 +681,23 @@ async function loadData() {
   await loadUsersModuleData();
 }
 
-// ========================================================================
-// 🔐 SECTION 5: DYNAMIC MENU PERMISSION ENFORCER & PROFILE PHOTO LOADER
-// ========================================================================
+// ============================================================================
+// 🛡️ ជំពូកទី ៦៖ ការត្រួតពិនិត្យសិទ្ធិម៉ឺនុយ និងរូបថតបុគ្គលិក (DYNAMIC PERMISSIONS & PROFILE)
+// ============================================================================
 async function applyDynamicPermissions() {
   try {
     const res = await fetch("/api/admin/me", { headers: getAuthHeaders() });
     const data = await res.json();
 
     if (data.success && data.admin) {
+      if (data.admin._id) {
+        sessionStorage.setItem("adminId", String(data.admin._id));
+      }
       if (data.admin.username) {
         sessionStorage.setItem("adminUsername", data.admin.username);
+      }
+      if (data.admin.fullName) {
+        sessionStorage.setItem("adminFullName", data.admin.fullName);
       }
 
       const nameDisp = document.getElementById("adminNameDisplay");
@@ -694,9 +774,9 @@ async function applyDynamicPermissions() {
   await loadUsersModuleData();
 }
 
-// ========================================================================
-// 🔔 SECTION 6: NOTIFICATIONS & SOUND ALERTS POLLING
-// ========================================================================
+// ============================================================================
+// 🔔 ជំពូកទី ៧៖ ប្រព័ន្ធជូនដំណឹង និងសំឡេងរោទ៍ស្វ័យប្រវត្តិ (NOTIFICATIONS & SOUND POLLING)
+// ============================================================================
 let previousTotalUnread = 0,
   previousQueueLength = 0;
 let previousPendingKyc = 0,
@@ -726,9 +806,14 @@ async function checkAdminNotifications() {
 
     const chatData = await chatRes.json();
     const rawUser = await userRes.json();
-    const userData = Array.isArray(rawUser) ? rawUser : rawUser?.users || [];
+    const rawList = Array.isArray(rawUser) ? rawUser : rawUser?.users || [];
 
-    if (chatData.success && Array.isArray(userData)) {
+    if (chatData.success && Array.isArray(rawList)) {
+      const userData = rawList.map((u) => {
+        const canonicalId = String(u._id || u.id || "");
+        return { ...u, _id: canonicalId, id: canonicalId };
+      });
+
       globalUsersData = userData;
       window.globalUsersData = userData;
 
@@ -810,9 +895,9 @@ function playCustomNotif(message, soundObj, iconColorHex) {
 
 setInterval(checkAdminNotifications, 6000);
 
-// ========================================================================
-// 🎬 SECTION 7: SYSTEM INITIALIZATION & UNIVERSAL SEARCH
-// ========================================================================
+// ============================================================================
+// 🎬 ជំពូកទី ៨៖ ការចាប់ផ្តើមប្រព័ន្ធដំបូង និងការស្វែងរកសកល (SYSTEM INIT & UNIVERSAL SEARCH)
+// ============================================================================
 window.addEventListener("DOMContentLoaded", () => {
   buildSmartSidebar();
   applyTheme();

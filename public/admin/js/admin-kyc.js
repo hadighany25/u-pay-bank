@@ -1,15 +1,41 @@
-// ========================================================================
-// ឯកសារ: admin-kyc.js (100% Pro Redesign - KYC Compliance Workbench)
+// ============================================================================
+// ឯកសារ: js/admin-kyc.js (100% Pro Redesign - KYC Compliance Workbench)
 // អត្ថន័យ: គ្រប់គ្រងការត្រួតពិនិត្យ អនុម័ត បដិសេធ និងកែប្រែ KYC តាមស្តង់ដារ Maker-Checker
-// ========================================================================
+// ស្តង់ដារថ្មី: ចាប់ទិន្នន័យអតិថិជនតាម MongoDB `_id` សុទ្ធសាធ + គាំទ្រសំបុត្រកំណើតកូន (Junior KYC)
+// ============================================================================
 
+// ============================================================================
+// 🪪 ជំពូកទី ១៖ អថេរសកល, អត្តសញ្ញាណមន្ត្រី ADMIN និងមុខងារស្វែងរកតាម `_id` (GLOBAL STATE & HELPERS)
+// ============================================================================
 let currentKycPage = 1;
-const KYC_PER_PAGE = 5; // 🟢 បង្ហាញ ៥ គណនីក្នុង ១ ទំព័រ
+const KYC_PER_PAGE = 5; // បង្ហាញ ៥ គណនីក្នុង ១ ទំព័រ
 let filteredKycList = [];
 let gkycCurrentStatusFilter = "PENDING"; // 'PENDING', 'VERIFIED', 'REJECTED', 'UNVERIFIED', 'DUPLICATE', 'ALL'
-let gkycSelectedUsername = null;
+let gkycSelectedUserId = null;
 
-// 🔍 ១. ចាប់យកអត្តសញ្ញាណ Admin កំពុង Login (ទាំង Username និង Full Name)
+/**
+ * 🔹 ១.១ ស្វែងរកអតិថិជនក្នុងបញ្ជីតាមរយៈ MongoDB `_id` ជាអាទិភាពទី ១
+ */
+function gkycFindUserById(identifier) {
+  if (!identifier) return null;
+  const clean = String(identifier).trim();
+  const list = Array.isArray(window.globalUsersData)
+    ? window.globalUsersData
+    : [];
+
+  let found = list.find((u) => String(u._id || u.id) === clean);
+  if (found) return found;
+
+  return (
+    list.find(
+      (u) => String(u.username || "").toLowerCase() === clean.toLowerCase(),
+    ) || null
+  );
+}
+
+/**
+ * 🔹 ១.២ ចាប់យកអត្តសញ្ញាណបុគ្គលិក Admin ដែលកំពុង Login សម្រាប់ផ្ទៀងផ្ទាត់សិទ្ធិ Maker-Checker
+ */
 function gkycGetAdminIdentity() {
   if (typeof c360GetActiveAdminIdentity === "function") {
     return c360GetActiveAdminIdentity();
@@ -43,7 +69,9 @@ function gkycGetAdminIdentity() {
   };
 }
 
-// 🔍 ២. រកមើលគណនីទាំងអស់ដែលប្រើលេខអត្តសញ្ញាណប័ណ្ណដូចគ្នា
+/**
+ * 🔹 ១.៣ រកមើលគណនីទាំងអស់ដែលប្រើលេខអត្តសញ្ញាណប័ណ្ណ ឬសំបុត្រកំណើតដូចគ្នា
+ */
 function gkycFindSameIdAccounts(idNumber) {
   const cleanId = String(idNumber || "").trim();
   if (!cleanId || cleanId === "N/A" || typeof globalUsersData === "undefined") {
@@ -54,7 +82,9 @@ function gkycFindSameIdAccounts(idNumber) {
   );
 }
 
-// 🔍 ៣. ឆែកថាតើ Admin កំពុងមើលជា Maker នៃគណនីនោះឬអត់
+/**
+ * 🔹 ១.៤ ឆែកថាតើមន្ត្រី Admin ដែលកំពុងមើលនេះ ជាអ្នកបញ្ជូនឯកសារ (Maker) ឬអត់
+ */
 function gkycIsAdminMakerForUser(user) {
   const adminIdent = gkycGetAdminIdentity();
   const rawUploader = String(user.kycUploadedBy || "")
@@ -66,6 +96,7 @@ function gkycIsAdminMakerForUser(user) {
   const isUploadedByCustomer =
     !rawUploader ||
     rawUploader === "អតិថិជនផ្ទាល់" ||
+    rawUploader.includes("អាណាព្យាបាល") ||
     uploaderLower === customerUsernameLower;
 
   const isCurrentAdminTheMaker =
@@ -82,10 +113,13 @@ function gkycIsAdminMakerForUser(user) {
   };
 }
 
-// ========================================================================
-// 🔄 SECTION 2: DATA REFRESH, KPI STATS & FILTERING
-// ========================================================================
+// ============================================================================
+// 🔄 ជំពូកទី ២៖ ការធ្វើបច្ចុប្បន្នភាពទិន្នន័យ, ស្ថិតិ KPI និងការចម្រាញ់ (REFRESH, KPI & FILTER)
+// ============================================================================
 
+/**
+ * 🔹 ២.១ ទាញយកទិន្នន័យសំណើ KYC ថ្មីៗពី Server
+ */
 window.gkycRefreshAllData = async function () {
   const spinIcon = document.getElementById("gkyc-refresh-spin-icon");
   if (spinIcon) spinIcon.classList.add("fa-spin");
@@ -97,12 +131,10 @@ window.gkycRefreshAllData = async function () {
     setTimeout(() => {
       initKycTable();
       if (
-        gkycSelectedUsername &&
+        gkycSelectedUserId &&
         document.getElementById("kyc-details-view")?.style.display === "block"
       ) {
-        const freshUser = (globalUsersData || []).find(
-          (u) => u.username === gkycSelectedUsername,
-        );
+        const freshUser = gkycFindUserById(gkycSelectedUserId);
         if (freshUser) renderKycDetailsContent(freshUser);
       }
       if (spinIcon) spinIcon.classList.remove("fa-spin");
@@ -121,6 +153,9 @@ window.gkycRefreshAllData = async function () {
   }
 };
 
+/**
+ * 🔹 ២.២ ប្តូរការជ្រើសរើសប្រភេទស្ថានភាព (PENDING, VERIFIED, REJECTED, DUPLICATE, ALL)
+ */
 window.gkycSetStatusFilter = function (filterKey) {
   gkycCurrentStatusFilter = filterKey;
   currentKycPage = 1;
@@ -146,6 +181,9 @@ function filterKycTable() {
   initKycTable();
 }
 
+/**
+ * 🔹 ២.៣ គណនាស្ថិតិ KPI ទាំង ៥ និងចម្រាញ់បញ្ជីគណនីតាមលក្ខខណ្ឌ
+ */
 function initKycTable() {
   const allUsers = (
     typeof globalUsersData !== "undefined" && Array.isArray(globalUsersData)
@@ -153,7 +191,6 @@ function initKycTable() {
       : window.globalPendingKycData || []
   ).filter((u) => u && u.role !== "admin" && u.username !== "superadmin");
 
-  // ១. គណនាចំនួន ID ដើម្បីដឹងថាគណនីណាខ្លះមានលេខអត្តសញ្ញាណប័ណ្ណស្ទួនពិតប្រាកដ (>= 2 គណនី)
   const idCounts = {};
   allUsers.forEach((u) => {
     const cleanId = String(u.idNumber || "").trim();
@@ -162,7 +199,6 @@ function initKycTable() {
     }
   });
 
-  // ២. គណនាស្ថិតិ KPI ទាំង ៥
   let pendingCount = 0;
   let verifiedCount = 0;
   let rejectedCount = 0;
@@ -190,7 +226,6 @@ function initKycTable() {
   setTxt("gkyc-stat-duplicate", duplicateCount);
   setTxt("gkyc-stat-all", allUsers.length);
 
-  // ៣. Filter តាម Status និងពាក្យស្វែងរក
   const keyword = (document.getElementById("searchKycBox")?.value || "")
     .toLowerCase()
     .trim();
@@ -215,13 +250,13 @@ function initKycTable() {
 
     if (keyword) {
       const searchStr = [
+        u._id,
         u.fullName,
         u.username,
         u.email,
         u.phone,
         u.phoneNumber,
         u.idNumber,
-        u.userId,
         u.kycUploadedBy,
         u.mainAccounts?.USD?.accountNumber,
         u.mainAccounts?.KHR?.accountNumber,
@@ -235,7 +270,6 @@ function initKycTable() {
     return true;
   });
 
-  // តម្រៀបឱ្យ Pending នៅខាងលើគេបង្អស់
   const priorityOrder = {
     pending: 1,
     rejected: 2,
@@ -252,10 +286,13 @@ function initKycTable() {
   renderKycTablePage();
 }
 
-// ========================================================================
-// 📊 SECTION 3: PAGINATION & TABLE RENDERING
-// ========================================================================
+// ============================================================================
+// 📊 ជំពូកទី ៣៖ ការគូរតារាងសំណើ KYC តាម `_id` និងការបែងចែកទំព័រ (TABLE RENDERING BY `_id`)
+// ============================================================================
 
+/**
+ * 🔹 ៣.១ គូរតារាងសំណើ KYC (គាំទ្រទាំងអត្តសញ្ញាណប័ណ្ណមនុស្សធំ និងសំបុត្រកំណើតកុមារ)
+ */
 function renderKycTablePage() {
   const tbody = document.getElementById("kycTableBody");
   const paginationContainer = document.getElementById("kycPaginationFooter");
@@ -288,29 +325,32 @@ function renderKycTablePage() {
   tbody.dataset.gkycCustomRendered = "true";
   tbody.innerHTML = pageItems
     .map((u) => {
+      const uid = String(u._id || u.id);
       const st = (u.kycStatus || "unverified").toLowerCase();
       const fullNameUpper = String(u.fullName || u.username).toUpperCase();
       const idImg = u.kycDocument || u.kycImage || u.idCardImage || "";
       const selfieImg = u.selfieUrl || "";
+      const isJunior = u.role === "junior";
 
       const makerInfo = gkycIsAdminMakerForUser(u);
       const sameIdAccs = gkycFindSameIdAccounts(u.idNumber);
       const hasDupId = sameIdAccs.length > 1;
 
-      // រូបភាព مصغر ក្នុងតារាង
+      const docTitleLabel = isJunior ? "សំបុត្រកំណើតកូន" : "អត្តសញ្ញាណប័ណ្ណ";
+
       let docsThumbHtml = "";
       if (idImg || selfieImg) {
         docsThumbHtml = `
           <div class="gkyc-doc-thumb-pair">
             ${
               idImg
-                ? `<img src="${idImg}" class="gkyc-thumb-id" onclick="if(typeof c360ViewFullImage==='function') c360ViewFullImage('${idImg}', 'អត្តសញ្ញាណប័ណ្ណ៖ ${fullNameUpper}')" title="ចុចពង្រីកមើលរូបអត្តសញ្ញាណប័ណ្ណ">`
-                : `<span style="font-size:0.72rem; color:#ef4444; font-weight:700;">គ្មានរូប ID</span>`
+                ? `<img src="${idImg}" class="gkyc-thumb-id" onclick="if(typeof c360ViewFullImage==='function') c360ViewFullImage('${idImg}', '${docTitleLabel}៖ ${fullNameUpper}')" title="ចុចពង្រីកមើលរូប${docTitleLabel}">`
+                : `<span style="font-size:0.72rem; color:#ef4444; font-weight:700;">គ្មានរូបឯកសារ</span>`
             }
             ${
               selfieImg
-                ? `<img src="${selfieImg}" class="gkyc-thumb-selfie" onclick="if(typeof c360ViewFullImage==='function') c360ViewFullImage('${selfieImg}', 'រូបថត Selfie៖ ${fullNameUpper}')" title="ចុចពង្រីកមើលរូប Selfie">`
-                : `<span style="font-size:0.72rem; color:#ef4444; font-weight:700;">គ្មាន Selfie</span>`
+                ? `<img src="${selfieImg}" class="gkyc-thumb-selfie" onclick="if(typeof c360ViewFullImage==='function') c360ViewFullImage('${selfieImg}', 'រូបថតមុខផ្ទាល់៖ ${fullNameUpper}')" title="ចុចពង្រីកមើលរូបថតមុខ">`
+                : `<span style="font-size:0.72rem; color:#ef4444; font-weight:700;">គ្មានរូបមុខ</span>`
             }
           </div>
         `;
@@ -318,7 +358,6 @@ function renderKycTablePage() {
         docsThumbHtml = `<span style="font-size: 0.76rem; color: var(--text-muted); background: var(--bg-body); padding: 4px 10px; border-radius: 6px; border: 1px dashed var(--border);">មិនទាន់បង្ហោះរូបភាព</span>`;
       }
 
-      // ផ្លាកស្ថានភាព និងសិទ្ធិ Maker-Checker
       let statusBadgeHtml = "";
       if (st === "pending") {
         statusBadgeHtml = `
@@ -339,7 +378,7 @@ function renderKycTablePage() {
             <span style="background: rgba(16, 185, 129, 0.15); color: #10b981; border: 1px solid rgba(16, 185, 129, 0.35); padding: 3px 10px; border-radius: 20px; font-size: 0.74rem; font-weight: 800;">
               <i class="fa-solid fa-circle-check"></i> អនុម័តរួចរាល់
             </span>
-            <span style="font-size:0.68rem; color:var(--text-muted); font-weight:700;">ដោយ: @${u.kycApprovedBy || "System"}</span>
+            <span style="font-size:0.68rem; color:var(--text-muted); font-weight:700;">ដោយ: ${String(u.kycApprovedBy || "System").replace(/^@/, "")}</span>
           </div>
         `;
       } else if (st === "rejected") {
@@ -359,19 +398,19 @@ function renderKycTablePage() {
         `;
       }
 
-      // ប៊ូតុងសកម្មភាពរហ័សក្នុងតារាង
+      // 🎯 បោះ MongoDB `_id` (uid) ទៅកាន់គ្រប់ប៊ូតុងសកម្មភាពទាំងអស់!
       let quickActionBtns = `
-        <button type="button" class="gkyc-btn-act" style="background: #004d40; color: #ffffff;" onclick="openKycDetails('${u.username}')">
+        <button type="button" class="gkyc-btn-act" style="background: #004d40; color: #ffffff;" onclick="openKycDetails('${uid}')">
           <i class="fa-solid fa-magnifying-glass-chart"></i> ពិនិត្យលម្អិត
         </button>
       `;
 
       if (st === "pending" && !makerInfo.isCurrentAdminTheMaker) {
         quickActionBtns = `
-          <button type="button" class="gkyc-btn-act" style="background: #ecfdf5; color: #059669; border-color: #a7f3d0;" title="អនុម័តរហ័ស" onclick="gkycTriggerAction('${u.username}', 'approved')">
+          <button type="button" class="gkyc-btn-act" style="background: #ecfdf5; color: #059669; border-color: #a7f3d0;" title="អនុម័តរហ័ស" onclick="gkycTriggerAction('${uid}', 'approved')">
             <i class="fa-solid fa-check"></i> អនុម័ត
           </button>
-          <button type="button" class="gkyc-btn-act" style="background: #fef2f2; color: #ef4444; border-color: #fca5a5;" title="បដិសេធរហ័ស" onclick="gkycPromptReject('${u.username}', 'reject')">
+          <button type="button" class="gkyc-btn-act" style="background: #fef2f2; color: #ef4444; border-color: #fca5a5;" title="បដិសេធរហ័ស" onclick="gkycPromptReject('${uid}', 'reject')">
             <i class="fa-solid fa-xmark"></i>
           </button>
           ${quickActionBtns}
@@ -380,14 +419,14 @@ function renderKycTablePage() {
 
       return `
         <tr style="border-bottom: 1px solid var(--border, #e2e8f0); transition: 0.15s;" onmouseover="this.style.background='rgba(15, 23, 42, 0.015)'" onmouseout="this.style.background='transparent'">
-          <!-- ១. ព័ត៌មានអតិថិជន -->
           <td style="padding: 14px 12px;">
             <div style="display: flex; align-items: center; gap: 12px;">
               <img src="${u.profileImage || "../images/default-avatar.png"}" style="width: 42px; height: 42px; border-radius: 50%; object-fit: cover; border: 1px solid var(--border);" onerror="this.src='../images/default-avatar.png'">
               <div>
-                <div style="font-weight: 800; font-size: 0.94rem; color: var(--text-main); display: flex; align-items: center; gap: 6px;">
+                <div style="font-weight: 800; font-size: 0.94rem; color: var(--text-main); display: flex; align-items: center; gap: 6px; flex-wrap: wrap;">
                   <span>${fullNameUpper}</span>
-                  <button type="button" onclick="gkycJumpToCustomer360('${u.username}')" title="បើកមើលក្នុង Customer 360° (Tab 5)" style="background: var(--bg-body); border: 1px solid var(--border); color: #3b82f6; border-radius: 6px; padding: 2px 6px; font-size: 0.68rem; cursor: pointer; font-weight: 800;">
+                  ${isJunior ? `<span style="background:rgba(219,39,119,0.14); color:#db2777; padding:2px 7px; border-radius:8px; font-size:0.65rem; font-weight:800;">👶 គណនីកុមារ (សំបុត្រកំណើត)</span>` : ""}
+                  <button type="button" onclick="gkycJumpToCustomer360('${uid}')" title="បើកមើលក្នុង Customer 360° តាម _id" style="background: var(--bg-body); border: 1px solid var(--border); color: #3b82f6; border-radius: 6px; padding: 2px 6px; font-size: 0.68rem; cursor: pointer; font-weight: 800;">
                     360° <i class="fa-solid fa-arrow-up-right-from-square" style="font-size: 0.6rem;"></i>
                   </button>
                 </div>
@@ -398,7 +437,6 @@ function renderKycTablePage() {
             </div>
           </td>
 
-          <!-- ២. លេខអត្តសញ្ញាណប័ណ្ណ & ស្ទួន -->
           <td style="padding: 14px 12px;">
             <div style="font-family: 'JetBrains Mono', monospace; font-weight: 800; font-size: 0.92rem; color: var(--text-main);">
               ${u.idNumber || '<span style="color:#94a3b8; font-weight:600;">មិនទាន់មាន</span>'}
@@ -415,18 +453,16 @@ function renderKycTablePage() {
             }
           </td>
 
-          <!-- ៣. រូបភាពឯកសារ -->
           <td style="padding: 14px 12px;">
             ${docsThumbHtml}
           </td>
 
-          <!-- ៤. អ្នកបញ្ជូន (Maker) & កាលបរិច្ឆេទ -->
           <td style="padding: 14px 12px;">
             <div style="font-size: 0.8rem; font-weight: 800; color: var(--text-main);">
               ${
                 makerInfo.isUploadedByCustomer
-                  ? `<span style="color:#0284c7;"><i class="fa-solid fa-mobile-screen"></i> អតិថិជនផ្ទាល់</span>`
-                  : `<span style="color:#7e22ce;"><i class="fa-solid fa-user-shield"></i> @${makerInfo.rawUploader}</span>`
+                  ? `<span style="color:#0284c7;"><i class="fa-solid fa-mobile-screen"></i> ${makerInfo.rawUploader}</span>`
+                  : `<span style="color:#7e22ce;"><i class="fa-solid fa-user-shield"></i> ${makerInfo.rawUploader}</span>`
               }
             </div>
             <div style="font-size: 0.72rem; color: var(--text-muted); font-family: monospace; margin-top: 3px;">
@@ -434,12 +470,10 @@ function renderKycTablePage() {
             </div>
           </td>
 
-          <!-- ៥. ស្ថានភាព -->
           <td style="padding: 14px 12px;">
             ${statusBadgeHtml}
           </td>
 
-          <!-- ៦. សកម្មភាព -->
           <td style="padding: 14px 12px; text-align: right; white-space: nowrap;">
             <div style="display: inline-flex; gap: 6px; align-items: center;">
               ${quickActionBtns}
@@ -450,7 +484,6 @@ function renderKycTablePage() {
     })
     .join("");
 
-  // បង្ហាញ Pagination Footer ជានិច្ចតាមទម្រង់ "ថយក្រោយ | ទំព័រ 1 នៃ 22 | បន្ទាប់"
   if (paginationContainer) {
     paginationContainer.style.display = "flex";
     const pageInfo = document.getElementById("kycPageInfo");
@@ -478,13 +511,14 @@ function changeKycPage(step) {
   renderKycTablePage();
 }
 
-// លោតទៅកាន់ Customer 360° ហើយបើក Tab 5 (KYC) ឱ្យអូតូ
-window.gkycJumpToCustomer360 = function (username) {
+/**
+ * 🔹 ៣.២ លោតទៅកាន់ Customer 360° តាមរយៈ MongoDB `_id` ហើយបើក Tab 5 (KYC) ដោយស្វ័យប្រវត្តិ
+ */
+window.gkycJumpToCustomer360 = function (targetId) {
   const searchInput = document.getElementById("searchC360");
   if (searchInput) {
-    searchInput.value = username;
-    const c360Nav = document.querySelector(`[onclick*="sec-c360"]`);
-    if (c360Nav) c360Nav.click();
+    searchInput.value = targetId;
+    if (typeof showSection === "function") showSection("customer-360");
     if (typeof currentC360ActiveTab !== "undefined") {
       currentC360ActiveTab = "kyc";
     }
@@ -494,12 +528,15 @@ window.gkycJumpToCustomer360 = function (username) {
   }
 };
 
-// ========================================================================
-// 🖥️ SECTION 4: KYC DETAILS WORKBENCH (ប្រើប្រាស់មុខងារ និង API រួមជាមួយ Tab 5)
-// ========================================================================
+// ============================================================================
+// 🖥️ ជំពូកទី ៤៖ ផ្ទាំងត្រួតពិនិត្យលម្អិត KYC WORKBENCH តាម `_id` (SPLIT-SCREEN WORKBENCH BY `_id`)
+// ============================================================================
 
-function openKycDetails(username) {
-  const user = (globalUsersData || []).find((u) => u.username === username);
+/**
+ * 🔹 ៤.១ បើកផ្ទាំងត្រួតពិនិត្យលម្អិត KYC តាមរយៈ MongoDB `_id`
+ */
+function openKycDetails(identifier) {
+  const user = gkycFindUserById(identifier);
   if (!user) {
     Swal.fire({
       icon: "error",
@@ -510,8 +547,9 @@ function openKycDetails(username) {
     return;
   }
 
-  gkycSelectedUsername = username;
-  window.currentC360User = user; // Sync ជាមួយអថេរគោលដើម្បីប្រើមុខងារ Upload & Edit រួមគ្នាបាន 100%
+  const canonicalId = String(user._id || user.id);
+  gkycSelectedUserId = canonicalId;
+  window.currentC360User = user;
 
   document.getElementById("kyc-list-view").style.display = "none";
   document.getElementById("kyc-details-view").style.display = "block";
@@ -519,7 +557,7 @@ function openKycDetails(username) {
   const topAct = document.getElementById("gkyc-detail-top-actions");
   if (topAct) {
     topAct.innerHTML = `
-      <button type="button" onclick="gkycJumpToCustomer360('${user.username}')" style="padding: 9px 15px; border-radius: 10px; background: rgba(59, 130, 246, 0.12); color: #3b82f6; border: 1px solid rgba(59, 130, 246, 0.3); font-weight: 800; font-size: 0.82rem; cursor: pointer; display: inline-flex; align-items: center; gap: 6px;">
+      <button type="button" onclick="gkycJumpToCustomer360('${canonicalId}')" style="padding: 9px 15px; border-radius: 10px; background: rgba(59, 130, 246, 0.12); color: #3b82f6; border: 1px solid rgba(59, 130, 246, 0.3); font-weight: 800; font-size: 0.82rem; cursor: pointer; display: inline-flex; align-items: center; gap: 6px;">
         <i class="fa-solid fa-id-card"></i> បើកមើលក្នុង Customer 360°
       </button>
     `;
@@ -529,39 +567,42 @@ function openKycDetails(username) {
 }
 
 function closeKycDetails() {
-  gkycSelectedUsername = null;
+  gkycSelectedUserId = null;
   document.getElementById("kyc-details-view").style.display = "none";
   document.getElementById("kyc-list-view").style.display = "block";
   initKycTable();
 }
 
 /**
- * 📌 គូរផ្ទាំង KYC Compliance Workbench (Split-Screen UI ប្លែកពី 360° តែមានគ្រប់មុខងារដូចគ្នា)
+ * 🔹 ៤.២ គូរផ្ទាំង KYC Compliance Workbench (Split-Screen UI គាំទ្រទាំងមនុស្សធំ និងគណនីកូន)
  */
 function renderKycDetailsContent(user) {
   const container = document.getElementById("kyc-details-content");
   if (!container) return;
 
+  const canonicalId = String(user._id || user.id);
   const st = (user.kycStatus || "unverified").toLowerCase();
   const idUrl = user.kycDocument || user.kycImage || user.idCardImage || "";
   const selfieUrl = user.selfieUrl || "";
   const fullNameUpper = String(user.fullName || user.username).toUpperCase();
+  const isJunior = user.role === "junior";
 
   const makerInfo = gkycIsAdminMakerForUser(user);
   const sameIdAccounts = gkycFindSameIdAccounts(user.idNumber);
   const hasRealDuplicateId =
-    sameIdAccounts.filter((u) => u.username !== user.username).length > 0;
+    sameIdAccounts.filter((u) => String(u._id || u.id) !== canonicalId).length >
+    0;
 
-  // ប្រអប់អត្តសញ្ញាណប័ណ្ណស្ទួន (លាក់ចោលបើគ្មានស្ទួន!)
   let dupAlertHtml = "";
   if (hasRealDuplicateId) {
     const chips = sameIdAccounts
       .map((acc) => {
-        const isCur = acc.username === user.username;
+        const accId = String(acc._id || acc.id);
+        const isCur = accId === canonicalId;
         return `
-          <span onclick="${isCur ? "" : `openKycDetails('${acc.username}')`}"
+          <span onclick="${isCur ? "" : `openKycDetails('${accId}')`}"
                 style="background:${isCur ? "#0f172a" : "var(--bg-card)"}; color:${isCur ? "#fef08a" : "var(--text-main)"}; border:1px solid ${isCur ? "#0f172a" : "var(--border)"}; padding:4px 10px; border-radius:8px; font-size:0.76rem; font-weight:800; cursor:${isCur ? "default" : "pointer"}; display:inline-flex; align-items:center; gap:5px;">
-            <i class="fa-solid fa-user"></i> ${(acc.fullName || acc.username).toUpperCase()} (@${acc.username}) ${isCur ? "• កំពុងមើល" : '<i class="fa-solid fa-arrow-right" style="font-size:0.65rem; color:#3b82f6;"></i>'}
+            <i class="fa-solid fa-user"></i> ${(acc.fullName || acc.username).toUpperCase()} ${isCur ? "• កំពុងមើល" : '<i class="fa-solid fa-arrow-right" style="font-size:0.65rem; color:#3b82f6;"></i>'}
           </span>
         `;
       })
@@ -582,7 +623,7 @@ function renderKycDetailsContent(user) {
               ${chips}
             </div>
           </div>
-          <button type="button" onclick="if(typeof c360EditDuplicateIdReasonModal==='function'){ c360EditDuplicateIdReasonModal().then(()=>setTimeout(()=>openKycDetails('${user.username}'), 600)); }" style="padding:7px 12px; border-radius:8px; background:var(--bg-card); color:#ea580c; border:1px solid rgba(249,115,22,0.5); font-weight:800; font-size:0.78rem; cursor:pointer;">
+          <button type="button" onclick="if(typeof c360EditDuplicateIdReasonModal==='function'){ c360EditDuplicateIdReasonModal().then(()=>setTimeout(()=>openKycDetails('${canonicalId}'), 600)); }" style="padding:7px 12px; border-radius:8px; background:var(--bg-card); color:#ea580c; border:1px solid rgba(249,115,22,0.5); font-weight:800; font-size:0.78rem; cursor:pointer;">
             <i class="fa-solid fa-pen-to-square"></i> កែមូលហេតុរួមគ្នា
           </button>
         </div>
@@ -590,7 +631,6 @@ function renderKycDetailsContent(user) {
     `;
   }
 
-  // ប៊ូតុងសកម្មភាពខាងក្រោមតាមគោលការណ៍ Maker-Checker
   let bottomActionsHtml = "";
   if (st === "pending") {
     if (makerInfo.isCurrentAdminTheMaker) {
@@ -598,30 +638,34 @@ function renderKycDetailsContent(user) {
         <div style="background: rgba(59, 130, 246, 0.1); border: 1px dashed rgba(59, 130, 246, 0.45); border-radius: 14px; padding: 14px 18px; width: 100%; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;">
           <div style="display:flex; align-items:center; gap:10px; color:var(--text-main); font-weight:700; font-size:0.88rem;">
             <i class="fa-solid fa-user-lock" style="font-size:1.3rem; color:#3b82f6;"></i>
-            <span><b>គោលការណ៍ Maker-Checker៖</b> អ្នកជាអ្នកបញ្ជូនឯកសារនេះ (@${makerInfo.rawUploader}) មិនអាចអនុម័តខ្លួនឯងបានទេ។ សូមរង់ចាំ Admin ផ្សេងទៀតជាអ្នកអនុម័ត។</span>
+            <span><b>គោលការណ៍ Maker-Checker៖</b> អ្នកជាអ្នកបញ្ជូនឯកសារនេះ (${makerInfo.rawUploader}) មិនអាចអនុម័តខ្លួនឯងបានទេ។ សូមរង់ចាំមន្ត្រីផ្សេងទៀតជាអ្នកអនុម័ត។</span>
           </div>
-          <button type="button" onclick="gkycWithdrawOwn('${user.username}')" style="padding:10px 16px; border-radius:10px; background:#fff1f2; color:#e11d48; border:1px solid #fda4af; font-weight:800; font-size:0.84rem; cursor:pointer;">
+          <button type="button" onclick="gkycWithdrawOwn('${canonicalId}')" style="padding:10px 16px; border-radius:10px; background:#fff1f2; color:#e11d48; border:1px solid #fda4af; font-weight:800; font-size:0.84rem; cursor:pointer;">
             <i class="fa-solid fa-rotate-left"></i> ដកសំណើមកកែវិញ
           </button>
         </div>
       `;
     } else {
       bottomActionsHtml = `
-        <button type="button" onclick="gkycPromptReject('${user.username}', 'reject')" style="flex: 1; min-width: 200px; padding: 14px 22px; border-radius: 12px; background: rgba(239, 68, 68, 0.12); color: #ef4444; border: 1px solid rgba(239, 68, 68, 0.35); font-weight: 800; font-size: 0.96rem; cursor: pointer; display: flex; justify-content: center; align-items: center; gap: 8px;">
+        <button type="button" onclick="gkycPromptReject('${canonicalId}', 'reject')" style="flex: 1; min-width: 200px; padding: 14px 22px; border-radius: 12px; background: rgba(239, 68, 68, 0.12); color: #ef4444; border: 1px solid rgba(239, 68, 68, 0.35); font-weight: 800; font-size: 0.96rem; cursor: pointer; display: flex; justify-content: center; align-items: center; gap: 8px;">
           <i class="fa-solid fa-circle-xmark"></i> បដិសេធសំណើ & លុបលេខ ID (Reject)
         </button>
-        <button type="button" onclick="gkycTriggerAction('${user.username}', 'approved')" style="flex: 1.5; min-width: 240px; padding: 14px 25px; border-radius: 12px; background: linear-gradient(135deg, #059669, #10b981); color: #ffffff; border: none; font-weight: 800; font-size: 0.96rem; cursor: pointer; box-shadow: 0 6px 15px rgba(16, 185, 129, 0.25); display: flex; justify-content: center; align-items: center; gap: 8px;">
-          <i class="fa-solid fa-circle-check"></i> អនុម័តឯកសារ (Approve KYC)
+        <button type="button" onclick="gkycTriggerAction('${canonicalId}', 'approved')" style="flex: 1.5; min-width: 240px; padding: 14px 25px; border-radius: 12px; background: linear-gradient(135deg, #059669, #10b981); color: #ffffff; border: none; font-weight: 800; font-size: 0.96rem; cursor: pointer; box-shadow: 0 6px 15px rgba(16, 185, 129, 0.25); display: flex; justify-content: center; align-items: center; gap: 8px;">
+          <i class="fa-solid fa-circle-check"></i> ${isJunior ? "អនុម័តសំបុត្រកំណើត & បើកគណនីកូនភ្លាមៗ" : "អនុម័តឯកសារ (Approve KYC)"}
         </button>
       `;
     }
   } else if (st === "verified" || st === "approved") {
     bottomActionsHtml = `
-      <button type="button" onclick="gkycPromptReject('${user.username}', 'revoke')" style="width: 100%; padding: 14px; border-radius: 12px; background: rgba(239, 68, 68, 0.1); color: #ef4444; border: 1px solid rgba(239, 68, 68, 0.35); font-weight: 800; font-size: 0.95rem; cursor: pointer; display: flex; justify-content: center; align-items: center; gap: 8px;">
+      <button type="button" onclick="gkycPromptReject('${canonicalId}', 'revoke')" style="width: 100%; padding: 14px; border-radius: 12px; background: rgba(239, 68, 68, 0.1); color: #ef4444; border: 1px solid rgba(239, 68, 68, 0.35); font-weight: 800; font-size: 0.95rem; cursor: pointer; display: flex; justify-content: center; align-items: center; gap: 8px;">
         <i class="fa-solid fa-ban"></i> ដកហូតសិទ្ធិ KYC ឡើងវិញ និងលុបលេខ ID (Revoke Verification)
       </button>
     `;
   }
+
+  const docBoxTitle = isJunior
+    ? "សំបុត្រកំណើតកូន (Birth Certificate)"
+    : "អត្តសញ្ញាណប័ណ្ណ (ID Card)";
 
   container.innerHTML = `
     <style>
@@ -660,38 +704,38 @@ function renderKycDetailsContent(user) {
         </div>
 
         <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 14px;">
-          <!-- រូបអត្តសញ្ញាណប័ណ្ណ -->
+          <!-- រូបអត្តសញ្ញាណប័ណ្ណ ឬ សំបុត្រកំណើតកូន -->
           <div style="background:var(--bg-body); border:1px solid var(--border); border-radius:14px; overflow:hidden;">
             <div style="padding:10px 14px; border-bottom:1px solid var(--border); display:flex; justify-content:space-between; align-items:center;">
-              <span style="font-weight:800; font-size:0.82rem;"><i class="fa-solid fa-id-card" style="color:#0d9488;"></i> អត្តសញ្ញាណប័ណ្ណ (ID Card)</span>
+              <span style="font-weight:800; font-size:0.82rem;"><i class="fa-solid fa-id-card" style="color:#0d9488;"></i> ${docBoxTitle}</span>
               ${
                 idUrl
-                  ? `<button type="button" onclick="if(typeof c360ViewFullImage==='function') c360ViewFullImage('${idUrl}', 'អត្តសញ្ញាណប័ណ្ណ៖ ${fullNameUpper}')" style="padding:4px 9px; font-size:0.72rem; font-weight:800; border-radius:6px; border:1px solid var(--border); background:var(--bg-card); color:var(--text-main); cursor:pointer;"><i class="fa-solid fa-expand"></i> ពង្រីក</button>`
+                  ? `<button type="button" onclick="if(typeof c360ViewFullImage==='function') c360ViewFullImage('${idUrl}', '${docBoxTitle}៖ ${fullNameUpper}')" style="padding:4px 9px; font-size:0.72rem; font-weight:800; border-radius:6px; border:1px solid var(--border); background:var(--bg-card); color:var(--text-main); cursor:pointer;"><i class="fa-solid fa-expand"></i> ពង្រីក</button>`
                   : ""
               }
             </div>
             <div style="height:260px; background:#0f172a; display:flex; align-items:center; justify-content:center; cursor:pointer;"
-                 onclick="${idUrl ? `if(typeof c360ViewFullImage==='function') c360ViewFullImage('${idUrl}', 'អត្តសញ្ញាណប័ណ្ណ៖ ${fullNameUpper}')` : ""}">
+                 onclick="${idUrl ? `if(typeof c360ViewFullImage==='function') c360ViewFullImage('${idUrl}', '${docBoxTitle}៖ ${fullNameUpper}')` : ""}">
               ${
                 idUrl
                   ? `<img src="${idUrl}" style="width:100%; height:100%; object-fit:contain;">`
-                  : `<span style="color:#94a3b8; font-weight:700;">មិនទាន់មានរូបភាព ID</span>`
+                  : `<span style="color:#94a3b8; font-weight:700;">មិនទាន់មានរូបភាពឯកសារ</span>`
               }
             </div>
           </div>
 
-          <!-- រូបថត Selfie -->
+          <!-- រូបថត Selfie ក្នុង KYC (ដាច់ដោយឡែកពីរូប Profile!) -->
           <div style="background:var(--bg-body); border:1px solid var(--border); border-radius:14px; overflow:hidden;">
             <div style="padding:10px 14px; border-bottom:1px solid var(--border); display:flex; justify-content:space-between; align-items:center;">
-              <span style="font-weight:800; font-size:0.82rem;"><i class="fa-solid fa-camera-retro" style="color:#2563eb;"></i> រូបថតផ្ទាល់ (Live Selfie)</span>
+              <span style="font-weight:800; font-size:0.82rem;"><i class="fa-solid fa-camera-retro" style="color:#2563eb;"></i> រូបថតផ្ទៀងផ្ទាត់ KYC (Selfie)</span>
               ${
                 selfieUrl
-                  ? `<button type="button" onclick="if(typeof c360ViewFullImage==='function') c360ViewFullImage('${selfieUrl}', 'រូបថត Selfie៖ ${fullNameUpper}')" style="padding:4px 9px; font-size:0.72rem; font-weight:800; border-radius:6px; border:1px solid var(--border); background:var(--bg-card); color:var(--text-main); cursor:pointer;"><i class="fa-solid fa-expand"></i> ពង្រីក</button>`
+                  ? `<button type="button" onclick="if(typeof c360ViewFullImage==='function') c360ViewFullImage('${selfieUrl}', 'រូបថត KYC៖ ${fullNameUpper}')" style="padding:4px 9px; font-size:0.72rem; font-weight:800; border-radius:6px; border:1px solid var(--border); background:var(--bg-card); color:var(--text-main); cursor:pointer;"><i class="fa-solid fa-expand"></i> ពង្រីក</button>`
                   : ""
               }
             </div>
             <div style="height:260px; background:#0f172a; display:flex; align-items:center; justify-content:center; cursor:pointer;"
-                 onclick="${selfieUrl ? `if(typeof c360ViewFullImage==='function') c360ViewFullImage('${selfieUrl}', 'រូបថត Selfie៖ ${fullNameUpper}')` : ""}">
+                 onclick="${selfieUrl ? `if(typeof c360ViewFullImage==='function') c360ViewFullImage('${selfieUrl}', 'រូបថត KYC៖ ${fullNameUpper}')` : ""}">
               ${
                 selfieUrl
                   ? `<img src="${selfieUrl}" style="width:100%; height:100%; object-fit:contain;">`
@@ -714,7 +758,7 @@ function renderKycDetailsContent(user) {
         </div>
 
         <div class="gkyc-wb-info-row">
-          <span class="gkyc-wb-lbl">លេខអត្តសញ្ញាណប័ណ្ណ (ID NUMBER)</span>
+          <span class="gkyc-wb-lbl">${isJunior ? "លេខសំបុត្រកំណើត (BIRTH CERT NO.)" : "លេខអត្តសញ្ញាណប័ណ្ណ (ID NUMBER)"}</span>
           <span class="gkyc-wb-val" style="font-family:'JetBrains Mono',monospace; font-size:1.05rem; color:#0d9488; background:rgba(13,148,136,0.12); padding:2px 10px; border-radius:6px;">${user.idNumber || "N/A"}</span>
         </div>
 
@@ -742,7 +786,7 @@ function renderKycDetailsContent(user) {
 
         <div class="gkyc-wb-info-row">
           <span class="gkyc-wb-lbl">អ្នកបញ្ជូនសំណើ (MAKER)</span>
-          <span class="gkyc-wb-val">${makerInfo.isUploadedByCustomer ? `អតិថិជនផ្ទាល់ (@${user.username})` : `Admin: @${makerInfo.rawUploader}`}</span>
+          <span class="gkyc-wb-val">${makerInfo.rawUploader}</span>
         </div>
 
         <div class="gkyc-wb-info-row">
@@ -759,22 +803,33 @@ function renderKycDetailsContent(user) {
   `;
 }
 
-// ========================================================================
-// ⚙️ SECTION 5: ACTION HANDLERS (SHARED API `/api/admin/kyc-action`)
-// ========================================================================
+// ============================================================================
+// ⚙️ ជំពូកទី ៥៖ សកម្មភាពអនុម័ត, បដិសេធ និងដកសំណើតាម `_id` (ACTION HANDLERS BY `_id`)
+// ============================================================================
 
-window.gkycPromptReject = async function (username, mode = "reject") {
+/**
+ * 🔹 ៥.១ បង្ហាញប្រអប់បញ្ជាក់មូលហេតុពេលបដិសេធ (Reject) ឬដកហូតសិទ្ធិ (Revoke) តាមរយៈ `_id`
+ */
+window.gkycPromptReject = async function (identifier, mode = "reject") {
+  const user = gkycFindUserById(identifier);
+  const canonicalId = user
+    ? String(user._id || user.id)
+    : String(identifier).trim();
+  const displayFullName = user
+    ? user.fullName || user.username
+    : String(identifier);
+
   const isRevoke = mode === "revoke";
   const { value: reason } = await Swal.fire({
     title: `<span class="kh-text" style="font-size: 1.22rem; color: #ef4444;">${isRevoke ? "បញ្ជាក់ការដកហូតសិទ្ធិ KYC?" : "បញ្ជាក់ការបដិសេធសំណើ KYC?"}</span>`,
     html: `
       <p class="kh-text" style="font-size: 0.88rem; color: var(--text-muted); margin-bottom: 12px; text-align: left; line-height: 1.5;">
-        ការបដិសេធនេះនឹង <b>លុបរូបភាព KYC និងលុបលេខអត្តសញ្ញាណប័ណ្ណចេញពីគណនី @${username}</b> ដោយស្វ័យប្រវត្តិ។ សូមជ្រើសរើស ឬវាយបញ្ជាក់មូលហេតុ៖
+        ការបដិសេធនេះនឹង <b>លុបរូបភាព KYC និងលុបលេខអត្តសញ្ញាណប័ណ្ណចេញពីគណនីរបស់ "${displayFullName}"</b> ដោយស្វ័យប្រវត្តិ។ សូមជ្រើសរើស ឬវាយបញ្ជាក់មូលហេតុ៖
       </p>
       <div style="display:flex; gap:6px; flex-wrap:wrap; margin-bottom:10px;">
-        <span onclick="document.getElementById('gkyc-swal-reject-reason').value='រូបថតអត្តសញ្ញាណប័ណ្ណព្រិល ឬចាំងពន្លឺមើលមិនច្បាស់'" style="font-size:0.75rem; background:#fef2f2; color:#dc2626; border:1px solid #fecaca; padding:4px 10px; border-radius:16px; cursor:pointer; font-weight:700;">រូបថតព្រិល/ចាំងពន្លឺ</span>
-        <span onclick="document.getElementById('gkyc-swal-reject-reason').value='រូបថត Selfie មិនត្រូវគ្នាជាមួយរូបលើអត្តសញ្ញាណប័ណ្ណ'" style="font-size:0.75rem; background:#fef2f2; color:#dc2626; border:1px solid #fecaca; padding:4px 10px; border-radius:16px; cursor:pointer; font-weight:700;">ខុសមុខមាត់ Selfie</span>
-        <span onclick="document.getElementById('gkyc-swal-reject-reason').value='ឯកសារអត្តសញ្ញាណប័ណ្ណផុតសុពលភាព ឬមិនត្រឹមត្រូវ'" style="font-size:0.75rem; background:#fef2f2; color:#dc2626; border:1px solid #fecaca; padding:4px 10px; border-radius:16px; cursor:pointer; font-weight:700;">ឯកសារផុតកំណត់</span>
+        <span onclick="document.getElementById('gkyc-swal-reject-reason').value='រូបថតឯកសារព្រិល ឬចាំងពន្លឺមើលមិនច្បាស់'" style="font-size:0.75rem; background:#fef2f2; color:#dc2626; border:1px solid #fecaca; padding:4px 10px; border-radius:16px; cursor:pointer; font-weight:700;">រូបថតព្រិល/ចាំងពន្លឺ</span>
+        <span onclick="document.getElementById('gkyc-swal-reject-reason').value='រូបថត Selfie មិនត្រូវគ្នាជាមួយរូបលើឯកសារផ្លូវការ'" style="font-size:0.75rem; background:#fef2f2; color:#dc2626; border:1px solid #fecaca; padding:4px 10px; border-radius:16px; cursor:pointer; font-weight:700;">ខុសមុខមាត់ Selfie</span>
+        <span onclick="document.getElementById('gkyc-swal-reject-reason').value='ឯកសារបញ្ជាក់អត្តសញ្ញាណផុតសុពលភាព ឬមិនត្រឹមត្រូវ'" style="font-size:0.75rem; background:#fef2f2; color:#dc2626; border:1px solid #fecaca; padding:4px 10px; border-radius:16px; cursor:pointer; font-weight:700;">ឯកសារមិនត្រឹមត្រូវ</span>
       </div>
       <input id="gkyc-swal-reject-reason" class="swal2-input kh-text" placeholder="វាយបញ្ចូលមូលហេតុទីនេះ..." style="width:100%; margin:0; box-sizing:border-box; font-size: 0.95rem; padding: 10px; border-radius: 10px;">
     `,
@@ -795,11 +850,18 @@ window.gkycPromptReject = async function (username, mode = "reject") {
   });
 
   if (reason) {
-    await gkycTriggerAction(username, isRevoke ? "revoke" : "rejected", reason);
+    await gkycTriggerAction(
+      canonicalId,
+      isRevoke ? "revoke" : "rejected",
+      reason,
+    );
   }
 };
 
-window.gkycWithdrawOwn = async function (username) {
+/**
+ * 🔹 ៥.២ ដកសំណើ KYC របស់ខ្លួនឯងមកកែប្រែវិញ (Withdraw by Maker)
+ */
+window.gkycWithdrawOwn = async function (identifier) {
   const { value: reason } = await Swal.fire({
     title:
       '<span class="kh-text" style="font-size: 1.2rem; color: #e11d48;">ដកសំណើ KYC មកកែប្រែវិញ?</span>',
@@ -813,20 +875,31 @@ window.gkycWithdrawOwn = async function (username) {
   });
 
   if (reason) {
-    await gkycTriggerAction(username, "withdraw", reason);
+    await gkycTriggerAction(identifier, "withdraw", reason);
   }
 };
 
+/**
+ * 🔹 ៥.៣ បញ្ជូនសកម្មភាព KYC (Approve, Reject, Revoke, Withdraw) ទៅកាន់ Backend តាមរយៈ MongoDB `_id`
+ */
 window.gkycTriggerAction = async function (
-  username,
+  identifier,
   action,
   rejectReason = "",
 ) {
+  const user = gkycFindUserById(identifier);
+  const canonicalId = user
+    ? String(user._id || user.id)
+    : String(identifier).trim();
+  const displayFullName = user
+    ? user.fullName || user.username
+    : String(identifier);
+
   if (action === "approved") {
     const confirm = await Swal.fire({
       title:
         '<span class="kh-text" style="font-size: 1.25rem; color: #10b981;">អនុម័តឯកសារ KYC នេះ?</span>',
-      text: `តើអ្នកបានពិនិត្យផ្ទៀងផ្ទាត់ឯកសាររបស់ @${username} ត្រឹមត្រូវ ១០០% ហើយមែនទេ?`,
+      text: `តើអ្នកបានពិនិត្យផ្ទៀងផ្ទាត់ឯកសាររបស់ "${displayFullName}" ត្រឹមត្រូវ ១០០% ហើយមែនទេ?`,
       icon: "question",
       showCancelButton: true,
       confirmButtonText: '<span class="kh-text">បាទ/ចាស អនុម័តឥឡូវនេះ</span>',
@@ -849,7 +922,13 @@ window.gkycTriggerAction = async function (
     const res = await fetch("/api/admin/kyc-action", {
       method: "POST",
       headers: getAuthHeaders(),
-      body: JSON.stringify({ username, action, rejectReason }),
+      body: JSON.stringify({
+        _id: canonicalId,
+        userId: canonicalId,
+        username: user ? user.username : identifier,
+        action,
+        rejectReason,
+      }),
     });
     const data = await res.json();
 
@@ -877,13 +956,14 @@ window.gkycTriggerAction = async function (
   }
 };
 
-// រក្សាទុកឈ្មោះអនុគមន៍ចាស់ការពារកន្លែងផ្សេងហៅប្រើ
-window.processKyc = function (username, action) {
-  if (action === "rejected") return gkycPromptReject(username, "reject");
-  return gkycTriggerAction(username, action);
+window.processKyc = function (identifier, action) {
+  if (action === "rejected") return gkycPromptReject(identifier, "reject");
+  return gkycTriggerAction(identifier, action);
 };
 
-// Auto-Hook ពេលបើកទំព័រ ឬចុចចូល Menu KYC
+/**
+ * 🔹 ៥.៤ ចាប់ផ្តើមដំណើរការតារាង KYC ដោយស្វ័យប្រវត្តិពេលបើកទំព័រ
+ */
 document.addEventListener("DOMContentLoaded", () => {
   setTimeout(() => initKycTable(), 600);
 

@@ -1,13 +1,15 @@
 // ============================================================================
 // ឯកសារ: controllers/adminController.js
 // អត្ថន័យ: ខួរក្បាលបញ្ជាប្រព័ន្ធទាំងមូលរបស់ Admin (System, Users, Finance, Reports)
+// ស្តង់ដារថ្មី: ចាប់ទិន្នន័យតាម MongoDB `_id` សុទ្ធសាធ + បង្ហាញឈ្មោះពេញ (fullName) + បែងចែក Icon សារជូនដំណឹង
 // ============================================================================
 
-// ==========================================
-// 📦 ផ្នែកទី ១៖ ទាញយក Modules និង Models (Imports)
-// ==========================================
+// ============================================================================
+// 📦 ជំពូកទី ១៖ ការនាំចូលបណ្ណាល័យ និងម៉ូដែល (IMPORTS & MODELS)
+// ============================================================================
 const mongoose = require("mongoose");
 const bcrypt = require("bcryptjs");
+const crypto = require("crypto");
 
 const {
   readSystemStatus,
@@ -30,9 +32,13 @@ const Notification = require("../models/Notification");
 const Merchant = require("../models/Merchant");
 const CashierTicket = require("../models/CashierTicket");
 
-// ========================================================
-// 🛠️ Function ជំនួយ (Helpers) សម្រាប់កាត (ចំលងពី cardController)
-// ========================================================
+// ============================================================================
+// 🛠️ ជំពូកទី ២៖ អនុគមន៍ជំនួយស្នូល, ចាប់តាម `_id` និងម៉ាស៊ីនលុបទិន្នន័យ (CORE HELPERS)
+// ============================================================================
+
+/**
+ * 🔹 ២.១ បង្កើត Hash ស្ដង់ដារ ១០ ខ្ទង់ និង Reference ID ៨ ខ្ទង់
+ */
 const generateStandardHash = () => {
   const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
   let result = "";
@@ -47,7 +53,9 @@ const generateStandardRefId = (prefix) => {
   return `${prefix}-${random8Digits}`;
 };
 
-// 💳 ការកំណត់តម្លៃ និងឈ្មោះប្រភេទកាតទាំង ៨ (Card Tiers Config) - ដូចគ្នាបេះបិទនឹង User
+/**
+ * 🔹 ២.២ ការកំណត់តម្លៃ និងប្រភេទកាតទាំង ១០ ប្រភេទ + បង្កើតលេខកាត ១៦ ខ្ទង់
+ */
 const cardTiersConfig = {
   standard: { name: "STANDARD", price: 5.0 },
   fifa: { name: "FIFA WORLD CUP", price: 15.0 },
@@ -61,7 +69,6 @@ const cardTiersConfig = {
   custom: { name: "CUSTOM VIP", price: 25.0 },
 };
 
-// មុខងារជំនួយ: បង្កើតលេខកាត Virtual ស្តង់ដារ (រហូតដល់ ៤ឆ្នាំដូចគ្នា)
 const generateCardDetails = () => {
   const number =
     "4" +
@@ -79,7 +86,95 @@ const generateCardDetails = () => {
 };
 
 /**
- * 📌 កត់ត្រារាល់សកម្មភាពរបស់ Admin ចូលក្នុង Database
+ * 🔹 ២.៣ អនុគមន៍ទាញយកឈ្មោះពេញ (Full Name) សម្រាប់បង្ហាញក្នុងសារជូនដំណឹង (ហាមប្រើ @username!)
+ */
+const getDisplayName = (entity, fallbackLabel = "អតិថិជន U-Pay") => {
+  if (!entity) return fallbackLabel;
+  if (typeof entity === "string") return entity;
+  if (entity.fullName && String(entity.fullName).trim() !== "") {
+    return String(entity.fullName).trim();
+  }
+  if (entity.name && String(entity.name).trim() !== "") {
+    return String(entity.name).trim();
+  }
+  if (entity.nickname && String(entity.nickname).trim() !== "") {
+    return String(entity.nickname).trim();
+  }
+  return entity.username || fallbackLabel;
+};
+
+/**
+ * 🔹 ២.៤ អនុគមន៍ទាញយកឈ្មោះពេញរបស់បុគ្គលិក Admin សម្រាប់បង្ហាញក្នុងសារជូនដំណឹង
+ */
+const getAdminFullDisplayName = async (reqAdmin) => {
+  if (!reqAdmin) return "មន្ត្រីប្រតិបត្តិធនាគារ U-Pay";
+  if (reqAdmin.fullName && String(reqAdmin.fullName).trim() !== "") {
+    return String(reqAdmin.fullName).trim();
+  }
+  try {
+    const adminId = reqAdmin._id || reqAdmin.id;
+    const adm = mongoose.isValidObjectId(adminId)
+      ? await Admin.findById(adminId)
+          .select("fullName nickname username")
+          .lean()
+      : await Admin.findOne({ username: reqAdmin.username })
+          .select("fullName nickname username")
+          .lean();
+    if (adm) {
+      return adm.fullName || adm.nickname || "មន្ត្រីប្រតិបត្តិធនាគារ U-Pay";
+    }
+  } catch (e) {}
+  return "មន្ត្រីប្រតិបត្តិធនាគារ U-Pay";
+};
+
+/**
+ * 🔹 ២.៥ ម៉ាស៊ីនស្វែងរកអតិថិជនសកលដោយផ្តល់អាទិភាព ១០០% លើ MongoDB `_id` (Strict _id Resolver)
+ * - បើ Frontend បោះ `_id` (ឬ `userId`, `id`, `username`) មក វានឹងរកតាម `_id` មុនគេជានិច្ច!
+ */
+const resolveCustomerById = async (identifier, selectFields = null) => {
+  if (!identifier) return null;
+  const raw =
+    typeof identifier === "object"
+      ? identifier._id ||
+        identifier.userId ||
+        identifier.id ||
+        identifier.targetUserId ||
+        identifier.username
+      : identifier;
+
+  const clean = String(raw || "")
+    .replace(/^@/, "")
+    .trim();
+  if (!clean) return null;
+
+  // ១. អាទិភាពទី ១៖ ប្រសិនបើជា MongoDB ObjectId ២៤ ខ្ទង់ គឺចាប់តាម _id ផ្ទាល់តែម្ដង!
+  if (mongoose.isValidObjectId(clean)) {
+    const byIdQuery = User.findById(clean);
+    if (selectFields) byIdQuery.select(selectFields);
+    const foundById = await byIdQuery;
+    if (foundById) return foundById;
+  }
+
+  // ២. Fallback សម្រាប់ទ្រទ្រង់កន្លែងដែលវាយស្វែងរកតាមលេខគណនី លេខទូរស័ព្ទ ឬឈ្មោះ
+  const exactRx = new RegExp(
+    "^" + clean.replace(/[.*+?^${}()|[\]\\]/g, "\\$&") + "$",
+    "i",
+  );
+  const fallbackQuery = User.findOne({
+    $or: [
+      { username: exactRx },
+      { "mainAccounts.USD.accountNumber": clean },
+      { "mainAccounts.KHR.accountNumber": clean },
+      { "subAccounts.accountNumber": clean },
+      { phone: clean },
+    ],
+  });
+  if (selectFields) fallbackQuery.select(selectFields);
+  return await fallbackQuery;
+};
+
+/**
+ * 🔹 ២.៦ កត់ត្រារាល់សកម្មភាពរបស់ Admin ចូលក្នុង AdminLog (រក្សាទុកទាំង _id និង ឈ្មោះពេញ)
  */
 const logAdminAction = async (adminName, action, target, details) => {
   try {
@@ -88,9 +183,9 @@ const logAdminAction = async (adminName, action, target, details) => {
       timeZone: "Asia/Phnom_Penh",
     });
     await AdminLog.create({
-      admin: adminName || "Unknown",
+      admin: adminName || "System",
       action: action,
-      target: target || "System",
+      target: target ? String(target) : "System",
       details: details || "",
       date: khmerTimeStr,
     });
@@ -100,14 +195,15 @@ const logAdminAction = async (adminName, action, target, details) => {
 };
 
 /**
- * 📌 ត្រួតពិនិត្យសិទ្ធិ និងម៉ោងធ្វើការរបស់បុគ្គលិក Admin
+ * 🔹 ២.៧ ត្រួតពិនិត្យសិទ្ធិ និងម៉ោងធ្វើការរបស់បុគ្គលិក Admin (តាម Admin _id)
  */
 const checkAdminAccess = async (reqAdmin, actionKey) => {
   if (reqAdmin.role === "super_admin") return { allowed: true };
 
-  const adminAcc = await Admin.findById(reqAdmin.id || reqAdmin._id);
-  if (!adminAcc)
+  const adminAcc = await Admin.findById(reqAdmin._id || reqAdmin.id);
+  if (!adminAcc) {
     return { allowed: false, message: "គណនីបុគ្គលិកមិនត្រឹមត្រូវ!" };
+  }
 
   if (
     adminAcc.permissions &&
@@ -152,56 +248,227 @@ const checkAdminAccess = async (reqAdmin, actionKey) => {
 const logCustomAction = async (req, res) => {
   try {
     const { action, target, details } = req.body;
-    await logAdminAction(req.admin.username, action, target, details);
+    await logAdminAction(
+      req.admin.fullName || req.admin.username,
+      action,
+      target,
+      details,
+    );
     res.json({ success: true });
   } catch (error) {
     res.status(500).json({ success: false });
   }
 };
 
-// ==========================================
-// 🛡️ ផ្នែកទី ៣៖ ការគ្រប់គ្រងគណនី Admin គ្នាឯង
-// ==========================================
+/**
+ * 🔹 ២.៨ ម៉ាស៊ីនបោសសម្អាតទិន្នន័យអតិថិជនចេញពីគ្រប់ Models ទាំងអស់ដោយប្រើ `_id` សុទ្ធសាធ!
+ * (Cascading Purge Engine: User, Junior Kids, Parent SubAccounts, Cards, Merchants, Chats, Notifs, Tickets, Trxs, Logs)
+ */
+async function cascadePurgeSingleUserDocument(
+  targetUser,
+  centralBank,
+  reason = "Admin Deleted Account",
+) {
+  if (!targetUser) return { usdRecovered: 0, khrRecovered: 0 };
 
+  const targetObjId = targetUser._id;
+  const targetStrId = String(targetUser._id);
+  const targetFullName = getDisplayName(targetUser);
+  const dateStr = new Date().toLocaleString("en-US", {
+    timeZone: "Asia/Phnom_Penh",
+    hour12: true,
+  });
+
+  // ១. បើគណនីដែលត្រូវលុបនេះជាអាណាព្យាបាល (Parent) ត្រូវលុបគណនីកូនៗតាម `parentId: targetObjId` (_id សុទ្ធ!)
+  const childAccounts = await User.find({
+    role: "junior",
+    parentId: targetObjId,
+  });
+
+  for (const childDoc of childAccounts) {
+    await cascadePurgeSingleUserDocument(
+      childDoc,
+      centralBank,
+      `Parent Account (${targetFullName}) Deleted`,
+    );
+  }
+
+  // ២. បើគណនីដែលត្រូវលុបនេះជាគណនីកូន (Junior) ដកចេញពីបញ្ជី subAccounts របស់ប៉ាម៉ាក់តាម `parentId` (_id សុទ្ធ!)
+  if (targetUser.role === "junior" && targetUser.parentId) {
+    const parentUser = await User.findById(targetUser.parentId);
+    if (parentUser && Array.isArray(parentUser.subAccounts)) {
+      parentUser.subAccounts = parentUser.subAccounts.filter((sa) => {
+        const matchByLinkedId =
+          sa.linkedUserId && String(sa.linkedUserId) === targetStrId;
+        const matchByAccId =
+          sa.accountId === targetStrId || sa.accountId === targetStrId + "_khr";
+        return !(matchByLinkedId || matchByAccId);
+      });
+      parentUser.markModified("subAccounts");
+      await parentUser.save();
+    }
+  }
+
+  // ៣. ប្រមូលសមតុល្យដែលនៅសល់ក្នុងគណនី (Main + Sub មិនមែន Junior) ផ្ទេរចូលធនាគារកណ្តាល (Central Bank Recovery)
+  let totalUSD = Number(targetUser.mainAccounts?.USD?.balance || 0);
+  let totalKHR = Number(targetUser.mainAccounts?.KHR?.balance || 0);
+
+  if (Array.isArray(targetUser.subAccounts)) {
+    targetUser.subAccounts.forEach((sub) => {
+      if (sub.accountType !== "junior") {
+        if (sub.currency === "USD") totalUSD += Number(sub.balance || 0);
+        if (sub.currency === "KHR") totalKHR += Number(sub.balance || 0);
+      }
+    });
+  }
+
+  if (centralBank && (totalUSD > 0 || totalKHR > 0)) {
+    centralBank.mainAccounts.USD.balance =
+      (centralBank.mainAccounts.USD.balance || 0) + totalUSD;
+    centralBank.mainAccounts.KHR.balance =
+      (centralBank.mainAccounts.KHR.balance || 0) + totalKHR;
+    centralBank.markModified("mainAccounts");
+    await centralBank.save();
+
+    if (totalUSD > 0) {
+      await Transaction.create({
+        userId: centralBank._id,
+        username: centralBank.username,
+        refId: generateStandardRefId("REC"),
+        hash: generateStandardHash(),
+        date: dateStr,
+        type: "Fund Recovery",
+        amount: totalUSD,
+        currency: "USD",
+        senderName: targetFullName,
+        receiverName: "ធនាគារកណ្តាល U-Pay (Central Bank)",
+        remark: `ប្រមូលមូលនិធិពីគណនីដែលត្រូវបានលុប (${targetFullName}) | មូលហេតុ: ${reason}`,
+        status: "Success",
+      });
+    }
+    if (totalKHR > 0) {
+      await Transaction.create({
+        userId: centralBank._id,
+        username: centralBank.username,
+        refId: generateStandardRefId("REC"),
+        hash: generateStandardHash(),
+        date: dateStr,
+        type: "Fund Recovery",
+        amount: totalKHR,
+        currency: "KHR",
+        senderName: targetFullName,
+        receiverName: "ធនាគារកណ្តាល U-Pay (Central Bank)",
+        remark: `ប្រមូលមូលនិធិពីគណនីដែលត្រូវបានលុប (${targetFullName}) | មូលហេតុ: ${reason}`,
+        status: "Success",
+      });
+    }
+  }
+
+  // ៤. លុបទិន្នន័យពាក់ព័ន្ធទាំងអស់ចេញពីគ្រប់ Models ដោយចាប់តាម `_id` តែមួយគត់!
+  await Promise.all([
+    Card.deleteMany({ userId: targetObjId }),
+    Merchant.deleteMany({ ownerId: targetObjId }),
+    Notification.deleteMany({ userId: targetObjId }),
+    Chat.deleteMany({
+      $or: [{ senderId: targetStrId }, { receiverId: targetStrId }],
+    }),
+    CashierTicket.deleteMany({ userId: targetObjId }),
+    Transaction.deleteMany({ userId: targetObjId }),
+    JointAccount.deleteMany({ "members.userId": targetObjId }),
+    AdminLog.deleteMany({ target: targetStrId }),
+  ]);
+
+  // ៥. លុប Document អតិថិជនចេញពីតារាង User ជាស្ថាពរ
+  await User.deleteOne({ _id: targetObjId });
+
+  return { usdRecovered: totalUSD, khrRecovered: totalKHR };
+}
+
+// ============================================================================
+// 🛡️ ជំពូកទី ៣៖ ការគ្រប់គ្រងគណនីបុគ្គលិក ADMIN (ADMIN STAFF MANAGEMENT BY `_id`)
+// ============================================================================
+
+/**
+ * 🔹 ៣.១ ទាញយកព័ត៌មានបុគ្គលិក Admin ដែលកំពុង Login តាម `_id`
+ */
 const getMe = async (req, res) => {
   try {
-    const admin = await Admin.findById(req.admin.id || req.admin._id);
+    const admin = await Admin.findById(req.admin._id || req.admin.id).select(
+      "-password",
+    );
     res.json({ success: true, admin });
   } catch (error) {
     res.status(500).json({ success: false });
   }
 };
 
+/**
+ * 🔹 ៣.២ ទាញយកបញ្ជីបុគ្គលិក Admin ទាំងអស់
+ */
 const getAdminsList = async (req, res) => {
   try {
-    const admins = await Admin.find({}, "-password"); // ទាញយកទាំងអស់ដោយលាក់លេខសម្ងាត់
+    const admins = await Admin.find({}, "-password");
     res.json({ success: true, admins });
   } catch (err) {
     res.status(500).json({ success: false, message: "Server Error" });
   }
 };
 
-// ==========================================
-// 📋 [Admin] ទាញយក Logs សម្រាប់ User ជាក់លាក់ (User Audit Logs)
-// ==========================================
+/**
+ * 🔹 ៣.៣ ទាញយកកំណត់ត្រាសកម្មភាព (Audit Logs) សម្រាប់អតិថិជនជាក់លាក់តាម `_id` តែមួយគត់!
+ */
 const getUserLogs = async (req, res) => {
   try {
-    const { username } = req.params;
-    // ទាញយក Logs ណាដែលមាន target ចំ username នោះ
-    const logs = await AdminLog.find({ target: username })
+    const identifier = req.params.id || req.params.username;
+    const customer = await resolveCustomerById(identifier, "_id createdAt");
+    if (!customer) {
+      return res.json({ success: true, logs: [] });
+    }
+
+    const canonicalId = String(customer._id);
+    const userCreatedAtMs = customer.createdAt
+      ? new Date(customer.createdAt).getTime() - 60000
+      : 0;
+
+    // 🎯 ចាប់យកតែកំណត់ត្រាណាដែលមាន target ស្មើនឹង MongoDB `_id` របស់គណនីនេះប៉ុណ្ណោះ!
+    const rawLogs = await AdminLog.find({ target: canonicalId })
       .sort({ _id: -1 })
-      .limit(100);
-    res.json({ success: true, logs });
+      .limit(100)
+      .lean();
+
+    const validLogs = rawLogs.filter((log) => {
+      const actLower = String(log.action || "").toLowerCase();
+      if (
+        actLower.includes("delete user") ||
+        actLower.includes("delete account")
+      ) {
+        return false;
+      }
+      const logTimeMs =
+        log._id && String(log._id).length === 24
+          ? parseInt(String(log._id).substring(0, 8), 16) * 1000
+          : 0;
+      if (userCreatedAtMs > 0 && logTimeMs > 0 && logTimeMs < userCreatedAtMs) {
+        return false;
+      }
+      return true;
+    });
+
+    res.json({ success: true, logs: validLogs });
   } catch (err) {
     console.error("Get User Logs Error:", err);
     res.status(500).json({ success: false, message: "Server Error" });
   }
 };
 
+/**
+ * 🔹 ៣.៤ ទាញយកកំណត់ត្រាសកម្មភាពរបស់បុគ្គលិក Admin ទាំងអស់
+ */
 const getAdminLogs = async (req, res) => {
   try {
-    if (req.admin.role !== "super_admin")
+    if (req.admin.role !== "super_admin") {
       return res.status(403).json({ success: false, message: "Forbidden" });
+    }
     const logs = await AdminLog.find().sort({ _id: -1 }).limit(500);
     res.json({ success: true, logs });
   } catch (err) {
@@ -209,9 +476,13 @@ const getAdminLogs = async (req, res) => {
   }
 };
 
+/**
+ * 🔹 ៣.៥ បង្កើត ឬ កែប្រែគណនីបុគ្គលិក Admin តាម `_id`
+ */
 const saveAdminAccount = async (req, res) => {
   const {
     id,
+    _id,
     staffId,
     fullName,
     nickname,
@@ -227,23 +498,31 @@ const saveAdminAccount = async (req, res) => {
     permissions,
   } = req.body;
   try {
+    const targetAdminId = _id || id;
     const cleanNfc =
       nfcUid && String(nfcUid).trim() !== "" ? String(nfcUid).trim() : null;
 
     if (cleanNfc) {
       const existingNfcUser = await Admin.findOne({ nfcUid: cleanNfc });
-      if (existingNfcUser && existingNfcUser._id.toString() !== id) {
+      if (
+        existingNfcUser &&
+        existingNfcUser._id.toString() !== String(targetAdminId)
+      ) {
         return res.json({
           success: false,
-          message: `កាត NFC នេះត្រូវបានភ្ជាប់ជាមួយបុគ្គលិកឈ្មោះ @${existingNfcUser.username} រួចហើយ! សូមផ្តាច់ពីគណនីនោះសិន ឬប្រើកាតថ្មី។`,
+          message: `កាត NFC នេះត្រូវបានភ្ជាប់ជាមួយបុគ្គលិកឈ្មោះ "${getDisplayName(existingNfcUser)}" រួចហើយ! សូមផ្តាច់ពីគណនីនោះសិន ឬប្រើកាតថ្មី។`,
         });
       }
     }
 
-    if (id) {
-      const adminToUpdate = await Admin.findById(id);
-      if (!adminToUpdate)
-        return res.json({ success: false, message: "រកមិនឃើញគណនីបុគ្គលិកទេ!" });
+    if (targetAdminId && mongoose.isValidObjectId(targetAdminId)) {
+      const adminToUpdate = await Admin.findById(targetAdminId);
+      if (!adminToUpdate) {
+        return res.json({
+          success: false,
+          message: "រកមិនឃើញគណនីបុគ្គលិកទេ!",
+        });
+      }
 
       if (username) adminToUpdate.username = username;
       if (role) adminToUpdate.role = role;
@@ -255,17 +534,17 @@ const saveAdminAccount = async (req, res) => {
       if (department !== undefined) adminToUpdate.department = department;
       if (remarks !== undefined) adminToUpdate.remarks = remarks;
       if (nfcUid !== undefined) adminToUpdate.nfcUid = cleanNfc;
-
       if (permissions) adminToUpdate.permissions = permissions;
-      if (password && password.trim() !== "")
+      if (password && password.trim() !== "") {
         adminToUpdate.password = await bcrypt.hash(password, 10);
+      }
 
       await adminToUpdate.save();
       await logAdminAction(
-        req.admin.username,
+        req.admin.fullName || req.admin.username,
         "Update Admin",
-        adminToUpdate.username,
-        `Updated staff profile/permissions (Role: ${adminToUpdate.role}, NFC: ${cleanNfc || "Unlinked"})`,
+        String(adminToUpdate._id),
+        `Updated staff "${getDisplayName(adminToUpdate)}" (Role: ${adminToUpdate.role}, NFC: ${cleanNfc || "Unlinked"})`,
       );
       return res.json({
         success: true,
@@ -274,13 +553,15 @@ const saveAdminAccount = async (req, res) => {
       });
     } else {
       const exists = await Admin.findOne({ username });
-      if (exists)
+      if (exists) {
         return res.json({
           success: false,
           message: "ឈ្មោះគណនី (Username) នេះមានអ្នកប្រើប្រាស់ហើយ!",
         });
-      if (!password)
+      }
+      if (!password) {
         return res.json({ success: false, message: "សូមបញ្ចូលពាក្យសម្ងាត់!" });
+      }
 
       const hashedPassword = await bcrypt.hash(password, 10);
       const newAdmin = new Admin({
@@ -302,10 +583,10 @@ const saveAdminAccount = async (req, res) => {
       await newAdmin.save();
 
       await logAdminAction(
-        req.admin.username,
+        req.admin.fullName || req.admin.username,
         "Create Admin",
-        username,
-        `Created new staff account as ${role}`,
+        String(newAdmin._id),
+        `Created new staff account "${getDisplayName(newAdmin)}" as ${role}`,
       );
       return res.json({
         success: true,
@@ -319,16 +600,23 @@ const saveAdminAccount = async (req, res) => {
   }
 };
 
+/**
+ * 🔹 ៣.៦ ឆែកមើលភាពទំនេរនៃកាត NFC បុគ្គលិក Admin តាម `_id`
+ */
 const checkAdminNfcUid = async (req, res) => {
   const { nfcUid, adminId } = req.body;
   try {
-    if (!nfcUid)
+    if (!nfcUid) {
       return res.json({ available: false, message: "គ្មានទិន្នន័យ NFC" });
+    }
     const existingAdmin = await Admin.findOne({ nfcUid: nfcUid });
-    if (existingAdmin && existingAdmin._id.toString() !== adminId) {
+    if (
+      existingAdmin &&
+      existingAdmin._id.toString() !== String(adminId || "")
+    ) {
       return res.json({
         available: false,
-        owner: existingAdmin.username || existingAdmin.fullName,
+        owner: getDisplayName(existingAdmin),
       });
     }
     return res.json({ available: true });
@@ -337,22 +625,27 @@ const checkAdminNfcUid = async (req, res) => {
   }
 };
 
+/**
+ * 🔹 ៣.៧ លុបគណនីបុគ្គលិក Admin តាម `_id`
+ */
 const deleteAdminAccount = async (req, res) => {
-  const { id } = req.body;
+  const { id, _id } = req.body;
+  const targetId = _id || id;
   try {
-    const adminToDelete = await Admin.findById(id);
-    if (adminToDelete && adminToDelete.username === "admin")
+    const adminToDelete = await Admin.findById(targetId);
+    if (adminToDelete && adminToDelete.username === "admin") {
       return res.json({
         success: false,
         message: "មិនអាចលុបគណនី មេធំ (Master Admin) បានទេ!",
       });
+    }
 
-    await Admin.findByIdAndDelete(id);
+    await Admin.findByIdAndDelete(targetId);
     await logAdminAction(
-      req.admin.username,
+      req.admin.fullName || req.admin.username,
       "Delete Admin",
-      adminToDelete ? adminToDelete.username : id,
-      `Admin Account Terminated`,
+      String(targetId),
+      `Terminated Admin Account: ${getDisplayName(adminToDelete)}`,
     );
     res.json({ success: true });
   } catch (err) {
@@ -360,18 +653,23 @@ const deleteAdminAccount = async (req, res) => {
   }
 };
 
+/**
+ * 🔹 ៣.៨ ប្តូរលេខសម្ងាត់បុគ្គលិក Admin តាម `_id`
+ */
 const adminResetPassword = async (req, res) => {
   const { adminId, newPassword } = req.body;
   try {
-    if (!adminId || !newPassword)
+    if (!adminId || !newPassword) {
       return res.json({ success: false, message: "ទិន្នន័យមិនគ្រប់គ្រាន់ទេ!" });
+    }
 
     const targetAdmin = await Admin.findById(adminId);
-    if (!targetAdmin)
+    if (!targetAdmin) {
       return res.json({
         success: false,
         message: "រកមិនឃើញគណនីបុគ្គលិកនេះទេ!",
       });
+    }
 
     if (targetAdmin.username === "admin" && req.admin.username !== "admin") {
       return res.json({
@@ -384,29 +682,33 @@ const adminResetPassword = async (req, res) => {
     await targetAdmin.save();
 
     await logAdminAction(
-      req.admin.username,
+      req.admin.fullName || req.admin.username,
       "Reset Admin Password",
-      targetAdmin.username,
-      `Password successfully reset by Super Admin`,
+      String(targetAdmin._id),
+      `Password reset for "${getDisplayName(targetAdmin)}" by Super Admin`,
     );
     res.json({
       success: true,
-      message: `ពាក្យសម្ងាត់របស់ @${targetAdmin.username} ត្រូវបានប្តូរថ្មីដោយជោគជ័យ!`,
+      message: `ពាក្យសម្ងាត់របស់បុគ្គលិក "${getDisplayName(targetAdmin)}" ត្រូវបានប្តូរថ្មីដោយជោគជ័យ!`,
     });
   } catch (err) {
     res.status(500).json({ success: false, message: "Server Error" });
   }
 };
 
+/**
+ * 🔹 ៣.៩ បិទ ឬ បើកដំណើរការគណនីបុគ្គលិក Admin តាម `_id`
+ */
 const toggleAdminStatus = async (req, res) => {
   const { adminId } = req.body;
   try {
     const targetAdmin = await Admin.findById(adminId);
-    if (!targetAdmin)
+    if (!targetAdmin) {
       return res.json({
         success: false,
         message: "រកមិនឃើញគណនីបុគ្គលិកនេះទេ!",
       });
+    }
 
     if (targetAdmin.username === "admin") {
       return res.json({
@@ -421,22 +723,20 @@ const toggleAdminStatus = async (req, res) => {
     res.json({
       success: true,
       isActive: targetAdmin.isActive,
-      message: `គណនីរបស់ @${targetAdmin.username} ត្រូវ បាន${targetAdmin.isActive ? "បើកដំណើរការ" : "បិទ"} ដោយជោគជ័យ!`,
+      message: `គណនីរបស់បុគ្គលិក "${getDisplayName(targetAdmin)}" ត្រូវបាន${targetAdmin.isActive ? "បើកដំណើរការ" : "បិទ"}ដោយជោគជ័យ!`,
     });
   } catch (err) {
     res.status(500).json({ success: false, message: "Server Error" });
   }
 };
 
-// ==========================================
-// ⚙️ ផ្នែកទី ៤៖ ការកំណត់ប្រព័ន្ធ (System Config & Fees)
-// ==========================================
+// ============================================================================
+// ⚙️ ជំពូកទី ៤៖ ការកំណត់ប្រព័ន្ធ, កាលវិភាគថែទាំ និងអត្រាប្តូរប្រាក់ (SYSTEM & FX)
+// ============================================================================
 
-// ============================================================================
-// 🤖 រ៉ូបូតឆែកម៉ោងបិទ និងបើកប្រព័ន្ធស្វ័យប្រវត្តិ (Auto-Freeze & Auto-Resume Engine)
-// រត់រៀងរាល់ ៥ វិនាទីម្ដងក្នុង Server ទោះបី Admin បិទកុំព្យូទ័រក៏វាធ្វើការអូតូដែរ!
-// ============================================================================
 let isMaintenanceSchedulerRunning = false;
+let exactStartTimer = null;
+let exactEndTimer = null;
 
 const formatKhmerDateTime = (d = new Date()) =>
   d.toLocaleString("en-US", { timeZone: "Asia/Phnom_Penh", hour12: true });
@@ -453,16 +753,19 @@ const formatDurationText = (diffMs) => {
   );
 };
 
+/**
+ * 🔹 ៤.១ បញ្ជូនសារជូនដំណឹងអំពីការថែទាំប្រព័ន្ធទៅកាន់អតិថិជនទាំងអស់តាម `_id` (ប្រើឈ្មោះពេញ & Icon `system_alert` / `system_online`)
+ */
 async function broadcastSystemMaintenanceAlert(
   title,
   msgBody,
-  sender,
+  senderFullName,
   incidentId,
-  type = "system_alert",
+  notifType = "system_alert",
 ) {
   try {
     const users = await User.find({ role: { $ne: "admin" } })
-      .select("_id username")
+      .select("_id username fullName")
       .lean();
     if (users.length === 0) return 0;
 
@@ -472,12 +775,12 @@ async function broadcastSystemMaintenanceAlert(
       userId: u._id,
       username: u.username,
       title,
-      message: msgBody,
-      type,
+      message: `ជូនចំពោះ ${getDisplayName(u)}៖ ${msgBody}`,
+      type: notifType, // 🔔 បែងចែក Icon ច្បាស់លាស់ (system_alert, system_online, system_schedule)
       date: nowStr,
       isRead: false,
       metadata: {
-        sender: sender || "system",
+        sender: senderFullName || "ប្រព័ន្ធគ្រប់គ្រងធនាគារ U-Pay",
         broadcastId: bcId,
         incidentId: incidentId || "SYS",
       },
@@ -490,6 +793,9 @@ async function broadcastSystemMaintenanceAlert(
   }
 }
 
+/**
+ * 🔹 ៤.២ រ៉ូបូតឆែកម៉ោងបិទ និងបើកប្រព័ន្ធស្វ័យប្រវត្តិ (Auto-Freeze & Auto-Resume Scheduler)
+ */
 async function runSystemMaintenanceScheduler() {
   if (isMaintenanceSchedulerRunning) return;
   if (mongoose.connection.readyState !== 1) return;
@@ -506,7 +812,7 @@ async function runSystemMaintenanceScheduler() {
     const nowMs = Date.now();
     const nowStr = formatKhmerDateTime();
 
-    // ⏰ ១. ឆែកមើលការកំណត់ម៉ោងទុកជាមុន (SCHEDULED) -> បើដល់ម៉ោង startAtMs គឺបិទប្រព័ន្ធអូតូភ្លាម!
+    // ១. បើដល់ម៉ោងដែលបានកំណត់ទុក (SCHEDULED) -> បិទប្រព័ន្ធដោយស្វ័យប្រវត្តិ
     if (
       meta.scheduleStatus === "SCHEDULED" &&
       !meta.isSystemFrozen &&
@@ -541,9 +847,9 @@ async function runSystemMaintenanceScheduler() {
 
       if (meta.notifyUsers !== false) {
         await broadcastSystemMaintenanceAlert(
-          "🛑 ប្រព័ន្ធចាប់ផ្តើមផ្អាកថែទាំតាមកាលកំណត់ (System Maintenance Started)",
+          "🛑 ប្រព័ន្ធចាប់ផ្តើមផ្អាកថែទាំតាមកាលកំណត់ (System Maintenance)",
           `ប្រព័ន្ធធនាគារ U-Pay បានចាប់ផ្តើមផ្អាកប្រតិបត្តិការបណ្តោះអាសន្នតាមកាលកំណត់ (${meta.freezeType})។ មូលហេតុ៖ ${meta.reason} | រំពឹងបើកដំណើរការវិញ៖ ${meta.expectedEndTime}។`,
-          meta.frozenBy || "System Auto-Scheduler",
+          meta.frozenBy || "ប្រព័ន្ធស្វ័យប្រវត្តិ U-Pay",
           meta.incidentId,
           "system_alert",
         );
@@ -564,7 +870,7 @@ async function runSystemMaintenanceScheduler() {
       );
     }
 
-    // ⏰ ២. ឆែកមើលប្រព័ន្ធដែលកំពុងបិទ (FROZEN) -> បើដល់ម៉ោង expectedEndAtMs គឺបើកប្រព័ន្ធវិញអូតូភ្លាម!
+    // ២. បើដល់ម៉ោងបើកដំណើរការវិញ (expectedEndAtMs) -> បើកប្រព័ន្ធវិញដោយស្វ័យប្រវត្តិ
     const updatedMeta = sys.maintenanceMeta || {};
     if (
       updatedMeta.isSystemFrozen &&
@@ -585,7 +891,7 @@ async function runSystemMaintenanceScheduler() {
       if (idx !== -1) {
         historyList[idx].actualEndTimeStr = nowStr;
         historyList[idx].durationText = durationStr;
-        historyList[idx].resumedBy = "Auto-Scheduler 🤖";
+        historyList[idx].resumedBy = "ប្រព័ន្ធស្វ័យប្រវត្តិ 🤖";
         historyList[idx].resolutionNote = autoNote;
         historyList[idx].status = "COMPLETED";
         historyList[idx].endedAtMs = nowMs;
@@ -595,7 +901,7 @@ async function runSystemMaintenanceScheduler() {
         isSystemFrozen: false,
         scheduleStatus: "ONLINE",
         lastResumedAt: nowStr,
-        lastResumedBy: "Auto-Scheduler 🤖",
+        lastResumedBy: "ប្រព័ន្ធស្វ័យប្រវត្តិ 🤖",
         lastDuration: durationStr,
       };
 
@@ -608,11 +914,11 @@ async function runSystemMaintenanceScheduler() {
 
       if (updatedMeta.notifyUsers !== false) {
         await broadcastSystemMaintenanceAlert(
-          "🟢 ប្រព័ន្ធដំណើរការធម្មតាវិញហើយ (System Auto-Resumed)",
+          "🟢 ប្រព័ន្ធដំណើរការធម្មតាវិញហើយ (System Online)",
           `ការថែទាំប្រព័ន្ធធនាគារ U-Pay បានបញ្ចប់តាមកាលកំណត់នៅម៉ោង ${nowStr} (រយៈពេលសរុប៖ ${durationStr})។ លោកអ្នកអាចធ្វើប្រតិបត្តិការហិរញ្ញវត្ថុបានធម្មតាវិញហើយ។ សូមអរគុណ!`,
-          "System Auto-Scheduler",
+          "ប្រព័ន្ធស្វ័យប្រវត្តិ U-Pay",
           updatedMeta.incidentId,
-          "info",
+          "system_online",
         );
       }
 
@@ -637,14 +943,7 @@ async function runSystemMaintenanceScheduler() {
   }
 }
 
-// បើករ៉ូបូតឱ្យរត់ឆែកម៉ោងរៀងរាល់ ៥ វិនាទីម្ដងដោយស្វ័យប្រវត្តិ
 setInterval(runSystemMaintenanceScheduler, 5000);
-
-// ============================================================================
-// ⚡ ម៉ោងរោទ៍ចំវិនាទីគត់ (Exact Millisecond Timer) + ឆែកភ្លាមៗពេល Server ភ្ញាក់ពីដេក
-// ============================================================================
-let exactStartTimer = null;
-let exactEndTimer = null;
 
 async function scheduleExactMaintenanceTimers() {
   try {
@@ -658,7 +957,6 @@ async function scheduleExactMaintenanceTimers() {
     const meta = sys.maintenanceMeta;
     const nowMs = Date.now();
 
-    // ១. បើមានការកំណត់ម៉ោងបិទនាពេលអនាគត -> ដាក់ម៉ោងរោទ៍ឱ្យផ្ទុះចំវិនាទីនោះគត់!
     if (
       meta.scheduleStatus === "SCHEDULED" &&
       !meta.isSystemFrozen &&
@@ -673,7 +971,6 @@ async function scheduleExactMaintenanceTimers() {
       }
     }
 
-    // ២. បើកំពុងបិទ ឬមានម៉ោងបើកវិញ -> ដាក់ម៉ោងរោទ៍ឱ្យបើកវិញចំវិនាទីនោះគត់!
     if (meta.expectedEndAtMs) {
       const delayEnd = Math.max(0, Number(meta.expectedEndAtMs) - nowMs);
       if (delayEnd < 2147483647) {
@@ -687,14 +984,13 @@ async function scheduleExactMaintenanceTimers() {
   }
 }
 
-// ហៅឱ្យចាប់ផ្តើមដាក់ម៉ោងរោទ៍ភ្លាមៗពេល Server បើកដំណើរការដំបូង
 setTimeout(() => {
   runSystemMaintenanceScheduler();
   scheduleExactMaintenanceTimers();
 }, 3000);
 
 /**
- * 📌 [System Control Center] ទាញយកស្ថានភាពប្រព័ន្ធ កាលវិភាគកំណត់ម៉ោង និងប្រវត្តិរបាយការណ៍ទាំងអស់
+ * 🔹 ៤.៣ ទាញយកស្ថានភាពប្រព័ន្ធ និងប្រវត្តិថែទាំ
  */
 const getSystemStatus = async (req, res) => {
   try {
@@ -732,13 +1028,13 @@ const getSystemStatus = async (req, res) => {
 };
 
 /**
- * 📌 [System Control Center] បញ្ជាបិទភ្លាមៗ, កំណត់ម៉ោងបិទ/បើកអូតូ, បោះបង់ការកំណត់ម៉ោង ឬ បើកប្រព័ន្ធវិញ
+ * 🔹 ៤.៤ បញ្ជាបិទ/បើកប្រព័ន្ធ ឬកំណត់ម៉ោងថែទាំទុកជាមុន
  */
 const toggleSystem = async (req, res) => {
   try {
     const currentStatus = readSystemStatus() || { isSystemFrozen: false };
     const {
-      actionMode, // "FREEZE_OR_SCHEDULE" | "RESUME_NOW" | "CANCEL_SCHEDULE" | "FORCE_FREEZE_NOW"
+      actionMode,
       targetFreezeState,
       freezeType = "Scheduled Maintenance",
       reason = "",
@@ -758,10 +1054,9 @@ const toggleSystem = async (req, res) => {
     const historyList = Array.isArray(sys.maintenanceHistory)
       ? [...sys.maintenanceHistory]
       : [];
-    const adminName = req.admin?.username || "admin";
+    const adminDisplayName = await getAdminFullDisplayName(req.admin);
     let broadcastCount = 0;
 
-    // 🚫 ករណីទី ១៖ បោះបង់ការកំណត់ម៉ោងទុកជាមុន (CANCEL SCHEDULE)
     if (actionMode === "CANCEL_SCHEDULE") {
       const prevMeta = sys.maintenanceMeta || {};
       const idx = historyList.findIndex(
@@ -771,9 +1066,9 @@ const toggleSystem = async (req, res) => {
         historyList[idx].status = "CANCELLED";
         historyList[idx].actualEndTimeStr = khmerNowStr;
         historyList[idx].durationText = "បានបោះបង់មុនដល់ម៉ោង (Cancelled)";
-        historyList[idx].resumedBy = adminName;
+        historyList[idx].resumedBy = adminDisplayName;
         historyList[idx].resolutionNote =
-          resolutionNote || "បោះបង់ការកំណត់ម៉ោងដោយ Admin";
+          resolutionNote || "បោះបង់ការកំណត់ម៉ោងដោយអ្នកគ្រប់គ្រង";
       }
 
       await writeSystemStatus({ isSystemFrozen: false });
@@ -781,7 +1076,7 @@ const toggleSystem = async (req, res) => {
         isSystemFrozen: false,
         scheduleStatus: "ONLINE",
         lastResumedAt: khmerNowStr,
-        lastResumedBy: adminName,
+        lastResumedBy: adminDisplayName,
       };
 
       sys.set("maintenanceMeta", nextMeta, { strict: false });
@@ -792,7 +1087,7 @@ const toggleSystem = async (req, res) => {
       scheduleExactMaintenanceTimers();
 
       await logAdminAction(
-        adminName,
+        adminDisplayName,
         "Cancel Scheduled Maintenance",
         "System Control",
         `Cancelled scheduled maintenance [${prevMeta.incidentId || "SYS"}]`,
@@ -807,7 +1102,6 @@ const toggleSystem = async (req, res) => {
       });
     }
 
-    // הקំណត់ថាតើជាការបិទ (ឬកំណត់ម៉ោងបិទ) ឬ ជាការបើកប្រព័ន្ធវិញ
     const wantFreezeOrSchedule =
       actionMode === "FREEZE_OR_SCHEDULE" ||
       actionMode === "FORCE_FREEZE_NOW" ||
@@ -833,7 +1127,6 @@ const toggleSystem = async (req, res) => {
           ? Number(expectedEndAtMs)
           : null;
 
-      // ⏳ ករណីទី ២៖ ម៉ោងចាប់ផ្តើមនៅនាពេលអនាគត (> 30 វិនាទីទៀត) -> ដាក់ក្នុងស្ថានភាពរង់ចាំដល់ម៉ោង (SCHEDULED)
       if (parsedStartMs > nowMs + 30000) {
         await writeSystemStatus({ isSystemFrozen: false });
 
@@ -851,7 +1144,7 @@ const toggleSystem = async (req, res) => {
               : "រហូតដល់មានការជូនដំណឹងបន្ថែម"),
           startAtMs: parsedStartMs,
           expectedEndAtMs: parsedEndMs,
-          frozenBy: adminName,
+          frozenBy: adminDisplayName,
           notifyUsers: Boolean(notifyUsers),
           scheduledAtStr: khmerNowStr,
         };
@@ -866,7 +1159,7 @@ const toggleSystem = async (req, res) => {
           expectedEndTimeStr: metaObj.expectedEndTime,
           actualEndTimeStr: "រង់ចាំដល់ម៉ោងចាប់ផ្តើម...",
           durationText: "បានកំណត់ម៉ោងទុក (Scheduled ⏳)",
-          frozenBy: adminName,
+          frozenBy: adminDisplayName,
           resumedBy: "-",
           resolutionNote: "ប្រព័ន្ធនឹងបិទ-បើកដោយស្វ័យប្រវត្តិពេលដល់ម៉ោង",
           notifyUsers: Boolean(notifyUsers),
@@ -886,14 +1179,14 @@ const toggleSystem = async (req, res) => {
           broadcastCount = await broadcastSystemMaintenanceAlert(
             "⏰ សេចក្តីជូនដំណឹងជាមុន៖ គម្រោងថែទាំប្រព័ន្ធ (Scheduled Maintenance)",
             `ធនាគារ U-Pay នឹងធ្វើការផ្អាកប្រព័ន្ធបណ្តោះអាសន្ន (${freezeType}) ចាប់ពីម៉ោង ${metaObj.startTime} រហូតដល់ម៉ោង ${metaObj.expectedEndTime}។ មូលហេតុ៖ ${cleanReason}។ សូមអភ័យទោសទុកជាមុន!`,
-            adminName,
+            adminDisplayName,
             incidentId,
-            "info",
+            "system_schedule",
           );
         }
 
         await logAdminAction(
-          adminName,
+          adminDisplayName,
           "Schedule System Maintenance",
           "System Control",
           `[${incidentId}] Scheduled from ${metaObj.startTime} to ${metaObj.expectedEndTime}`,
@@ -909,7 +1202,6 @@ const toggleSystem = async (req, res) => {
         });
       }
 
-      // 🛑 ករណីទី ៣៖ ម៉ោងចាប់ផ្តើមគឺឥឡូវនេះ -> បិទប្រព័ន្ធភ្លាមៗ (IMMEDIATE FREEZE) + កំណត់ម៉ោងបើកវិញអូតូ
       await writeSystemStatus({ isSystemFrozen: true });
 
       const metaObj = {
@@ -926,7 +1218,7 @@ const toggleSystem = async (req, res) => {
             : "រហូតដល់មានការជូនដំណឹងបន្ថែម"),
         startAtMs: nowMs,
         expectedEndAtMs: parsedEndMs,
-        frozenBy: adminName,
+        frozenBy: adminDisplayName,
         frozenAtMs: nowMs,
         frozenAtStr: khmerNowStr,
         notifyUsers: Boolean(notifyUsers),
@@ -944,7 +1236,7 @@ const toggleSystem = async (req, res) => {
           ? "នឹងបើកវិញអូតូតាមម៉ោងកំណត់..."
           : "កំពុងផ្អាកដំណើរការ...",
         durationText: "កំពុងផ្អាក (Active Freeze)",
-        frozenBy: adminName,
+        frozenBy: adminDisplayName,
         resumedBy: "-",
         resolutionNote: "-",
         notifyUsers: Boolean(notifyUsers),
@@ -964,7 +1256,7 @@ const toggleSystem = async (req, res) => {
         broadcastCount = await broadcastSystemMaintenanceAlert(
           "🛑 សេចក្តីជូនដំណឹង៖ ផ្អាកប្រព័ន្ធបណ្តោះអាសន្ន (System Maintenance)",
           `ប្រព័ន្ធធនាគារ U-Pay ត្រូវបានផ្អាកប្រតិបត្តិការបណ្តោះអាសន្ន (${freezeType})។ មូលហេតុ៖ ${cleanReason} | ចាប់ផ្តើម៖ ${metaObj.startTime} | រំពឹងបើកវិញ៖ ${metaObj.expectedEndTime}។`,
-          adminName,
+          adminDisplayName,
           incidentId,
           "system_alert",
         );
@@ -978,7 +1270,7 @@ const toggleSystem = async (req, res) => {
       }
 
       await logAdminAction(
-        adminName,
+        adminDisplayName,
         "Freeze System Platform",
         "System Control",
         `[${incidentId}] Type: ${freezeType} | Auto-Resume At: ${metaObj.expectedEndTime}`,
@@ -992,7 +1284,6 @@ const toggleSystem = async (req, res) => {
         maintenanceHistory: sys.maintenanceHistory,
       });
     } else {
-      // 🟢 ករណីទី ៤៖ បើកដំណើរការប្រព័ន្ធវិញដោយដៃ (MANUAL RESUME)
       await writeSystemStatus({ isSystemFrozen: false });
 
       const prevMeta = sys.maintenanceMeta || {};
@@ -1008,7 +1299,7 @@ const toggleSystem = async (req, res) => {
       if (idx !== -1) {
         historyList[idx].actualEndTimeStr = khmerNowStr;
         historyList[idx].durationText = durationStr;
-        historyList[idx].resumedBy = adminName;
+        historyList[idx].resumedBy = adminDisplayName;
         historyList[idx].resolutionNote = cleanNote;
         historyList[idx].status = "COMPLETED";
         historyList[idx].endedAtMs = nowMs;
@@ -1018,7 +1309,7 @@ const toggleSystem = async (req, res) => {
         isSystemFrozen: false,
         scheduleStatus: "ONLINE",
         lastResumedAt: khmerNowStr,
-        lastResumedBy: adminName,
+        lastResumedBy: adminDisplayName,
         lastDuration: durationStr,
       };
 
@@ -1035,9 +1326,9 @@ const toggleSystem = async (req, res) => {
         broadcastCount = await broadcastSystemMaintenanceAlert(
           "🟢 ប្រព័ន្ធដំណើរការធម្មតាវិញហើយ (System Online)",
           `ប្រព័ន្ធធនាគារ U-Pay បានបើកដំណើរការធម្មតាវិញហើយនៅម៉ោង ${khmerNowStr} (រយៈពេលថែទាំសរុប៖ ${durationStr})។ លោកអ្នកអាចធ្វើប្រតិបត្តិការហិរញ្ញវត្ថុបានធម្មតា។ សូមអរគុណ!`,
-          adminName,
+          adminDisplayName,
           prevMeta.incidentId,
-          "info",
+          "system_online",
         );
       }
 
@@ -1049,7 +1340,7 @@ const toggleSystem = async (req, res) => {
       }
 
       await logAdminAction(
-        adminName,
+        adminDisplayName,
         "Resume System Platform",
         "System Control",
         `System Online | Total Duration: ${durationStr} | Note: ${cleanNote}`,
@@ -1069,7 +1360,9 @@ const toggleSystem = async (req, res) => {
   }
 };
 
-// 🌐 អនុគមន៍ជំនួយ៖ ទាញយកអត្រាប្តូរប្រាក់ផ្លូវការ (NBC / Global Reference API) រួមជាមួយ Spread ធនាគារ
+/**
+ * 🔹 ៤.៥ មុខងារគ្រប់គ្រងអត្រាប្តូរប្រាក់ផ្លូវការ (NBC FX Sync & Manual Override)
+ */
 async function fetchOfficialNbcRatesHelper() {
   const res = await fetch("https://open.er-api.com/v6/latest/USD");
   const data = await res.json();
@@ -1078,10 +1371,9 @@ async function fetchOfficialNbcRatesHelper() {
   }
 
   const r = data.rates;
-  // អត្រាផ្លូវការធនាគារជាតិ (បង្គត់ទៅខ្ទង់ ៥ រៀលជិតបំផុត)
   const officialMidKhr = Math.round(Number(r.KHR || 4065) / 5) * 5;
-  const usdBuy = officialMidKhr - 15; // ធនាគារទិញចូល
-  const usdSell = officialMidKhr + 25; // ធនាគារលក់ចេញ
+  const usdBuy = officialMidKhr - 15;
+  const usdSell = officialMidKhr + 25;
 
   const thbMid = officialMidKhr / Number(r.THB || 34.2);
   const cnyMid = officialMidKhr / Number(r.CNY || 7.18);
@@ -1200,15 +1492,10 @@ async function fetchOfficialNbcRatesHelper() {
   };
 }
 
-/**
- * 📌 ទាញយកអត្រាប្តូរប្រាក់ (ឆែកមើលបើផុត ៧ ថ្ងៃ នឹង Auto-Sync ពីធនាគារជាតិដោយស្វ័យប្រវត្តិ)
- */
 const getFXRates = async (req, res) => {
   try {
     let sys = await System.findOne({ settingId: "GLOBAL_SETTINGS" });
-    if (!sys) {
-      sys = new System({ settingId: "GLOBAL_SETTINGS" });
-    }
+    if (!sys) sys = new System({ settingId: "GLOBAL_SETTINGS" });
 
     let currentRates = sys.fxRates ||
       readFXRates() || {
@@ -1239,10 +1526,7 @@ const getFXRates = async (req, res) => {
         scheduleExactMaintenanceTimers();
         await writeFXRates(currentRates);
       } catch (syncErr) {
-        console.warn(
-          "Weekly NBC Auto-Sync skipped (offline):",
-          syncErr.message,
-        );
+        console.warn("Weekly NBC Auto-Sync skipped:", syncErr.message);
       }
     }
 
@@ -1252,15 +1536,13 @@ const getFXRates = async (req, res) => {
   }
 };
 
-/**
- * 📌 Admin កែប្រែ និងរក្សាទុកអត្រាប្តូរប្រាក់ដោយដៃ (Manual Override)
- */
 const updateFX = async (req, res) => {
   const { buy, sell, multiCurrencies, autoWeeklySync } = req.body;
   try {
     let sys = await System.findOne({ settingId: "GLOBAL_SETTINGS" });
     if (!sys) sys = new System({ settingId: "GLOBAL_SETTINGS" });
 
+    const adminName = await getAdminFullDisplayName(req.admin);
     const currentRates = sys.fxRates || readFXRates() || {};
     const updatedPayload = {
       ...currentRates,
@@ -1270,7 +1552,7 @@ const updateFX = async (req, res) => {
         autoWeeklySync !== undefined
           ? Boolean(autoWeeklySync)
           : currentRates.autoWeeklySync !== false,
-      lastModifiedBy: `@${req.admin.username} (Manual)`,
+      lastModifiedBy: `${adminName} (Manual)`,
       lastManualUpdateAt: new Date().toISOString(),
     };
 
@@ -1285,7 +1567,7 @@ const updateFX = async (req, res) => {
     await writeFXRates(updatedPayload);
 
     await logAdminAction(
-      req.admin.username,
+      adminName,
       "Update FX Rates",
       "Exchange System",
       `USD/KHR Buy: ${buy}៛, Sell: ${sell}៛ (Manual Override)`,
@@ -1301,20 +1583,18 @@ const updateFX = async (req, res) => {
   }
 };
 
-/**
- * 📌 ប៊ូតុងទាញយកអត្រាប្តូរប្រាក់ពីធនាគារជាតិភ្លាមៗ (Manual Trigger NBC Sync)
- */
 const syncNbcFXRates = async (req, res) => {
   try {
     let sys = await System.findOne({ settingId: "GLOBAL_SETTINGS" });
     if (!sys) sys = new System({ settingId: "GLOBAL_SETTINGS" });
 
+    const adminName = await getAdminFullDisplayName(req.admin);
     const freshNbc = await fetchOfficialNbcRatesHelper();
     const updatedPayload = {
       ...(sys.fxRates || {}),
       ...freshNbc,
       autoWeeklySync: true,
-      lastModifiedBy: `@${req.admin.username} (NBC Live Sync)`,
+      lastModifiedBy: `${adminName} (NBC Live Sync)`,
     };
 
     sys.fxRates = updatedPayload;
@@ -1324,7 +1604,7 @@ const syncNbcFXRates = async (req, res) => {
     await writeFXRates(updatedPayload);
 
     await logAdminAction(
-      req.admin.username,
+      adminName,
       "Sync NBC FX Rates",
       "Exchange System",
       `Synced NBC Mid Rate: ${freshNbc.officialNbcMidRate}៛ (Buy: ${freshNbc.usdToKhrBuy}៛, Sell: ${freshNbc.usdToKhrSell}៛)`,
@@ -1343,6 +1623,9 @@ const syncNbcFXRates = async (req, res) => {
   }
 };
 
+/**
+ * 🔹 ៤.៦ មុខងារកំណត់តម្លៃសេវាផ្ទេរប្រាក់ និងដែនកំណត់ប្រតិបត្តិការ (System Fees & Limits)
+ */
 const getFeeSettings = async (req, res) => {
   try {
     let sys = await System.findOne({ settingId: "GLOBAL_SETTINGS" });
@@ -1380,7 +1663,7 @@ const updateFeeSettings = async (req, res) => {
     scheduleExactMaintenanceTimers();
 
     await logAdminAction(
-      req.admin.username,
+      await getAdminFullDisplayName(req.admin),
       "Update Fees & Limits",
       "System Settings",
       `New Limit: $${transferLimit}, Tiers Updated.`,
@@ -1393,9 +1676,9 @@ const updateFeeSettings = async (req, res) => {
   }
 };
 
-// ==========================================
-// 📊 ផ្នែកទី ៥៖ របាយការណ៍ និងស្ថិតិ (Dashboard & Stats)
-// ==========================================
+// ============================================================================
+// 📊 ជំពូកទី ៥៖ របាយការណ៍ និងស្ថិតិប្រព័ន្ធ (DASHBOARD & PRO ANALYTICS)
+// ============================================================================
 
 const getStats = async (req, res) => {
   try {
@@ -1456,9 +1739,10 @@ const getDashboardExtra = async (req, res) => {
     })
       .sort({ createdAt: -1 })
       .limit(10);
+
     const allActivities = recentTrxs.map((t) => ({
       type: t.type || "Transaction",
-      user: t.username || "Unknown",
+      user: t.senderName || t.username || "Unknown",
       amount: t.amount || 0,
       date: t.date || new Date(t.createdAt).toLocaleString(),
       receiver: t.receiverName || "System",
@@ -1476,7 +1760,7 @@ const getDashboardExtra = async (req, res) => {
 };
 
 /**
- * 📌 [Admin Pro Dashboard] ទាញយកទិន្នន័យវិភាគគ្រប់ជ្រុងជ្រោយ ១០០% តាមកាលបរិច្ឆេទ (Date Range Filter)
+ * 🔹 ៥.៣ ទាញយកទិន្នន័យវិភាគគ្រប់ជ្រុងជ្រោយសម្រាប់ Admin Pro Dashboard (ភ្ជាប់ `_id` គ្រប់កាតទាំងអស់)
  */
 const getDashboardAnalyticsPro = async (req, res) => {
   try {
@@ -1486,7 +1770,6 @@ const getDashboardAnalyticsPro = async (req, res) => {
     const khrRate = parseFloat(sysFx.usdToKhrSell) || 4100;
     const sysStatus = readSystemStatus() || { isSystemFrozen: false };
 
-    // ១. កំណត់ចន្លោះកាលបរិច្ឆេទ (Start Date -> End Date)
     let startMs = 0;
     let endMs = Date.now() + 86400000;
     if (startDate) {
@@ -1513,7 +1796,6 @@ const getDashboardAnalyticsPro = async (req, res) => {
       return Date.now();
     };
 
-    // ២. ទាញទិន្នន័យពិតពីគ្រប់ Collections ក្នុងពេលតែមួយ (Parallel Queries)
     const [
       allUsers,
       allCards,
@@ -1545,7 +1827,6 @@ const getDashboardAnalyticsPro = async (req, res) => {
         u.username === "superadmin",
     );
 
-    // ៣. គណនាស្ថិតិអតិថិជន និងមូលនិធិក្នុងប្រព័ន្ធ
     let activeOnlineUsers = 0;
     let newUsersInPeriod = 0;
     let frozenUsersCount = 0;
@@ -1575,8 +1856,10 @@ const getDashboardAnalyticsPro = async (req, res) => {
 
       if (Array.isArray(u.subAccounts)) {
         u.subAccounts.forEach((sub) => {
-          if (sub.currency === "KHR") uKhr += Number(sub.balance || 0);
-          else uUsd += Number(sub.balance || 0);
+          if (sub.accountType !== "junior") {
+            if (sub.currency === "KHR") uKhr += Number(sub.balance || 0);
+            else uUsd += Number(sub.balance || 0);
+          }
         });
       }
 
@@ -1588,8 +1871,9 @@ const getDashboardAnalyticsPro = async (req, res) => {
 
       if (Array.isArray(u.tickets)) {
         u.tickets.forEach((tk) => {
-          if (tk.status === "Open" || tk.status === "Pending")
+          if (tk.status === "Open" || tk.status === "Pending") {
             openSupportTickets++;
+          }
         });
       }
 
@@ -1598,8 +1882,9 @@ const getDashboardAnalyticsPro = async (req, res) => {
 
       const combinedUsdEq = uUsd + uKhr / khrRate;
       topUsersList.push({
+        _id: String(u._id),
         username: u.username,
-        fullName: u.fullName || u.username,
+        fullName: getDisplayName(u),
         profileImage: u.profileImage || "",
         usdBalance: uUsd,
         khrBalance: uKhr,
@@ -1610,7 +1895,6 @@ const getDashboardAnalyticsPro = async (req, res) => {
 
     topUsersList.sort((a, b) => b.totalUsdEq - a.totalUsdEq);
 
-    // ៤. គណនាស្ថិតិហាងទំនិញ (Merchants) និងបញ្ជរគិតប្រាក់ (Cashier)
     let totalMerchantEscrowUSD = 0;
     let totalMerchantCollectedUSD = 0;
     const topMerchantsList = [];
@@ -1625,6 +1909,8 @@ const getDashboardAnalyticsPro = async (req, res) => {
       totalMerchantCollectedUSD += colUsd;
 
       topMerchantsList.push({
+        _id: String(m._id),
+        ownerId: m.ownerId ? String(m.ownerId) : "",
         name: m.name,
         merchantId: m.merchantId,
         owner: m.username || m.userId,
@@ -1640,7 +1926,6 @@ const getDashboardAnalyticsPro = async (req, res) => {
       (t) => t.status === "pending_approve" || t.status === "pending_verify",
     ).length;
 
-    // ៥. គណនាប្រតិបត្តិការ និងលំហូរសាច់ប្រាក់ក្នុងចន្លោះកាលបរិច្ឆេទ (Filtered Transactions)
     const toUsd = (amt, cur) =>
       cur === "KHR"
         ? Math.abs(Number(amt || 0)) / khrRate
@@ -1666,8 +1951,6 @@ const getDashboardAnalyticsPro = async (req, res) => {
 
       const tTime = parseItemTime(t);
       if (tTime < startMs || tTime > endMs) return;
-
-      // មិនរាប់ប្រតិបត្តិការកត់ត្រាផ្ទៃក្នុងរបស់ Central Bank ជាន់គ្នា
       if (t.username === "superadmin" && t.type !== "System Income") return;
 
       const dObj = new Date(tTime);
@@ -1687,7 +1970,6 @@ const getDashboardAnalyticsPro = async (req, res) => {
       const tType = String(t.type || "").toLowerCase();
       const tMethod = String(t.trxMethod || "").toLowerCase();
 
-      // គណនាចំណូលធនាគារ (Fee + Card Issuance + System Income)
       if (feeUsd > 0) {
         periodRevenueUSD += feeUsd;
         dailyMap[dayKey].revenueUSD += feeUsd;
@@ -1701,7 +1983,6 @@ const getDashboardAnalyticsPro = async (req, res) => {
         dailyMap[dayKey].revenueUSD += amtUsd;
       }
 
-      // ការពារកុំឱ្យរាប់ Volume ជាន់គ្នា២ដង (Sender Leg & Receiver Leg នៃប្រតិបត្តិការតែមួយ)
       const refKey = t.refId || String(t._id);
       if (!seenRefForVolume.has(refKey)) {
         seenRefForVolume.add(refKey);
@@ -1751,6 +2032,7 @@ const getDashboardAnalyticsPro = async (req, res) => {
       .slice(0, 25)
       .map((t) => ({
         _id: t._id,
+        userId: t.userId ? String(t.userId) : "",
         refId: t.refId || "N/A",
         hash: t.hash || "",
         username: t.username || "System",
@@ -1829,66 +2111,120 @@ const getDashboardAnalyticsPro = async (req, res) => {
   }
 };
 
-// ==========================================
-// 👥 ផ្នែកទី ៦៖ ការគ្រប់គ្រងអតិថិជន (Customer 360 & Management - Updated with Card.js)
-// ==========================================
+// ============================================================================
+// 👥 ជំពូកទី ៦៖ ការគ្រប់គ្រងអតិថិជន, គណនីរង និង KYC (CUSTOMER 360° & KYC BY `_id`)
+// ============================================================================
+
+/**
+ * 🔹 ៦.១ អនុគមន៍រៀបចំកញ្ចប់ទិន្នន័យអតិថិជនពេញលេញ ៣៦០ ដឺក្រេ ដោយចាប់តាម `_id` សុទ្ធសាធ!
+ * (ការពារកុំឱ្យទាញប្រតិបត្តិការ ឬកាតចាស់មកបង្ហាញ ប្រសិនបើថ្ងៃក្រោយមានគណនីថ្មីប្រើឈ្មោះ ឬលេខគណនីដដែល)
+ */
+async function buildCustomer360ProfileById(userObj) {
+  if (!userObj) return null;
+  let userDetails = userObj.toObject ? userObj.toObject() : { ...userObj };
+  userDetails._id = String(userObj._id);
+  userDetails.id = String(userObj._id);
+
+  // 🎯 ១. ទាញយកប្រតិបត្តិការរបស់អតិថិជននេះ ដោយចាប់តាម `userId: userObj._id` ជាគោល!
+  const userTransactions = await Transaction.find({
+    userId: userObj._id,
+  }).sort({ _id: -1 });
+  userDetails.transactions = userTransactions || [];
+
+  // 🎯 ២. ទាញយកកាតទាំងអស់របស់អតិថិជននេះ ដោយចាប់តាម `userId: userObj._id` ជាគោល!
+  userDetails.virtualCards = await Card.find({
+    userId: userObj._id,
+  }).sort({ orderIndex: 1, createdAt: 1 });
+
+  // 🧹 ៣. ឆែកគណនីកូន (Junior) ក្នុង subAccounts តាមរយៈ MongoDB `_id` (`parentId` & `linkedUserId`) សុទ្ធសាធ!
+  if (
+    Array.isArray(userDetails.subAccounts) &&
+    userDetails.subAccounts.length > 0
+  ) {
+    const jrSubItems = userDetails.subAccounts.filter(
+      (s) => s.accountType === "junior",
+    );
+    if (jrSubItems.length > 0) {
+      const aliveKids = await User.find({
+        role: "junior",
+        parentId: userObj._id,
+      })
+        .select("_id")
+        .lean();
+
+      const aliveIds = new Set(aliveKids.map((k) => String(k._id)));
+
+      userDetails.subAccounts = userDetails.subAccounts.filter((sa) => {
+        if (sa.accountType !== "junior") return true;
+        if (sa.linkedUserId && aliveIds.has(String(sa.linkedUserId)))
+          return true;
+        const cleanAid = String(sa.accountId || "").replace(/_khr$/i, "");
+        return aliveIds.has(cleanAid);
+      });
+    }
+  }
+
+  // ៤. រៀបចំរូបភាព KYC (បំបែកដាច់ពីរូបភាព Profile)
+  userDetails.kycDocument =
+    userDetails.kycDocument ||
+    userDetails.kycImage ||
+    userDetails.idCardImage ||
+    "";
+  userDetails.kycImage = userDetails.kycDocument;
+
+  // ៥. ស្វែងរកឈ្មោះពេញរបស់អ្នកណែនាំ (Referrer) បើមាន
+  if (userDetails.referredBy) {
+    const refConds = [{ userId: userDetails.referredBy }];
+    if (mongoose.isValidObjectId(userDetails.referredBy)) {
+      refConds.unshift({ _id: userDetails.referredBy });
+    }
+    const referrer = await User.findOne({ $or: refConds }).select(
+      "fullName username",
+    );
+    if (referrer) {
+      userDetails.referrerName = getDisplayName(referrer);
+    }
+  }
+
+  return userDetails;
+}
+
+/**
+ * 🔹 ៦.២ ស្វែងរកអតិថិជនសម្រាប់ Customer 360° (គាំទ្រការស្វែងរកតាម `_id`, ឈ្មោះពេញ, លេខទូរស័ព្ទ, លេខគណនី)
+ */
 const searchUserByAdmin = async (req, res) => {
   try {
     const { searchTerm } = req.body;
-    if (!searchTerm)
+    if (!searchTerm) {
       return res.json({ success: false, message: "សូមបញ្ចូលពាក្យស្វែងរក!" });
+    }
 
-    const regex = new RegExp(searchTerm, "i");
-    const userObj = await User.findOne({
-      $or: [
-        { username: regex },
-        { fullName: regex },
-        { phone: regex },
-        { phoneNumber: regex },
-        { "mainAccounts.USD.accountNumber": searchTerm },
-        { "mainAccounts.KHR.accountNumber": searchTerm },
-      ],
-    }).select("-password");
+    const cleanTerm = String(searchTerm).trim();
+    let userObj = null;
+
+    if (mongoose.isValidObjectId(cleanTerm)) {
+      userObj = await User.findById(cleanTerm).select("-password");
+    }
+
+    if (!userObj) {
+      const regex = new RegExp(
+        cleanTerm.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"),
+        "i",
+      );
+      userObj = await User.findOne({
+        $or: [
+          { fullName: regex },
+          { username: regex },
+          { phone: regex },
+          { "mainAccounts.USD.accountNumber": cleanTerm },
+          { "mainAccounts.KHR.accountNumber": cleanTerm },
+          { "subAccounts.accountNumber": cleanTerm },
+        ],
+      }).select("-password");
+    }
 
     if (userObj) {
-      let userDetails = userObj.toObject();
-      const userTransactions = await Transaction.find({
-        $or: [
-          { username: userDetails.username },
-          { senderAcc: userDetails.mainAccounts?.USD?.accountNumber },
-          { senderAcc: userDetails.mainAccounts?.KHR?.accountNumber },
-          { receiverAcc: userDetails.mainAccounts?.USD?.accountNumber },
-          { receiverAcc: userDetails.mainAccounts?.KHR?.accountNumber },
-        ],
-      }).sort({ _id: -1 });
-
-      userDetails.transactions = userTransactions || [];
-
-      // 🌟 ទាញយកកាតពី Model Card.js ថ្មីមកដាក់ក្នុង userDetails.virtualCards ឱ្យបានត្រឹមត្រូវ
-      userDetails.virtualCards = await Card.find({
-        $or: [
-          { username: userDetails.username },
-          { userId: userDetails._id },
-          { userCustomId: userDetails.userId },
-        ],
-      }).sort({ orderIndex: 1, createdAt: 1 });
-
-      userDetails.kycDocument =
-        userDetails.kycDocument ||
-        userDetails.kycImage ||
-        userDetails.idCardImage ||
-        "";
-      userDetails.kycImage = userDetails.kycDocument;
-
-      if (userDetails.referredBy) {
-        const referrer = await User.findOne({
-          userId: userDetails.referredBy,
-        }).select("fullName username");
-        if (referrer) {
-          userDetails.referrerName = referrer.fullName || referrer.username;
-        }
-      }
-
+      const userDetails = await buildCustomer360ProfileById(userObj);
       res.json({ success: true, user: userDetails });
     } else {
       res.json({ success: false, message: "រកមិនឃើញអតិថិជននេះទេ!" });
@@ -1899,50 +2235,17 @@ const searchUserByAdmin = async (req, res) => {
   }
 };
 
+/**
+ * 🔹 ៦.៣ ទាញយកទិន្នន័យអតិថិជនម្នាក់តាម `_id` (getUserByAdmin & getSingleUser)
+ */
 const getUserByAdmin = async (req, res) => {
   try {
-    const { username } = req.body;
-    const userObj = await User.findOne({ username }).select("-password");
+    const identifier =
+      req.body._id || req.body.userId || req.body.id || req.body.username;
+    const userObj = await resolveCustomerById(identifier, "-password");
 
     if (userObj) {
-      let userDetails = userObj.toObject();
-      const userTransactions = await Transaction.find({
-        $or: [
-          { username: userDetails.username },
-          { senderAcc: userDetails.mainAccounts?.USD?.accountNumber },
-          { senderAcc: userDetails.mainAccounts?.KHR?.accountNumber },
-          { receiverAcc: userDetails.mainAccounts?.USD?.accountNumber },
-          { receiverAcc: userDetails.mainAccounts?.KHR?.accountNumber },
-        ],
-      }).sort({ _id: -1 });
-
-      userDetails.transactions = userTransactions || [];
-
-      // 🌟 ទាញយកកាតពី Model Card.js ថ្មីមកដាក់ក្នុង userDetails.virtualCards ឱ្យបានត្រឹមត្រូវ
-      userDetails.virtualCards = await Card.find({
-        $or: [
-          { username: userDetails.username },
-          { userId: userDetails._id },
-          { userCustomId: userDetails.userId },
-        ],
-      }).sort({ orderIndex: 1, createdAt: 1 });
-
-      userDetails.kycDocument =
-        userDetails.kycDocument ||
-        userDetails.kycImage ||
-        userDetails.idCardImage ||
-        "";
-      userDetails.kycImage = userDetails.kycDocument;
-
-      if (userDetails.referredBy) {
-        const referrer = await User.findOne({
-          userId: userDetails.referredBy,
-        }).select("fullName username");
-        if (referrer) {
-          userDetails.referrerName = referrer.fullName || referrer.username;
-        }
-      }
-
+      const userDetails = await buildCustomer360ProfileById(userObj);
       res.json({ success: true, user: userDetails });
     } else {
       res.json({ success: false, message: "រកមិនឃើញគណនីនេះទេ!" });
@@ -1955,14 +2258,164 @@ const getUserByAdmin = async (req, res) => {
 
 const getSingleUser = async (req, res) => {
   try {
-    const user = await User.findOne({ username: req.body.username });
-    if (user) res.json({ success: true, user: user });
+    const identifier =
+      req.body._id || req.body.userId || req.body.id || req.body.username;
+    const user = await resolveCustomerById(identifier, "-password");
+    if (user) res.json({ success: true, user });
     else res.json({ success: false, message: "User not found" });
   } catch (error) {
     res.status(500).json({ success: false });
   }
 };
 
+/**
+ * 🔹 ៦.៤ បង្កើតគណនីអតិថិជនថ្មីដោយ Admin (adminCreateUser)
+ */
+const adminCreateUser = async (req, res) => {
+  const {
+    username,
+    password,
+    pin,
+    fullName,
+    phone,
+    email,
+    dob,
+    gender,
+    idNumber,
+    duplicateReason,
+    duplicateIdReason,
+    idCardUrl,
+    selfieUrl,
+  } = req.body;
+
+  try {
+    const existingUser = await User.findOne({
+      $or: [{ username: username }, { email: email || "N/A_EMAIL_CHECK" }],
+    });
+
+    if (existingUser) {
+      return res.json({
+        success: false,
+        message: "ឈ្មោះគណនី ឬ អ៊ីមែលនេះមានគេប្រើប្រាស់រួចហើយ!",
+      });
+    }
+
+    const cleanIdNumber = String(idNumber || "").trim();
+    let finalDupReason = String(
+      duplicateIdReason || duplicateReason || "",
+    ).trim();
+
+    if (cleanIdNumber && cleanIdNumber !== "N/A") {
+      const existingIdUsers = await User.find({ idNumber: cleanIdNumber });
+      if (existingIdUsers.length > 0 && !finalDupReason) {
+        return res.json({
+          success: false,
+          requireDuplicateReason: true,
+          message: `លេខអត្តសញ្ញាណប័ណ្ណ (${cleanIdNumber}) ធ្លាប់មានគណនីប្រើប្រាស់រួចហើយ! សូមបញ្ចូលមូលហេតុនៃការបង្កើតគណនីបន្ថែម។`,
+        });
+      }
+    }
+
+    const tsId = Date.now().toString();
+    const prefix = Math.floor(Math.random() * 9) + 1;
+    const suffix = Math.floor(Math.random() * 890) + 100;
+    const baseAcc = parseInt(`${prefix}00${prefix}00${suffix}`, 10);
+
+    const newAccUSD = baseAcc.toString();
+    const newAccKHR = (baseAcc + 1).toString();
+    const newUserId = Math.floor(
+      10000000 + Math.random() * 90000000,
+    ).toString();
+
+    let initialKycStatus = idCardUrl && selfieUrl ? "pending" : "unverified";
+    const adminDisplayName = await getAdminFullDisplayName(req.admin);
+
+    const newUser = new User({
+      id: tsId,
+      userId: newUserId,
+      username: username,
+      password: password || "1234",
+      pin: pin || "1234",
+      fullName: fullName,
+      email: email || "",
+      phone: phone || "",
+      dob: dob || "",
+      gender: gender || "",
+      idNumber: cleanIdNumber,
+      duplicateIdReason: finalDupReason,
+
+      // 🖼️ ពេលបង្កើតដំបូង យករូប Selfie KYC ដាក់ជា Profile សិន (តែរក្សាទុកដាច់ពីគ្នា)
+      profileImage: selfieUrl || "",
+      kycStatus: initialKycStatus,
+      kycDocument: idCardUrl || "",
+      kycImage: idCardUrl || "",
+      selfieUrl: selfieUrl || "",
+      kycSubmittedAt: initialKycStatus === "pending" ? getFormattedDate() : "",
+      kycUploadedBy: idCardUrl || selfieUrl ? req.admin.username : "",
+
+      mainAccounts: {
+        USD: {
+          accountId: "MAIN_USD_" + tsId,
+          accountNumber: newAccUSD,
+          accountName: "Main Account USD",
+          accountType: "main",
+          currency: "USD",
+          balance: 0.0,
+          dailyLimit: 1000.0,
+          dailySpent: 0.0,
+          isFrozen: false,
+          isHidden: false,
+        },
+        KHR: {
+          accountId: "MAIN_KHR_" + tsId,
+          accountNumber: newAccKHR,
+          accountName: "Main Account KHR",
+          accountType: "main",
+          currency: "KHR",
+          balance: 0.0,
+          dailyLimit: 4000000.0,
+          dailySpent: 0.0,
+          isFrozen: false,
+          isHidden: false,
+        },
+      },
+      role: "user",
+      joinDate: new Date().toISOString(),
+      lastActive: new Date().toISOString(),
+    });
+
+    await newUser.save();
+
+    if (cleanIdNumber && finalDupReason) {
+      await User.updateMany(
+        { idNumber: cleanIdNumber },
+        { $set: { duplicateIdReason: finalDupReason } },
+      );
+    }
+
+    await logAdminAction(
+      adminDisplayName,
+      "Create User",
+      String(newUser._id),
+      `Created new account for "${getDisplayName(newUser)}"${finalDupReason ? ` (Duplicate ID Reason: ${finalDupReason})` : ""}`,
+    );
+
+    res.json({
+      success: true,
+      message: "គណនីត្រូវបានបង្កើតដោយជោគជ័យ!",
+      userId: String(newUser._id),
+    });
+  } catch (err) {
+    console.error("Admin Create User Error:", err);
+    res
+      .status(500)
+      .json({ success: false, message: "Server Error ពេលបង្កើតគណនី" });
+  }
+};
+
+/**
+ * 🔹 ៦.៥ កែប្រែព័ត៌មានអតិថិជនតាម `_id` (editUser)
+ */
 const editUser = async (req, res) => {
   const access = await checkAdminAccess(req.admin, "editUser");
   if (!access.allowed)
@@ -1970,6 +2423,8 @@ const editUser = async (req, res) => {
 
   const {
     id,
+    _id,
+    userId,
     username,
     pin,
     profileImage,
@@ -1986,40 +2441,36 @@ const editUser = async (req, res) => {
   } = req.body;
 
   try {
-    if (!id) return res.json({ success: false, message: "Invalid ID" });
-
-    let query = [{ username: id }];
-    if (mongoose.isValidObjectId(id)) query.push({ _id: id });
-
-    const u = await User.findOne({ $or: query });
-    if (!u)
+    const u = await resolveCustomerById(_id || id || userId || username);
+    if (!u) {
       return res.json({
         success: false,
         message: "រកមិនឃើញគណនីដើម្បីកែប្រែទេ។",
       });
+    }
 
     const checkUSD = accountNumber || u.mainAccounts?.USD?.accountNumber || "";
     const checkKHR =
       accountNumberKHR || u.mainAccounts?.KHR?.accountNumber || "";
-    if (checkUSD && checkKHR && checkUSD === checkKHR)
+    if (checkUSD && checkKHR && checkUSD === checkKHR) {
       return res.json({
         success: false,
         message: "បរាជ័យ! លេខគណនី USD និង KHR មិនអាចដូចគ្នាបានទេ។",
       });
+    }
 
     if (accountNumber) u.mainAccounts.USD.accountNumber = accountNumber;
     if (accountNumberKHR) u.mainAccounts.KHR.accountNumber = accountNumberKHR;
     if (username) u.username = username;
     if (pin) u.pin = pin;
+    // 🖼️ កែប្រែតែរូបថត Profile ប៉ុណ្ណោះ មិនប៉ះពាល់រូបថត KYC (selfieUrl) ទេ!
     if (profileImage !== undefined) u.profileImage = profileImage;
-    if (password && password.trim() !== "")
+    if (password && password.trim() !== "") {
       u.password = await bcrypt.hash(password, 10);
+    }
 
     if (fullName !== undefined) u.fullName = fullName;
-    if (phone !== undefined) {
-      u.phone = phone;
-      u.phoneNumber = phone;
-    }
+    if (phone !== undefined) u.phone = phone;
     if (email !== undefined) u.email = email;
     if (dob !== undefined) u.dob = dob;
     if (gender !== undefined) u.gender = gender;
@@ -2028,9 +2479,9 @@ const editUser = async (req, res) => {
       u.duplicateIdReason = duplicateIdReason.trim();
     }
 
+    u.markModified("mainAccounts");
     await u.save();
 
-    // 🔗 GLOBAL SYNC: បើមានលេខអត្តសញ្ញាណប័ណ្ណស្ទួន និងមូលហេតុ ត្រូវអាប់ដេតមូលហេតុនេះចូលគ្រប់គណនីទាំងអស់ដែលមានលេខ ID ដូចគ្នា!
     const targetIdNum = (
       idNumber !== undefined ? idNumber : u.idNumber || ""
     ).trim();
@@ -2053,10 +2504,10 @@ const editUser = async (req, res) => {
     }
 
     await logAdminAction(
-      req.admin.username,
+      await getAdminFullDisplayName(req.admin),
       "Edit User",
-      u.username,
-      `Updated user profile/credentials${duplicateIdReason ? ` (Duplicate ID Reason: ${duplicateIdReason})` : ""}`,
+      String(u._id),
+      `Updated profile for "${getDisplayName(u)}"${duplicateIdReason ? ` (Duplicate ID Reason: ${duplicateIdReason})` : ""}`,
     );
     res.json({ success: true });
   } catch (err) {
@@ -2065,63 +2516,55 @@ const editUser = async (req, res) => {
   }
 };
 
-// 🟢 អនុគមន៍ថ្មី៖ ផ្ញើ Reset Link ទៅកាន់អតិថិជន
+/**
+ * 🔹 ៦.៦ ផ្ញើតំណភ្ជាប់កំណត់លេខសម្ងាត់ ឬ PIN ថ្មីទៅកាន់អ៊ីមែលអតិថិជនតាម `_id`
+ */
 const requestCredentialReset = async (req, res) => {
-  const access = await checkAdminAccess(req.admin, "editUser"); // ឬកំណត់សិទ្ធិថ្មី "resetCredentials"
+  const access = await checkAdminAccess(req.admin, "editUser");
   if (!access.allowed)
     return res.status(403).json({ success: false, message: access.message });
 
-  const { username, resetType } = req.body; // resetType = "PIN" ឬ "Password"
-
+  const { _id, userId, username, resetType } = req.body;
   try {
-    const user = await User.findOne({ username });
+    const user = await resolveCustomerById(_id || userId || username);
     if (!user) return res.json({ success: false, message: "រកគណនីមិនឃើញទេ!" });
 
     if (!user.email) {
       return res.json({
         success: false,
         message:
-          "បរាជ័យ! អតិថិជននេះមិនទាន់មាន អ៊ីមែល (Email) ក្នុងប្រព័ន្ធទេ។ សូមបញ្ជូល Email ឱ្យគាត់ជាមុនសិន។",
+          "បរាជ័យ! អតិថិជននេះមិនទាន់មាន អ៊ីមែល (Email) ក្នុងប្រព័ន្ធទេ។ សូមបញ្ចូល Email ឱ្យគាត់ជាមុនសិន។",
       });
     }
 
-    // ១. បង្កើត Token សុវត្ថិភាព (Random 64 តួ)
     const rawToken = crypto.randomBytes(32).toString("hex");
-
-    // សម្រាប់សុវត្ថិភាពខ្ពស់ គួរតែ Hash token មុននឹង Save ចូល Database (តែដើម្បីងាយស្រួលយល់ ខ្ញុំ save វាផ្ទាល់សិន)
     user.resetToken = rawToken;
-
-    // ២. កំណត់ពេលផុតកំណត់ ៥ នាទី (5 minutes = 5 * 60 * 1000 ms)
     user.resetTokenExpire = Date.now() + 5 * 60 * 1000;
-
     await user.save();
 
-    // ៣. បង្កើត URL សម្រាប់ទំព័រ Public (ដូរ domain តាមជាក់ស្តែងរបស់អ្នក)
-    // ឧទាហរណ៍ URL: https://u-pay-bank.fly.dev/reset-credential?token=xxxx&type=PIN
     const baseUrl = process.env.CLIENT_URL || "https://u-pay-bank.fly.dev";
     const resetUrl = `${baseUrl}/reset-credential.html?token=${rawToken}&type=${resetType}`;
 
-    // ៤. ផ្ញើ Email
-    const emailSent = await sendResetLink(
-      user.email,
-      user.fullName || user.username,
-      resetUrl,
-      resetType,
-    );
-
-    if (!emailSent) {
-      return res.json({
-        success: false,
-        message: "មានបញ្ហាក្នុងការផ្ញើអ៊ីមែល!",
-      });
+    if (typeof sendResetLink === "function") {
+      const emailSent = await sendResetLink(
+        user.email,
+        getDisplayName(user),
+        resetUrl,
+        resetType,
+      );
+      if (!emailSent) {
+        return res.json({
+          success: false,
+          message: "មានបញ្ហាក្នុងការផ្ញើអ៊ីមែល!",
+        });
+      }
     }
 
-    // ៥. កត់ត្រាសកម្មភាព Admin
     await logAdminAction(
-      req.admin.username,
+      await getAdminFullDisplayName(req.admin),
       `Request Reset ${resetType}`,
-      user.username,
-      `Sent reset link to ${user.email} (Expires in 5m)`,
+      String(user._id),
+      `Sent reset link to ${user.email} for "${getDisplayName(user)}"`,
     );
 
     res.json({
@@ -2134,26 +2577,27 @@ const requestCredentialReset = async (req, res) => {
   }
 };
 
+/**
+ * 🔹 ៦.៧ លុបគណនីអតិថិជន ឬ គណនីរងតាម `_id` (សម្អាតទិន្នន័យចេញពីគ្រប់ Models ទាំងអស់ ១០០%!)
+ */
 const deleteUser = async (req, res) => {
   const access = await checkAdminAccess(req.admin, "deleteUser");
   if (!access.allowed)
     return res.status(403).json({ success: false, message: access.message });
 
-  const { id, targetAccount, reason } = req.body;
+  const { id, _id, userId, targetAccount, reason } = req.body;
   try {
-    if (!id) return res.json({ success: false, message: "Invalid ID" });
-
-    let query = [{ username: id }];
-    if (mongoose.isValidObjectId(id)) query.push({ _id: id });
-
-    const user = await User.findOne({ $or: query });
-    if (!user) return res.json({ success: false, message: "User not found" });
+    const user = await resolveCustomerById(_id || id || userId);
+    if (!user) {
+      return res.json({ success: false, message: "រកមិនឃើញគណនីនេះទេ!" });
+    }
 
     const centralBank = await User.findOne({
-      "mainAccounts.USD.accountNumber": "888888888",
+      $or: [
+        { "mainAccounts.USD.accountNumber": "888888888" },
+        { username: "superadmin" },
+      ],
     });
-    if (!centralBank)
-      return res.json({ success: false, message: "Central Bank not found" });
 
     let logDetail = "";
     const dateStr = new Date().toLocaleString("en-US", {
@@ -2161,133 +2605,123 @@ const deleteUser = async (req, res) => {
       hour12: true,
     });
 
+    // ករណីទី ១៖ លុបតែគណនីរងមួយ (Sub-Account)
     if (targetAccount && targetAccount !== "ALL") {
       const subIndex = user.subAccounts.findIndex(
         (s) => s.accountNumber === targetAccount,
       );
       if (subIndex === -1)
-        return res.json({ success: false, message: "Sub-account not found" });
+        return res.json({ success: false, message: "រកមិនឃើញគណនីរងនេះទេ!" });
 
       const subAcc = user.subAccounts[subIndex];
-      const subBalance = subAcc.balance;
-      const subCurrency = subAcc.currency;
 
-      if (subBalance > 0) {
-        if (subCurrency === "USD") {
-          user.mainAccounts.USD.balance += subBalance;
+      // 👶 បើគណនីរងនោះជាគណនីកូន (Junior) ត្រូវលុបគណនីពិតរបស់កូនចេញពីតារាង User និងគ្រប់ Models ទាំងអស់!
+      if (subAcc.accountType === "junior") {
+        const cleanJrAid = String(subAcc.accountId || "").replace(/_khr$/i, "");
+        const jrOrConds = [
+          { "mainAccounts.USD.accountNumber": targetAccount },
+          { "mainAccounts.KHR.accountNumber": targetAccount },
+        ];
+        if (
+          subAcc.linkedUserId &&
+          mongoose.isValidObjectId(subAcc.linkedUserId)
+        ) {
+          jrOrConds.unshift({ _id: subAcc.linkedUserId });
+        }
+        if (mongoose.isValidObjectId(cleanJrAid)) {
+          jrOrConds.unshift({ _id: cleanJrAid });
+        } else if (cleanJrAid) {
+          jrOrConds.push({ username: cleanJrAid });
+        }
+
+        const juniorUserDoc = await User.findOne({
+          role: "junior",
+          $or: jrOrConds,
+        });
+
+        if (juniorUserDoc) {
+          await cascadePurgeSingleUserDocument(
+            juniorUserDoc,
+            centralBank,
+            reason || "Admin Deleted Junior Sub-Account",
+          );
         } else {
-          user.mainAccounts.KHR.balance =
-            (user.mainAccounts.KHR.balance || 0) + subBalance;
+          user.subAccounts.splice(subIndex, 1);
+          user.markModified("subAccounts");
+          await user.save();
+        }
+        logDetail = `Purged Junior Account completely (${targetAccount}). Reason: ${reason}`;
+      } else {
+        const subBalance = Number(subAcc.balance || 0);
+        const subCurrency = subAcc.currency || "USD";
+
+        if (subBalance > 0) {
+          if (subCurrency === "USD") {
+            user.mainAccounts.USD.balance += subBalance;
+          } else {
+            user.mainAccounts.KHR.balance =
+              (user.mainAccounts.KHR.balance || 0) + subBalance;
+          }
+          user.markModified("mainAccounts");
+
+          await Transaction.create({
+            userId: user._id,
+            username: user.username,
+            refId: generateStandardRefId("MOV"),
+            hash: generateStandardHash(),
+            date: dateStr,
+            type: "Internal Transfer",
+            amount: subBalance,
+            currency: subCurrency,
+            senderName: subAcc.accountName,
+            receiverName: getDisplayName(user),
+            senderAcc: targetAccount,
+            receiverAcc:
+              subCurrency === "USD"
+                ? user.mainAccounts.USD.accountNumber
+                : user.mainAccounts.KHR.accountNumber,
+            remark: "ផ្ទេរសមតុល្យចូលគណនីគោលដោយស្វ័យប្រវត្តិ (បិទគណនីរង)",
+            status: "Success",
+          });
         }
 
-        await Transaction.create({
-          userId: user._id,
-          username: user.username,
-          refId: generateStandardRefId("MOV"),
-          hash: generateStandardHash(),
-          date: dateStr,
-          type: "Internal Transfer",
-          amount: subBalance,
-          currency: subCurrency,
-          senderName: subAcc.accountName,
-          receiverName: "Main Account",
-          senderAcc: targetAccount,
-          receiverAcc:
-            subCurrency === "USD"
-              ? user.mainAccounts.USD.accountNumber
-              : user.mainAccounts.KHR.accountNumber,
-          remark: "System Auto-Transfer (Sub-Account Closed)",
-          status: "Success",
-        });
+        user.subAccounts.splice(subIndex, 1);
+        user.markModified("subAccounts");
+        await user.save();
+        logDetail = `Deleted Sub-account: ${targetAccount}. Auto-Transferred: ${subBalance} ${subCurrency} to Main. Reason: ${reason}`;
       }
-
-      user.subAccounts.splice(subIndex, 1);
-      await user.save();
-      logDetail = `Deleted Sub-account: ${targetAccount}. Auto-Transferred: ${subBalance} ${subCurrency} to Main. Reason: ${reason}`;
     } else {
-      let totalUSD = user.mainAccounts?.USD?.balance || 0;
-      let totalKHR = user.mainAccounts?.KHR?.balance || 0;
-
-      if (user.subAccounts && user.subAccounts.length > 0) {
-        user.subAccounts.forEach((sub) => {
-          if (sub.currency === "USD") totalUSD += sub.balance;
-          if (sub.currency === "KHR") totalKHR += sub.balance;
-        });
-      }
-
-      if (totalUSD > 0 || totalKHR > 0) {
-        centralBank.mainAccounts.USD.balance += totalUSD;
-        centralBank.mainAccounts.KHR.balance =
-          (centralBank.mainAccounts.KHR.balance || 0) + totalKHR;
-        await centralBank.save();
-
-        if (totalUSD > 0) {
-          await Transaction.create({
-            userId: centralBank._id,
-            username: centralBank.username,
-            refId: generateStandardRefId("REC"),
-            hash: generateStandardHash(),
-            date: dateStr,
-            type: "Fund Recovery",
-            amount: totalUSD,
-            currency: "USD",
-            senderName: user.username,
-            receiverName: "Central Bank",
-            remark: `Account Deleted. Recovered funds from ${user.username}`,
-            status: "Success",
-          });
-        }
-        if (totalKHR > 0) {
-          await Transaction.create({
-            userId: centralBank._id,
-            username: centralBank.username,
-            refId: generateStandardRefId("REC"),
-            hash: generateStandardHash(),
-            date: dateStr,
-            type: "Fund Recovery",
-            amount: totalKHR,
-            currency: "KHR",
-            senderName: user.username,
-            receiverName: "Central Bank",
-            remark: `Account Deleted. Recovered funds from ${user.username}`,
-            status: "Success",
-          });
-        }
-      }
-
-      await Chat.deleteMany({
-        $or: [
-          { senderAcc: user.mainAccounts?.USD?.accountNumber },
-          { receiverAcc: user.mainAccounts?.USD?.accountNumber },
-          { senderAcc: user.mainAccounts?.KHR?.accountNumber },
-          { receiverAcc: user.mainAccounts?.KHR?.accountNumber },
-        ],
-      });
-      await Card.deleteMany({ username: user.username });
-      await User.deleteOne({ _id: user._id });
-      logDetail = `Deleted account completely. Recovered ${totalUSD} USD & ${totalKHR} KHR. Reason: ${reason}`;
+      // ករណីទី ២៖ លុបគណនីអតិថិជនទាំងមូល + បោសសម្អាតគ្រប់ Models ទាំងអស់តាម `_id`!
+      const { usdRecovered, khrRecovered } =
+        await cascadePurgeSingleUserDocument(user, centralBank, reason);
+      logDetail = `Purged User "${getDisplayName(user)}" (_id: ${user._id}) & all related data across all models. Recovered $${usdRecovered} & ៛${khrRecovered}. Reason: ${reason}`;
     }
 
     await logAdminAction(
-      req.admin.username,
+      await getAdminFullDisplayName(req.admin),
       "Delete User/Account",
-      user ? user.username : id,
+      "DELETED_" + String(user._id),
       logDetail,
     );
-    res.json({ success: true });
+
+    res.json({
+      success: true,
+      message: "បានលុបគណនី និងបោសសម្អាតទិន្នន័យពាក់ព័ន្ធទាំងអស់ដោយជោគជ័យ!",
+    });
   } catch (err) {
+    console.error("Delete User Error:", err);
     res.status(500).json({ success: false, message: "Server Error" });
   }
 };
 
-// ==========================================
-// មុខងារកំណត់គណនីជាក់លាក់ដោយ Admin (Limit, Freeze, Hide, Edit, Delete)
-// ==========================================
-
+/**
+ * 🔹 ៦.៨ មុខងារគ្រប់គ្រងគណនីរងដោយ Admin តាម `_id` (Edit, Delete, Limit, Freeze, Hide)
+ */
 const editSubAccount = async (req, res) => {
-  const { username, oldAccountNumber, newName, newAccountNumber } = req.body;
+  const { _id, userId, username, oldAccountNumber, newName, newAccountNumber } =
+    req.body;
   try {
-    const user = await User.findOne({ username });
+    const user = await resolveCustomerById(_id || userId || username);
     if (!user) return res.json({ success: false, message: "រកគណនីមិនឃើញទេ!" });
 
     if (oldAccountNumber !== newAccountNumber) {
@@ -2298,11 +2732,12 @@ const editSubAccount = async (req, res) => {
           { "subAccounts.accountNumber": newAccountNumber },
         ],
       });
-      if (accExists)
+      if (accExists) {
         return res.json({
           success: false,
           message: "លេខគណនីថ្មីនេះ មានអ្នកប្រើប្រាស់រួចហើយ!",
         });
+      }
     }
 
     const subIdx = user.subAccounts.findIndex(
@@ -2318,23 +2753,21 @@ const editSubAccount = async (req, res) => {
 
     if (oldAccountNumber !== newAccountNumber) {
       await Transaction.updateMany(
-        { senderAcc: oldAccountNumber },
+        { userId: user._id, senderAcc: oldAccountNumber },
         { $set: { senderAcc: newAccountNumber } },
       );
       await Transaction.updateMany(
-        { receiverAcc: oldAccountNumber },
+        { userId: user._id, receiverAcc: oldAccountNumber },
         { $set: { receiverAcc: newAccountNumber } },
       );
     }
 
-    if (req.admin && req.admin.username) {
-      await logAdminAction(
-        req.admin.username,
-        "Edit Sub Account",
-        username,
-        `Changed ${oldAccountNumber} to ${newName} (${newAccountNumber})`,
-      );
-    }
+    await logAdminAction(
+      await getAdminFullDisplayName(req.admin),
+      "Edit Sub Account",
+      String(user._id),
+      `Changed ${oldAccountNumber} to ${newName} (${newAccountNumber}) for "${getDisplayName(user)}"`,
+    );
     res.json({ success: true, message: "កែប្រែជោគជ័យ!" });
   } catch (err) {
     res.status(500).json({ success: false, message: "Server Error" });
@@ -2342,9 +2775,9 @@ const editSubAccount = async (req, res) => {
 };
 
 const deleteSubAccount = async (req, res) => {
-  const { username, accountNumber } = req.body;
+  const { _id, userId, username, accountNumber } = req.body;
   try {
-    const user = await User.findOne({ username });
+    const user = await resolveCustomerById(_id || userId || username);
     if (!user) return res.json({ success: false, message: "រកគណនីមិនឃើញទេ!" });
 
     const subIdx = user.subAccounts.findIndex(
@@ -2355,6 +2788,50 @@ const deleteSubAccount = async (req, res) => {
 
     const subAcc = user.subAccounts[subIdx];
 
+    // 👶 បើគណនីរងនេះជាគណនីកូន (Junior) ត្រូវលុបគណនីពិតរបស់កូនចេញពីតារាង User និងគ្រប់ Models ទាំងអស់!
+    if (subAcc.accountType === "junior") {
+      const centralBank = await User.findOne({
+        $or: [
+          { "mainAccounts.USD.accountNumber": "888888888" },
+          { username: "superadmin" },
+        ],
+      });
+      const cleanJrAid = String(subAcc.accountId || "").replace(/_khr$/i, "");
+      const jrOrConds = [
+        { "mainAccounts.USD.accountNumber": accountNumber },
+        { "mainAccounts.KHR.accountNumber": accountNumber },
+      ];
+      if (
+        subAcc.linkedUserId &&
+        mongoose.isValidObjectId(subAcc.linkedUserId)
+      ) {
+        jrOrConds.unshift({ _id: subAcc.linkedUserId });
+      }
+      if (mongoose.isValidObjectId(cleanJrAid)) {
+        jrOrConds.unshift({ _id: cleanJrAid });
+      } else if (cleanJrAid) {
+        jrOrConds.push({ username: cleanJrAid });
+      }
+
+      const juniorUserDoc = await User.findOne({
+        role: "junior",
+        $or: jrOrConds,
+      });
+
+      if (juniorUserDoc) {
+        await cascadePurgeSingleUserDocument(
+          juniorUserDoc,
+          centralBank,
+          "Deleted Junior Account from Customer 360",
+        );
+        return res.json({
+          success: true,
+          message:
+            "បានលុបគណនីកុមារ និងទិន្នន័យពាក់ព័ន្ធទាំងអស់ចេញពីប្រព័ន្ធជោគជ័យ!",
+        });
+      }
+    }
+
     if (subAcc.balance > 0) {
       if (subAcc.currency === "USD") {
         user.mainAccounts.USD.balance += subAcc.balance;
@@ -2362,6 +2839,7 @@ const deleteSubAccount = async (req, res) => {
         user.mainAccounts.KHR.balance =
           (user.mainAccounts.KHR.balance || 0) + subAcc.balance;
       }
+      user.markModified("mainAccounts");
 
       await Transaction.create({
         userId: user._id,
@@ -2372,7 +2850,7 @@ const deleteSubAccount = async (req, res) => {
         amount: subAcc.balance,
         currency: subAcc.currency,
         senderName: subAcc.accountName,
-        receiverName: "Main Account",
+        receiverName: getDisplayName(user),
         senderAcc: accountNumber,
         receiverAcc:
           subAcc.currency === "USD"
@@ -2387,14 +2865,12 @@ const deleteSubAccount = async (req, res) => {
     user.markModified("subAccounts");
     await user.save();
 
-    if (req.admin && req.admin.username) {
-      await logAdminAction(
-        req.admin.username,
-        "Delete Sub Account",
-        username,
-        `Deleted ${accountNumber}. Balance recovered: ${subAcc.balance}`,
-      );
-    }
+    await logAdminAction(
+      await getAdminFullDisplayName(req.admin),
+      "Delete Sub Account",
+      String(user._id),
+      `Deleted ${accountNumber} for "${getDisplayName(user)}". Balance recovered: ${subAcc.balance}`,
+    );
     res.json({ success: true, message: "លុបជោគជ័យ!" });
   } catch (err) {
     res.status(500).json({ success: false, message: "Server Error" });
@@ -2402,9 +2878,9 @@ const deleteSubAccount = async (req, res) => {
 };
 
 const adminUpdateAccountLimit = async (req, res) => {
-  const { username, accountNumber, dailyLimit } = req.body;
+  const { _id, userId, username, accountNumber, dailyLimit } = req.body;
   try {
-    const user = await User.findOne({ username });
+    const user = await resolveCustomerById(_id || userId || username);
     if (!user)
       return res.json({ success: false, message: "រកគណនីអតិថិជនមិនឃើញទេ!" });
 
@@ -2434,14 +2910,12 @@ const adminUpdateAccountLimit = async (req, res) => {
       user.markModified("mainAccounts");
       user.markModified("subAccounts");
       await user.save();
-      if (req.admin && req.admin.username) {
-        await logAdminAction(
-          req.admin.username,
-          "Update Account Limit",
-          username,
-          `កំណត់ Limit ថ្មីឱ្យគណនី ${accountNumber} ចំនួន: ${dailyLimit}`,
-        );
-      }
+      await logAdminAction(
+        await getAdminFullDisplayName(req.admin),
+        "Update Account Limit",
+        String(user._id),
+        `កំណត់ Limit ថ្មីឱ្យគណនី ${accountNumber} ចំនួន: ${dailyLimit}`,
+      );
       res.json({ success: true, message: "បានកំណត់ Limit ថ្មីជោគជ័យ!" });
     } else {
       res.json({
@@ -2455,9 +2929,9 @@ const adminUpdateAccountLimit = async (req, res) => {
 };
 
 const adminToggleFreezeAccount = async (req, res) => {
-  const { username, accountNumber } = req.body;
+  const { _id, userId, username, accountNumber } = req.body;
   try {
-    const user = await User.findOne({ username });
+    const user = await resolveCustomerById(_id || userId || username);
     if (!user)
       return res.json({ success: false, message: "រកគណនីអតិថិជនមិនឃើញទេ!" });
 
@@ -2491,14 +2965,12 @@ const adminToggleFreezeAccount = async (req, res) => {
       user.markModified("mainAccounts");
       user.markModified("subAccounts");
       await user.save();
-      if (req.admin && req.admin.username) {
-        await logAdminAction(
-          req.admin.username,
-          "Toggle Account Freeze",
-          username,
-          `គណនី ${accountNumber} ត្រូវបាន ${newStatus ? "FROZEN" : "ACTIVE"}`,
-        );
-      }
+      await logAdminAction(
+        await getAdminFullDisplayName(req.admin),
+        "Toggle Account Freeze",
+        String(user._id),
+        `គណនី ${accountNumber} ត្រូវបាន ${newStatus ? "FROZEN" : "ACTIVE"}`,
+      );
       res.json({
         success: true,
         message: newStatus
@@ -2514,9 +2986,9 @@ const adminToggleFreezeAccount = async (req, res) => {
 };
 
 const adminToggleHideAccount = async (req, res) => {
-  const { username, accountNumber } = req.body;
+  const { _id, userId, username, accountNumber } = req.body;
   try {
-    const user = await User.findOne({ username });
+    const user = await resolveCustomerById(_id || userId || username);
     if (!user)
       return res.json({ success: false, message: "រកគណនីអតិថិជនមិនឃើញទេ!" });
 
@@ -2550,14 +3022,12 @@ const adminToggleHideAccount = async (req, res) => {
       user.markModified("mainAccounts");
       user.markModified("subAccounts");
       await user.save();
-      if (req.admin && req.admin.username) {
-        await logAdminAction(
-          req.admin.username,
-          "Toggle Account Visibility",
-          username,
-          `គណនី ${accountNumber} ត្រូវបាន ${isHiddenNow ? "HIDDEN" : "VISIBLE"}`,
-        );
-      }
+      await logAdminAction(
+        await getAdminFullDisplayName(req.admin),
+        "Toggle Account Visibility",
+        String(user._id),
+        `គណនី ${accountNumber} ត្រូវបាន ${isHiddenNow ? "HIDDEN" : "VISIBLE"}`,
+      );
       res.json({
         success: true,
         message: isHiddenNow
@@ -2572,41 +3042,44 @@ const adminToggleHideAccount = async (req, res) => {
   }
 };
 
+/**
+ * 🔹 ៦.៩ ផ្អាក ឬ បើកដំណើរការគណនីអតិថិជនទាំងមូលតាម `_id` (toggleFreeze & adminForceLogout)
+ */
 const toggleFreeze = async (req, res) => {
   const access = await checkAdminAccess(req.admin, "freezeUser");
   if (!access.allowed)
     return res.status(403).json({ success: false, message: access.message });
 
-  const { id, isFrozen } = req.body;
+  const { id, _id, userId, isFrozen } = req.body;
   try {
-    if (!id)
-      return res
-        .status(400)
-        .json({ success: false, message: "Missing User ID" });
-
-    let u;
-    if (mongoose.isValidObjectId(id)) {
-      u = await User.findById(id);
-    } else {
-      u = await User.findOne({
-        $or: [
-          { username: id },
-          { "mainAccounts.USD.accountNumber": id },
-          { "mainAccounts.KHR.accountNumber": id },
-        ],
-      });
-    }
-
+    const u = await resolveCustomerById(_id || id || userId);
     if (u) {
       u.isFrozen = isFrozen;
-      if (!isFrozen) u.pinAttempts = 0;
-      u.passwordAttempts = 0;
+      if (!isFrozen) {
+        u.pinAttempts = 0;
+        u.passwordAttempts = 0;
+      }
       await u.save();
+
+      await Notification.create({
+        userId: u._id,
+        username: u.username,
+        title: isFrozen
+          ? "គណនីត្រូវបានផ្អាកបណ្តោះអាសន្ន ❄️"
+          : "គណនីត្រូវបានបើកដំណើរការវិញ 🟢",
+        message: isFrozen
+          ? `ជូនចំពោះ ${getDisplayName(u)}៖ គណនីរបស់អ្នកត្រូវបានផ្អាកដំណើរការបណ្តោះអាសន្នដោយផ្នែកសុវត្ថិភាពធនាគារ។`
+          : `ជូនចំពោះ ${getDisplayName(u)}៖ គណនីរបស់អ្នកត្រូវបានដោះសោ និងអាចប្រើប្រាស់បានធម្មតាវិញហើយ។`,
+        date: getFormattedDate(),
+        type: isFrozen ? "security_alert" : "account_unfrozen",
+        isRead: false,
+      });
+
       await logAdminAction(
-        req.admin.username,
+        await getAdminFullDisplayName(req.admin),
         "Freeze User",
-        u.username,
-        `Status changed to ${isFrozen ? "FROZEN" : "UNFROZEN"}`,
+        String(u._id),
+        `Status of "${getDisplayName(u)}" changed to ${isFrozen ? "FROZEN" : "UNFROZEN"}`,
       );
       return res.json({ success: true, message: "Updated successfully" });
     } else {
@@ -2622,92 +3095,84 @@ const toggleFreeze = async (req, res) => {
 };
 
 const adminForceLogout = async (req, res) => {
-  const { username, reason } = req.body;
+  const { _id, userId, username } = req.body;
   try {
-    const updatedUser = await User.findOneAndUpdate(
-      { username: username },
-      {
-        $set: { forceLogout: true },
-        $unset: { currentToken: "", pushToken: "" },
-      },
-      { new: true },
-    );
+    const user = await resolveCustomerById(_id || userId || username);
+    if (!user) return res.json({ success: false, message: "រកមិនឃើញអតិថិជន" });
 
-    if (updatedUser) {
-      // 🟢 ចំណុចទី១៖ បាញ់សញ្ញា Socket ទៅទាត់អតិថិជនចេញភ្លាមៗ
-      if (global.io) {
-        global.io.emit("force_logout_triggered", { username: username });
-      }
+    user.forceLogout = true;
+    user.set("currentToken", undefined, { strict: false });
+    user.set("pushToken", undefined, { strict: false });
+    await user.save();
 
-      res.json({ success: true });
-    } else {
-      res.json({ success: false, message: "រកមិនឃើញអតិថិជន" });
+    if (global.io) {
+      global.io.emit("force_logout_triggered", {
+        userId: String(user._id),
+        username: user.username,
+      });
     }
+
+    res.json({ success: true });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   }
 };
 
+/**
+ * 🔹 ៦.១០ មុខងារត្រួតពិនិត្យ និងអនុម័តឯកសារបញ្ជាក់អត្តសញ្ញាណ (KYC Maker-Checker by `_id` + Auto-Unfreeze Junior)
+ */
 const adminUploadKyc = async (req, res) => {
-  const { username, kycDocument, kycImage } = req.body;
+  const { _id, userId, username, kycDocument, kycImage } = req.body;
   try {
     const finalKycUrl = kycDocument || kycImage;
     if (!finalKycUrl)
       return res.json({ success: false, message: "មិនមាន URL ឯកសារទេ!" });
 
-    const updatedUser = await User.findOneAndUpdate(
-      { username: username },
-      {
-        $set: {
-          kycDocument: finalKycUrl,
-          kycImage: finalKycUrl,
-          kycStatus: "pending",
-        },
-      },
-      { new: true, strict: false },
-    );
+    const user = await resolveCustomerById(_id || userId || username);
+    if (!user)
+      return res.json({ success: false, message: "រកមិនឃើញគណនីអតិថិជន" });
 
-    if (updatedUser) res.json({ success: true });
-    else res.json({ success: false, message: "រកមិនឃើញគណនីអតិថិជន" });
+    user.kycDocument = finalKycUrl;
+    user.kycImage = finalKycUrl;
+    user.kycStatus = "pending";
+    await user.save();
+
+    res.json({ success: true });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   }
 };
 
-// ==========================================
-// 🛡️ ផ្នែក KYC & Identity (Maker-Checker Flow)
-// ==========================================
-
-/**
- * 📌 [Admin] អនុម័ត, បដិសេធ, ដកសំណើ (Withdraw) ឬ ដកហូតសិទ្ធិ (Revoke) KYC
- * - ពេល Reject ឬ Revoke៖ លុបទាំងរូបភាព និងលុបលេខអត្តសញ្ញាណប័ណ្ណ (idNumber) ចេញពី Database វិញ!
- */
 const kycAction = async (req, res) => {
-  const { username, action, rejectReason } = req.body;
+  const { _id, userId, username, action, rejectReason } = req.body;
   try {
-    const u = await User.findOne({ username });
-    if (!u)
-      return res.json({ success: false, message: "រកមិនឃើញគណនីអតិថិជននេះទេ!" });
+    const u = await resolveCustomerById(_id || userId || username);
+    if (!u) {
+      return res.json({
+        success: false,
+        message: "រកមិនឃើញគណនីអតិថិជននេះទេ!",
+      });
+    }
 
-    const currentAdmin = String(req.admin.username || "").trim();
+    const currentAdminUsername = String(req.admin.username || "").trim();
+    const currentAdminFullName = await getAdminFullDisplayName(req.admin);
+    const customerFullName = getDisplayName(u);
     const uploadedBy = String(u.kycUploadedBy || "")
       .replace(/^@/, "")
       .trim();
 
-    // 🛑 ១. គោលការណ៍ Maker-Checker តឹងរឹង៖
-    // បើ Admin ជាអ្នក Upload ខ្លួនឯង (Maker) ហាមដាច់ខាតមិនឱ្យចុច Approve ឬ Reject ឡើយ
     if (
       (action === "approved" ||
         action === "verified" ||
         action === "rejected") &&
       uploadedBy !== "" &&
       uploadedBy !== "អតិថិជនផ្ទាល់" &&
-      uploadedBy.toLowerCase() === currentAdmin.toLowerCase()
+      uploadedBy.toLowerCase() === currentAdminUsername.toLowerCase()
     ) {
       return res.json({
         success: false,
         message:
-          "បម្រាម Maker-Checker៖ អ្នកជាអ្នកបញ្ជូនឯកសារនេះ (Maker) មិនអាចអនុម័ត ឬបដិសេធដោយខ្លួនឯងបានទេ! សូមឱ្យ Admin ផ្សេងទៀតជាអ្នកពិនិត្យ។",
+          "បម្រាម Maker-Checker៖ អ្នកជាអ្នកបញ្ជូនឯកសារនេះ (Maker) មិនអាចអនុម័ត ឬបដិសេធដោយខ្លួនឯងបានទេ! សូមឱ្យមន្ត្រីផ្សេងទៀតជាអ្នកពិនិត្យ។",
       });
     }
 
@@ -2716,17 +3181,16 @@ const kycAction = async (req, res) => {
       hour12: true,
     });
 
-    // 🔄 ២. ករណី Maker ចុចដកសំណើរបស់ខ្លួនឯងមកកែវិញ (Withdraw)
     if (action === "withdraw") {
       u.kycStatus = "unverified";
       u.kycRejectReason = rejectReason || "ដកសំណើមកកែសម្រួលវិញដោយ Maker";
       await u.save();
 
       await logAdminAction(
-        currentAdmin,
+        currentAdminFullName,
         "Withdraw KYC Request",
-        u.username,
-        `Maker withdrew KYC submission. Note: ${u.kycRejectReason}`,
+        String(u._id),
+        `Maker withdrew KYC submission for "${customerFullName}". Note: ${u.kycRejectReason}`,
       );
       return res.json({
         success: true,
@@ -2734,7 +3198,6 @@ const kycAction = async (req, res) => {
       });
     }
 
-    // 🛑 ៣. ដំណើរការបដិសេធ (Reject) ឬ ដកហូតសិទ្ធិ (Revoke) -> លុបលេខអត្តសញ្ញាណប័ណ្ណចេញពី Database វិញ!
     if (action === "rejected" || action === "revoke") {
       if (!rejectReason || rejectReason.trim() === "") {
         return res.json({
@@ -2747,10 +3210,10 @@ const kycAction = async (req, res) => {
 
       u.kycStatus = "rejected";
       u.kycRejectReason = rejectReason.trim();
-      u.kycRejectedBy = currentAdmin;
+      u.kycRejectedBy = currentAdminFullName;
       u.kycRejectedAt = dateStr;
 
-      // 🧹 លុបរូបភាព KYC និងលុបលេខអត្តសញ្ញាណប័ណ្ណ (idNumber) ចេញពីគណនីនេះវិញតាមការស្នើសុំ!
+      // 🧹 លុបតែឯកសារ KYC (kycDocument, selfieUrl, idNumber) មិនលុបរូប profileImage ទេ!
       u.kycDocument = "";
       u.kycImage = "";
       u.selfieUrl = "";
@@ -2760,7 +3223,6 @@ const kycAction = async (req, res) => {
 
       await u.save();
 
-      // 🔗 ប្រសិនបើលេខ ID ចាស់នោះធ្លាប់ជាប់ស្ទួន ហើយឥឡូវនៅសល់តែ ១ គណនីគត់ គឺលុប duplicateIdReason ចេញពីគណនីដែលនៅសល់នោះឱ្យស្អាតវិញដែរ
       if (oldIdNumber && oldIdNumber !== "N/A") {
         const remainingUsers = await User.find({ idNumber: oldIdNumber });
         if (remainingUsers.length === 1) {
@@ -2773,18 +3235,18 @@ const kycAction = async (req, res) => {
         userId: u._id,
         username: u.username,
         title: "ការផ្ទៀងផ្ទាត់អត្តសញ្ញាណបរាជ័យ (KYC Rejected) ❌",
-        message: `ឯកសារបញ្ជាក់អត្តសញ្ញាណរបស់អ្នកត្រូវបានបដិសេធ។ មូលហេតុ: "${rejectReason}"។ សូមបញ្ជូនឯកសារថ្មីម្តងទៀត ឬទាក់ទងមកកាន់ធនាគារ។`,
+        message: `ជូនចំពោះ ${customerFullName}៖ ឯកសារបញ្ជាក់អត្តសញ្ញាណរបស់អ្នកត្រូវបានបដិសេធដោយមន្ត្រីត្រួតពិនិត្យ (${currentAdminFullName})។ មូលហេតុ៖ "${rejectReason}"។ សូមបញ្ជូនឯកសារថ្មីម្តងទៀត។`,
         date: getFormattedDate(),
-        type: "info",
+        type: "kyc_rejected", // 🔔 Icon ក្រហមសម្រាប់ KYC Rejected
         isRead: false,
-        metadata: { sender: "system" },
+        metadata: { sender: currentAdminFullName },
       });
 
       await logAdminAction(
-        currentAdmin,
+        currentAdminFullName,
         action === "revoke" ? "Revoke KYC & Clear ID" : "Reject KYC & Clear ID",
-        u.username,
-        `Cleared ID (${oldIdNumber || "N/A"}). Reason: ${rejectReason}`,
+        String(u._id),
+        `Cleared ID (${oldIdNumber || "N/A"}) for "${customerFullName}". Reason: ${rejectReason}`,
       );
 
       return res.json({
@@ -2792,14 +3254,57 @@ const kycAction = async (req, res) => {
         message:
           "បានបដិសេធសំណើ KYC និងលុបលេខអត្តសញ្ញាណប័ណ្ណចេញពីប្រព័ន្ធរួចរាល់!",
       });
-    }
-    // ✅ ៤. ដំណើរការអនុម័ត (Approve)
-    else if (action === "approved" || action === "verified") {
+    } else if (action === "approved" || action === "verified") {
       if (u.fullName) u.fullName = String(u.fullName).trim().toUpperCase();
       u.kycStatus = "verified";
       u.kycRejectReason = "";
-      u.kycApprovedBy = currentAdmin;
+      u.kycApprovedBy = currentAdminFullName;
       u.kycApprovedAt = dateStr;
+
+      // 👶 បើជាគណនីកុមារ (Junior Account) ពេល Admin អនុម័តសំបុត្រកំណើតរួច បើកដំណើរការគណនីតាម `_id` ភ្លាមៗ!
+      if (u.role === "junior") {
+        u.isFrozen = false;
+        if (u.mainAccounts?.USD) {
+          u.mainAccounts.USD.isFrozen = false;
+          u.mainAccounts.USD.isSystemLocked = false;
+        }
+        if (u.mainAccounts?.KHR) {
+          u.mainAccounts.KHR.isFrozen = false;
+          u.mainAccounts.KHR.isSystemLocked = false;
+        }
+        u.markModified("mainAccounts");
+
+        if (u.parentId && mongoose.isValidObjectId(u.parentId)) {
+          const parentDoc = await User.findById(u.parentId);
+          if (parentDoc && Array.isArray(parentDoc.subAccounts)) {
+            parentDoc.subAccounts.forEach((sa) => {
+              if (
+                (sa.linkedUserId &&
+                  String(sa.linkedUserId) === String(u._id)) ||
+                sa.accountId === String(u._id) ||
+                sa.accountId === String(u._id) + "_khr"
+              ) {
+                sa.isFrozen = false;
+                sa.isLocked = false;
+                sa.isSystemLocked = false;
+              }
+            });
+            parentDoc.markModified("subAccounts");
+            await parentDoc.save();
+
+            await Notification.create({
+              userId: parentDoc._id,
+              username: parentDoc.username,
+              title: "គណនីកូនត្រូវបានអនុម័ត និងបើកដំណើរការ! 🎉👶",
+              message: `ជូនចំពោះ ${getDisplayName(parentDoc)}៖ សំបុត្រកំណើតរបស់កូន "${customerFullName}" ត្រូវបានពិនិត្យ និងអនុម័តដោយមន្ត្រីធនាគារ (${currentAdminFullName}) រួចរាល់ហើយ! គណនីកូនបានបើកដំណើរការដោយស្វ័យប្រវត្តិ។`,
+              date: getFormattedDate(),
+              type: "kyc_approved",
+              isRead: false,
+              metadata: { sender: currentAdminFullName },
+            });
+          }
+        }
+      }
 
       await u.save();
 
@@ -2807,23 +3312,23 @@ const kycAction = async (req, res) => {
         userId: u._id,
         username: u.username,
         title: "គណនីត្រូវបានផ្ទៀងផ្ទាត់ជោគជ័យ (KYC Verified) ✅",
-        message: `អបអរសាទរ! ឯកសារបញ្ជាក់អត្តសញ្ញាណរបស់អ្នកត្រូវបានអនុម័តពេញលេញដោយធនាគារ U-Pay។`,
+        message: `អបអរសាទរ ${customerFullName}! ឯកសារបញ្ជាក់អត្តសញ្ញាណរបស់អ្នកត្រូវបានអនុម័តពេញលេញដោយធនាគារ U-Pay។`,
         date: getFormattedDate(),
-        type: "info",
+        type: "kyc_approved", // 🔔 Icon បៃតងសម្រាប់ KYC Approved
         isRead: false,
-        metadata: { sender: "system" },
+        metadata: { sender: currentAdminFullName },
       });
 
       await logAdminAction(
-        currentAdmin,
+        currentAdminFullName,
         "Approve KYC",
-        u.username,
-        `Approved KYC Document (Maker: ${uploadedBy || "Customer"})`,
+        String(u._id),
+        `Approved KYC Document for "${customerFullName}"`,
       );
 
       return res.json({
         success: true,
-        message: "បានអនុម័តឯកសារ KYC ជោគជ័យ!",
+        message: "បានអនុម័តឯកសារ KYC និងបើកដំណើរការគណនីដោយជោគជ័យ!",
       });
     }
 
@@ -2834,13 +3339,10 @@ const kycAction = async (req, res) => {
   }
 };
 
-/**
- * 📌 [Admin] Upload រូបថតអត្តសញ្ញាណប័ណ្ណ ឬ Selfie ថ្មីជំនួសអតិថិជន
- */
 const uploadSpecificKyc = async (req, res) => {
-  const { username, type, url } = req.body;
+  const { _id, userId, username, type, url } = req.body;
   try {
-    const u = await User.findOne({ username });
+    const u = await resolveCustomerById(_id || userId || username);
     if (!u) return res.json({ success: false, message: "រកអតិថិជនមិនឃើញទេ!" });
 
     if (type === "idCard") {
@@ -2848,6 +3350,8 @@ const uploadSpecificKyc = async (req, res) => {
       u.kycImage = url;
     } else if (type === "selfie") {
       u.selfieUrl = url;
+      // បើគណនីមិនទាន់មានរូប Profile ទេ យករូប Selfie ដាក់ឱ្យសិន
+      if (!u.profileImage) u.profileImage = url;
     }
 
     if ((u.kycDocument || u.kycImage) && u.selfieUrl) {
@@ -2857,15 +3361,14 @@ const uploadSpecificKyc = async (req, res) => {
       u.kycStatus = "unverified";
     }
 
-    // 🔒 កត់ត្រាទុកឈ្មោះ Admin ពិតប្រាកដពី Token (req.admin.username) ជា Maker
     u.kycUploadedBy = req.admin.username;
-
     await u.save();
+
     await logAdminAction(
-      req.admin.username,
+      await getAdminFullDisplayName(req.admin),
       `Upload KYC (${type})`,
-      username,
-      `Admin (@${req.admin.username}) uploaded ${type}`,
+      String(u._id),
+      `Uploaded ${type} for "${getDisplayName(u)}"`,
     );
 
     res.json({ success: true, message: "Upload ជោគជ័យ!" });
@@ -2875,13 +3378,16 @@ const uploadSpecificKyc = async (req, res) => {
   }
 };
 
-// ==========================================
-// 💰 ផ្នែកទី ៧៖ ប្រតិបត្តិការហិរញ្ញវត្ថុ (Finance & Transactions)
-// ==========================================
+// ============================================================================
+// 💰 ជំពូកទី ៧៖ ប្រតិបត្តិការហិរញ្ញវត្ថុ និងការបង្វិលប្រាក់ (FINANCE & REFUND BY `_id`)
+// ============================================================================
+
+/**
+ * 🔹 ៧.១ ត្រួតពិនិត្យព័ត៌មានលម្អិតនៃប្រតិបត្តិការ (Transaction Forensics by `_id`)
+ */
 const getTransaction = async (req, res) => {
   const searchTerm = String(req.params.id || "").trim();
   try {
-    // ១. ទាញយកគ្រប់វិក្កយបត្រទាំងអស់ដែលពាក់ព័ន្ធនឹង Ref ID ឬ Hash នេះ (ដើម្បីចាប់បានទាំងផ្នែកអ្នកផ្ញើ និងអ្នកទទួល)
     const matchedTrxs = await Transaction.find({
       $or: [{ refId: searchTerm }, { hash: searchTerm }],
     });
@@ -2900,14 +3406,14 @@ const getTransaction = async (req, res) => {
     const sAccNum = senderLeg.senderAcc || primaryTrx.senderAcc || "";
     const rAccNum = receiverLeg.receiverAcc || primaryTrx.receiverAcc || "";
 
-    // ២. ស្វែងរកគណនីពិតរបស់អ្នកផ្ញើ (Sender User)
+    // 🎯 ១. ស្វែងរកគណនីអ្នកផ្ញើតាម `senderLeg.userId` (_id) មុនគេបង្អស់!
     let senderObj = null;
     if (
       senderLeg.amount < 0 &&
-      senderLeg.username &&
-      senderLeg.username !== "superadmin"
+      senderLeg.userId &&
+      mongoose.isValidObjectId(senderLeg.userId)
     ) {
-      senderObj = await User.findOne({ username: senderLeg.username }).select(
+      senderObj = await User.findById(senderLeg.userId).select(
         "-password -pin",
       );
     }
@@ -2920,16 +3426,8 @@ const getTransaction = async (req, res) => {
         ],
       }).select("-password -pin");
     }
-    if (!senderObj && primaryTrx.senderName) {
-      senderObj = await User.findOne({
-        $or: [
-          { username: primaryTrx.senderName },
-          { fullName: primaryTrx.senderName },
-        ],
-      }).select("-password -pin");
-    }
 
-    // ៣. ស្វែងរកហាងទំនិញ (បើជាប្រតិបត្តិការហាង) និងគណនីពិតរបស់អ្នកទទួល (Receiver User)
+    // 🎯 ២. ស្វែងរកហាង និងគណនីអ្នកទទួលតាម `ownerId` / `receiverLeg.userId` (_id) មុនគេបង្អស់!
     const merchIdVal = receiverLeg.merchantId || primaryTrx.merchantId;
     let merchantData = null;
     if (merchIdVal) {
@@ -2957,23 +3455,20 @@ const getTransaction = async (req, res) => {
     }
 
     let receiverObj = null;
-    if (merchantData) {
-      receiverObj = await User.findOne({
-        $or: [
-          { username: merchantData.username || merchantData.userId },
-          { _id: merchantData.ownerId },
-        ],
-      }).select("-password -pin");
+    if (merchantData && merchantData.ownerId) {
+      receiverObj = await User.findById(merchantData.ownerId).select(
+        "-password -pin",
+      );
     }
     if (
       !receiverObj &&
       receiverLeg.amount > 0 &&
-      receiverLeg.username &&
-      receiverLeg.username !== "superadmin"
+      receiverLeg.userId &&
+      mongoose.isValidObjectId(receiverLeg.userId)
     ) {
-      receiverObj = await User.findOne({
-        username: receiverLeg.username,
-      }).select("-password -pin");
+      receiverObj = await User.findById(receiverLeg.userId).select(
+        "-password -pin",
+      );
     }
     if (
       !receiverObj &&
@@ -2989,21 +3484,11 @@ const getTransaction = async (req, res) => {
         ],
       }).select("-password -pin");
     }
-    if (!receiverObj && primaryTrx.receiverName) {
-      receiverObj = await User.findOne({
-        $or: [
-          { username: primaryTrx.receiverName },
-          { fullName: primaryTrx.receiverName },
-        ],
-      }).select("-password -pin");
-    }
 
-    // ៤. ឆែកមើលសំបុត្របញ្ជរគិតប្រាក់ (CashierTicket) បើជាប្រតិបត្តិការដាក់/ដកប្រាក់នៅសាខា
     const cashierTicket = await CashierTicket.findOne({
       $or: [{ transactionId: primaryTrx.refId }, { ticketId: searchTerm }],
     });
 
-    // ៥. រៀបចំកញ្ចប់ទិន្នន័យពិត ១០០% បញ្ជូនទៅ Frontend
     let trxDetails = {
       ...(primaryTrx.toObject ? primaryTrx.toObject() : primaryTrx),
     };
@@ -3020,12 +3505,12 @@ const getTransaction = async (req, res) => {
       ? receiverLeg.currency
       : primaryTrx.currency;
 
-    // ព័ត៌មានពិតរបស់អ្នកផ្ញើ
+    trxDetails.senderUserId = senderObj ? String(senderObj._id) : null;
     trxDetails.senderRealUsername = senderObj ? senderObj.username : null;
-    trxDetails.senderRealFullName = senderObj ? senderObj.fullName : null;
-    trxDetails.senderPhone = senderObj
-      ? senderObj.phone || senderObj.phoneNumber || ""
-      : "";
+    trxDetails.senderRealFullName = senderObj
+      ? getDisplayName(senderObj)
+      : null;
+    trxDetails.senderPhone = senderObj ? senderObj.phone || "" : "";
     trxDetails.senderKyc = senderObj
       ? senderObj.kycStatus || "unverified"
       : "System";
@@ -3040,12 +3525,12 @@ const getTransaction = async (req, res) => {
         "គ្មានកំណត់ត្រា IP"
       : "Internal Core Network";
 
-    // ព័ត៌មានពិតរបស់អ្នកទទួល
+    trxDetails.receiverUserId = receiverObj ? String(receiverObj._id) : null;
     trxDetails.receiverRealUsername = receiverObj ? receiverObj.username : null;
-    trxDetails.receiverRealFullName = receiverObj ? receiverObj.fullName : null;
-    trxDetails.receiverPhone = receiverObj
-      ? receiverObj.phone || receiverObj.phoneNumber || ""
-      : "";
+    trxDetails.receiverRealFullName = receiverObj
+      ? getDisplayName(receiverObj)
+      : null;
+    trxDetails.receiverPhone = receiverObj ? receiverObj.phone || "" : "";
     trxDetails.receiverKyc = receiverObj
       ? receiverObj.kycStatus || "unverified"
       : "System";
@@ -3059,27 +3544,6 @@ const getTransaction = async (req, res) => {
         receiverObj.connectedDevices?.[0]?.ip ||
         "គ្មានកំណត់ត្រា IP"
       : "Internal Core Network";
-
-    if (
-      (!trxDetails.senderAcc || trxDetails.senderAcc === "N/A") &&
-      senderObj
-    ) {
-      trxDetails.senderAcc =
-        trxDetails.currency === "KHR" &&
-        senderObj.mainAccounts?.KHR?.accountNumber
-          ? senderObj.mainAccounts.KHR.accountNumber
-          : senderObj.mainAccounts?.USD?.accountNumber || "N/A";
-    }
-    if (
-      (!trxDetails.receiverAcc || trxDetails.receiverAcc === "N/A") &&
-      receiverObj
-    ) {
-      trxDetails.receiverAcc =
-        trxDetails.currency === "KHR" &&
-        receiverObj.mainAccounts?.KHR?.accountNumber
-          ? receiverObj.mainAccounts.KHR.accountNumber
-          : receiverObj.mainAccounts?.USD?.accountNumber || "N/A";
-    }
 
     if (merchantData) {
       trxDetails.merchantId = merchantData.merchantId;
@@ -3107,14 +3571,26 @@ const getTransaction = async (req, res) => {
   }
 };
 
+/**
+ * 🔹 ៧.២ បន្ថែម ឬ កាត់សមតុល្យអតិថិជនដោយ Admin តាម `_id` (ប្រើឈ្មោះពេញ និង Icon `deposit` / `deduction`)
+ */
 const adjustBalance = async (req, res) => {
   const access = await checkAdminAccess(req.admin, "adjustBal");
   if (!access.allowed)
     return res.status(403).json({ success: false, message: access.message });
 
-  const { username, targetAccount, amount, type, currency, remark } = req.body;
+  const {
+    _id,
+    userId,
+    username,
+    targetAccount,
+    amount,
+    type,
+    currency,
+    remark,
+  } = req.body;
   try {
-    const user = await User.findOne({ username });
+    const user = await resolveCustomerById(_id || userId || username);
     const centralBank = await User.findOne({
       "mainAccounts.USD.accountNumber": "888888888",
     });
@@ -3129,6 +3605,8 @@ const adjustBalance = async (req, res) => {
     const currentFXRates = readFXRates();
     const isInputKHR = currency === "KHR";
     const sign = isInputKHR ? "៛" : "$";
+    const customerFullName = getDisplayName(user);
+    const adminDisplayName = await getAdminFullDisplayName(req.admin);
 
     let actualUserAcc = "";
     let targetJointAcc = null;
@@ -3256,27 +3734,21 @@ const adjustBalance = async (req, res) => {
         type === "add" ? finalAmountToAddOrDeduct : -finalAmountToAddOrDeduct,
       currency: destinationCurrency,
       fee: 0,
-      senderName:
-        type === "add" ? "Cash Deposit" : user.fullName || user.username,
+      senderName: type === "add" ? "ធនាគារកណ្តាល U-Pay" : customerFullName,
       senderAcc:
         type === "add"
           ? isInputKHR
             ? centralBank.mainAccounts.KHR.accountNumber
             : centralBank.mainAccounts.USD.accountNumber
           : actualUserAcc,
-      receiverName:
-        type === "add" ? user.fullName || user.username : "Cash Withdrawal",
+      receiverName: type === "add" ? customerFullName : "ធនាគារកណ្តាល U-Pay",
       receiverAcc:
         type === "add"
           ? actualUserAcc
           : isInputKHR
             ? centralBank.mainAccounts.KHR.accountNumber
             : centralBank.mainAccounts.USD.accountNumber,
-      remark: remark
-        ? remark
-        : type === "add"
-          ? "Cash Deposit"
-          : "Cash Withdrawal",
+      remark: remark || (type === "add" ? "Cash Deposit" : "Cash Withdrawal"),
       status: "Success",
       trxMethod: "U-PAY System",
     };
@@ -3291,26 +3763,31 @@ const adjustBalance = async (req, res) => {
     };
 
     const finalSign = destinationCurrency === "USD" ? "$" : "៛";
-    const notifMsg =
-      type === "add"
-        ? `+${finalSign}${finalAmountToAddOrDeduct.toLocaleString("en-US", { minimumFractionDigits: destinationCurrency === "USD" ? 2 : 0 })} credited to your account (${actualUserAcc}).`
-        : `-${finalSign}${finalAmountToAddOrDeduct.toLocaleString("en-US", { minimumFractionDigits: destinationCurrency === "USD" ? 2 : 0 })} deducted from your account (${actualUserAcc}).`;
+    const fmtFinalAmt = finalAmountToAddOrDeduct.toLocaleString("en-US", {
+      minimumFractionDigits: destinationCurrency === "USD" ? 2 : 0,
+    });
 
     if (targetJointAcc) {
       for (let m of targetJointAcc.members) {
         if (m.status === "active") {
-          const memberDoc = await User.findOne({ username: m.username });
+          const memberDoc = await resolveCustomerById(m.userId || m.username);
           if (memberDoc) {
             await Transaction.create({
               ...userTrx,
-              username: m.username,
+              username: memberDoc.username,
               userId: memberDoc._id,
             });
             await Notification.create({
               userId: memberDoc._id,
               username: memberDoc.username,
-              title: type === "add" ? "Deposit Received" : "Balance Deducted",
-              message: notifMsg,
+              title:
+                type === "add"
+                  ? "ទទួលបានប្រាក់ដាក់បញ្ចូល (Deposit Received) 💰"
+                  : "កាត់សមតុល្យគណនី (Balance Deducted) 🔻",
+              message:
+                type === "add"
+                  ? `ជូនចំពោះ ${getDisplayName(memberDoc)}៖ ទឹកប្រាក់ +${finalSign}${fmtFinalAmt} ត្រូវបានបញ្ចូលទៅក្នុងគណនីរួម (#${actualUserAcc}) ដោយជោគជ័យ។`
+                  : `ជូនចំពោះ ${getDisplayName(memberDoc)}៖ ទឹកប្រាក់ -${finalSign}${fmtFinalAmt} ត្រូវបានកាត់ចេញពីគណនីរួម (#${actualUserAcc})។`,
               date: dateStr,
               type: type === "add" ? "deposit" : "deduction",
               isRead: false,
@@ -3327,8 +3804,14 @@ const adjustBalance = async (req, res) => {
       await Notification.create({
         userId: user._id,
         username: user.username,
-        title: type === "add" ? "Deposit Received" : "Balance Deducted",
-        message: notifMsg,
+        title:
+          type === "add"
+            ? "ទទួលបានប្រាក់ដាក់បញ្ចូល (Deposit Received) 💰"
+            : "កាត់សមតុល្យគណនី (Balance Deducted) 🔻",
+        message:
+          type === "add"
+            ? `ជូនចំពោះ ${customerFullName}៖ ទឹកប្រាក់ +${finalSign}${fmtFinalAmt} ត្រូវបានបញ្ចូលទៅក្នុងគណនី (#${actualUserAcc}) របស់អ្នកដោយជោគជ័យ។`
+            : `ជូនចំពោះ ${customerFullName}៖ ទឹកប្រាក់ -${finalSign}${fmtFinalAmt} ត្រូវបានកាត់ចេញពីគណនី (#${actualUserAcc}) របស់អ្នក។`,
         date: dateStr,
         type: type === "add" ? "deposit" : "deduction",
         isRead: false,
@@ -3336,33 +3819,40 @@ const adjustBalance = async (req, res) => {
     }
 
     await Transaction.create(bankTrx);
+    user.markModified("mainAccounts");
     await user.save();
+    centralBank.markModified("mainAccounts");
     await centralBank.save();
+
     await logAdminAction(
-      req.admin.username,
+      adminDisplayName,
       type === "add" ? "Add Money" : "Deduct Money",
-      user.username,
-      `${type === "add" ? "+" : "-"}${sign}${adjustAmount} -> (${finalSign}${finalAmountToAddOrDeduct})`,
+      String(user._id),
+      `${type === "add" ? "+" : "-"}${sign}${adjustAmount} -> (${finalSign}${finalAmountToAddOrDeduct}) for "${customerFullName}"`,
     );
 
     res.json({
       success: true,
-      message: `Operation Success! ទឹកប្រាក់ទទួលបានគឺ ${finalSign}${finalAmountToAddOrDeduct.toLocaleString("en-US", { minimumFractionDigits: destinationCurrency === "USD" ? 2 : 0 })}`,
+      message: `Operation Success! ទឹកប្រាក់ទទួលបានគឺ ${finalSign}${fmtFinalAmt}`,
     });
   } catch (err) {
     res.status(500).json({ success: false, message: "Server Error" });
   }
 };
 
+/**
+ * 🔹 ៧.៣ អនុម័តប្រតិបត្តិការដែលស្ថិតក្នុងស្ថានភាព Pending តាម `_id`
+ */
 const approveTransaction = async (req, res) => {
   const { refId } = req.body;
   try {
     const trx = await Transaction.findOne({ refId: refId, status: "Pending" });
-    if (!trx)
+    if (!trx) {
       return res.json({
         success: false,
         message: "រកមិនឃើញប្រតិបត្តិការ ឬមិនស្ថិតក្នុងស្ថានភាព Pending ទេ",
       });
+    }
 
     trx.status = "Success";
     await trx.save();
@@ -3372,28 +3862,18 @@ const approveTransaction = async (req, res) => {
       await Notification.create({
         userId: u._id,
         username: u.username,
-        title: "Payment Approved ✅",
-        message: `ការទូទាត់ទឹកប្រាក់ ${trx.currency === "USD" ? "$" : "៛"}${Math.abs(trx.amount).toLocaleString()} ត្រូវបានអនុម័តជោគជ័យ។ (Ref: ${refId})`,
+        title: "ប្រតិបត្តិការត្រូវបានអនុម័ត (Payment Approved) ✅",
+        message: `ជូនចំពោះ ${getDisplayName(u)}៖ ការទូទាត់ទឹកប្រាក់ ${trx.currency === "USD" ? "$" : "៛"}${Math.abs(trx.amount).toLocaleString()} ត្រូវបានអនុម័តជោគជ័យ។ (លេខយោង: ${refId})`,
         date: getFormattedDate(),
-        type: "info",
+        type: "payment_approved", // 🔔 Icon បៃតងសម្រាប់ការអនុម័តប្រតិបត្តិការ
         isRead: false,
       });
-
-      if (typeof bot !== "undefined" && bot && bot.sendUserPaymentAlert) {
-        bot
-          .sendUserPaymentAlert(u._id, {
-            amount: Math.abs(trx.amount),
-            currency: trx.currency,
-            senderName: "System Approval",
-            refId: refId,
-          })
-          .catch(() => {});
-      }
     }
+
     await logAdminAction(
-      req.admin.username,
+      await getAdminFullDisplayName(req.admin),
       "Approve Transaction",
-      u ? u.username : "Unknown",
+      u ? String(u._id) : "Unknown",
       `Approved Trx ID: ${refId}`,
     );
     return res.json({ success: true, message: "ប្រតិបត្តិការត្រូវបានអនុម័ត!" });
@@ -3402,10 +3882,9 @@ const approveTransaction = async (req, res) => {
   }
 };
 
-// ============================================================================
-// ↩️ អនុគមន៍ជំនួយ និង API សម្រាប់ Admin បង្វិលប្រាក់ (Universal Admin Refund)
-// គាំទ្រទាំង Main, Sub, Joint Accounts, Virtual Cards និង Merchant Escrow/Collected
-// ============================================================================
+/**
+ * 🔹 ៧.៤ ម៉ាស៊ីនបង្វិលប្រាក់សកលដោយ Admin តាម `_id` (Universal Admin Refund Engine)
+ */
 async function adjustAccountByNumber(
   userDoc,
   accNum,
@@ -3418,7 +3897,6 @@ async function adjustAccountByNumber(
     ? String(accNum).split("_")[1]
     : String(accNum || "").trim();
 
-  // ១. ឆែកមើលគណនីចម្បង USD (Main USD)
   if (cleanAcc && userDoc.mainAccounts?.USD?.accountNumber === cleanAcc) {
     if (
       deltaAmount < 0 &&
@@ -3436,7 +3914,6 @@ async function adjustAccountByNumber(
     return { ok: true, accountNumber: cleanAcc, currency: "USD" };
   }
 
-  // ២. ឆែកមើលគណនីចម្បង KHR (Main KHR)
   if (cleanAcc && userDoc.mainAccounts?.KHR?.accountNumber === cleanAcc) {
     if (
       deltaAmount < 0 &&
@@ -3454,7 +3931,6 @@ async function adjustAccountByNumber(
     return { ok: true, accountNumber: cleanAcc, currency: "KHR" };
   }
 
-  // ៣. ឆែកមើលគណនីរង និង គណនីរួម (Sub & Joint Accounts)
   if (
     cleanAcc &&
     Array.isArray(userDoc.subAccounts) &&
@@ -3513,7 +3989,6 @@ async function adjustAccountByNumber(
     }
   }
 
-  // ៤. Fallback បើរកលេខគណនីមិនឃើញ ទម្លាក់ចូលគណនីគោលតាមរូបិយប័ណ្ណ
   if (fallbackCurrency === "KHR" && userDoc.mainAccounts?.KHR) {
     if (
       deltaAmount < 0 &&
@@ -3521,7 +3996,7 @@ async function adjustAccountByNumber(
     ) {
       return {
         ok: false,
-        message: `សមតុល្យ KHR របស់ @${userDoc.username} មិនគ្រប់គ្រាន់ទេ!`,
+        message: `សមតុល្យ KHR របស់ "${getDisplayName(userDoc)}" មិនគ្រប់គ្រាន់ទេ!`,
       };
     }
     userDoc.mainAccounts.KHR.balance =
@@ -3540,7 +4015,7 @@ async function adjustAccountByNumber(
     ) {
       return {
         ok: false,
-        message: `សមតុល្យ USD របស់ @${userDoc.username} មិនគ្រប់គ្រាន់ទេ!`,
+        message: `សមតុល្យ USD របស់ "${getDisplayName(userDoc)}" មិនគ្រប់គ្រាន់ទេ!`,
       };
     }
     userDoc.mainAccounts.USD.balance =
@@ -3566,7 +4041,6 @@ const refundTransaction = async (req, res) => {
   const cleanRefId = String(refId || "").trim();
 
   try {
-    // ១. ទាញយកប្រតិបត្តិការទាំងអស់ដែលមានលេខយោង (Ref ID) ឬ Hash នេះ
     const trxs = await Transaction.find({
       $or: [{ refId: cleanRefId }, { hash: cleanRefId }],
     });
@@ -3586,17 +4060,20 @@ const refundTransaction = async (req, res) => {
       });
     }
 
-    // ២. ញែករកវិក្កយបត្រខាងអ្នកចំណាយ (amount < 0) និងខាងអ្នកទទួល/ហាង (amount > 0)
     const senderTrx = trxs.find((t) => t.amount < 0) || trxs[0];
     const receiverTrx = trxs.find((t) => t.amount > 0) || trxs[0];
 
     const senderAccNum = senderTrx.senderAcc;
     const receiverAccNum = receiverTrx.receiverAcc;
 
-    // ៣. ស្វែងរកគណនីអតិថិជនជាអ្នកចំណាយ (Sender / Customer)
+    // 🎯 ចាប់យកអ្នកផ្ញើតាម `senderTrx.userId` (_id) មុនគេបង្អស់!
     let senderUser = null;
-    if (senderTrx.amount < 0 && senderTrx.username) {
-      senderUser = await User.findOne({ username: senderTrx.username });
+    if (
+      senderTrx.amount < 0 &&
+      senderTrx.userId &&
+      mongoose.isValidObjectId(senderTrx.userId)
+    ) {
+      senderUser = await User.findById(senderTrx.userId);
     }
     if (!senderUser && senderAccNum && senderAccNum !== "N/A") {
       senderUser = await User.findOne({
@@ -3607,16 +4084,7 @@ const refundTransaction = async (req, res) => {
         ],
       });
     }
-    if (!senderUser && senderTrx.senderName) {
-      senderUser = await User.findOne({
-        $or: [
-          { username: senderTrx.senderName },
-          { fullName: senderTrx.senderName },
-        ],
-      });
-    }
 
-    // ៤. ស្វែងរកហាង (បើជាប្រតិបត្តិការហាង) និងម្ចាស់គណនីទទួលប្រាក់ (Receiver / Shop Owner)
     const merchIdVal = receiverTrx.merchantId || senderTrx.merchantId;
     let shop = null;
     if (merchIdVal) {
@@ -3642,17 +4110,18 @@ const refundTransaction = async (req, res) => {
       });
     }
 
+    // 🎯 ចាប់យកអ្នកទទួលតាម `shop.ownerId` ឬ `receiverTrx.userId` (_id) មុនគេបង្អស់!
     let receiverUser = null;
-    if (shop) {
-      receiverUser = await User.findOne({
-        $or: [
-          { username: shop.username || shop.userId },
-          { _id: shop.ownerId },
-        ],
-      });
+    if (shop && shop.ownerId) {
+      receiverUser = await User.findById(shop.ownerId);
     }
-    if (!receiverUser && receiverTrx.amount > 0 && receiverTrx.username) {
-      receiverUser = await User.findOne({ username: receiverTrx.username });
+    if (
+      !receiverUser &&
+      receiverTrx.amount > 0 &&
+      receiverTrx.userId &&
+      mongoose.isValidObjectId(receiverTrx.userId)
+    ) {
+      receiverUser = await User.findById(receiverTrx.userId);
     }
     if (!receiverUser && receiverAccNum && receiverAccNum !== "N/A") {
       receiverUser = await User.findOne({
@@ -3671,14 +4140,12 @@ const refundTransaction = async (req, res) => {
       });
     }
 
-    // ៥. គណនាទឹកប្រាក់ដែលត្រូវដកពីអ្នកទទួល និងទឹកប្រាក់ដែលត្រូវបង្វិលចូលអ្នកចំណាយ
     const receiverCurrency = receiverTrx.currency || "USD";
     const senderCurrency = senderTrx.currency || receiverCurrency;
 
     const deductFromReceiverAmt = Math.abs(Number(receiverTrx.amount));
     const creditToSenderAmt = Math.abs(Number(senderTrx.amount));
 
-    // កំណត់លេខកុងពិតប្រាកដរបស់ហាង/អ្នកទទួល (បើ receiverAccNum ជាកុង Virtual 888/999 ត្រូវប្តូរទៅកុង Linked ពិតប្រាកដ)
     let actualReceiverLinkedAcc = receiverAccNum;
     if (shop) {
       const isVirtualAcc =
@@ -3699,7 +4166,6 @@ const refundTransaction = async (req, res) => {
       }
     }
 
-    // ៦. ដកលុយពីគណនីអ្នកទទួល / ម្ចាស់ហាង
     const deductRes = await adjustAccountByNumber(
       receiverUser,
       actualReceiverLinkedAcc,
@@ -3714,7 +4180,6 @@ const refundTransaction = async (req, res) => {
       });
     }
 
-    // បើជាហាង ត្រូវកាត់បន្ថយចំណូលក្នុង Escrow Hold ឬ Collected ផងដែរ
     if (shop) {
       if (receiverTrx.status === "Hold") {
         if (receiverCurrency === "USD") {
@@ -3746,7 +4211,6 @@ const refundTransaction = async (req, res) => {
       await shop.save();
     }
 
-    // ៧. បង្វិលលុយចូលគណនីដើមរបស់អតិថិជន (Sender / Card's Linked Account)
     const creditRes = await adjustAccountByNumber(
       senderUser,
       senderAccNum,
@@ -3754,7 +4218,6 @@ const refundTransaction = async (req, res) => {
       senderCurrency,
     );
 
-    // ៨. ប្តូរស្ថានភាពប្រតិបត្តិការចាស់ទៅជា "Refunded" និងបង្កើតវិក្កយបត្រ Refund ថ្មី
     const dateNow =
       typeof getFormattedDate === "function"
         ? getFormattedDate()
@@ -3775,12 +4238,10 @@ const refundTransaction = async (req, res) => {
 
     const newRefId = generateStandardRefId("RFD");
     const newHash = generateStandardHash();
-    const shopOrReceiverName = shop
-      ? shop.name
-      : receiverUser.fullName || receiverUser.username;
-    const customerDisplayName = senderUser.fullName || senderUser.username;
+    const shopOrReceiverName = shop ? shop.name : getDisplayName(receiverUser);
+    const customerDisplayName = getDisplayName(senderUser);
+    const adminDisplayName = await getAdminFullDisplayName(req.admin);
 
-    // វិក្កយបត្រសម្រាប់អតិថិជន (ទទួលលុយវិញ)
     await Transaction.create({
       userId: senderUser._id,
       username: senderUser.username,
@@ -3797,12 +4258,11 @@ const refundTransaction = async (req, res) => {
       receiverAcc: creditRes.accountNumber,
       cardId: senderTrx.cardId || receiverTrx.cardId,
       cardNumber: senderTrx.cardNumber || receiverTrx.cardNumber,
-      remark: `បង្វិលប្រាក់ដោយ Admin (Ref: ${cleanRefId}) - ${reason}`,
+      remark: `បង្វិលប្រាក់ដោយធនាគារ (Ref: ${cleanRefId}) - ${reason}`,
       status: "Success",
       trxMethod: "Admin Refund",
     });
 
-    // វិក្កយបត្រសម្រាប់ម្ចាស់ហាង/អ្នកទទួល (កាត់លុយចេញ)
     await Transaction.create({
       userId: receiverUser._id,
       username: receiverUser.username,
@@ -3818,12 +4278,11 @@ const refundTransaction = async (req, res) => {
       senderAcc: deductRes.accountNumber,
       receiverName: customerDisplayName,
       receiverAcc: creditRes.accountNumber,
-      remark: `កាត់បង្វិលប្រាក់ឱ្យអតិថិជនដោយ Admin (Ref: ${cleanRefId}) - ${reason}`,
+      remark: `កាត់បង្វិលប្រាក់ជូនអតិថិជនដោយធនាគារ (Ref: ${cleanRefId}) - ${reason}`,
       status: "Success",
       trxMethod: "Admin Refund",
     });
 
-    // ៩. ផ្ញើសារជូនដំណឹង (In-App Notifications & Real-time Socket)
     const senderSym =
       (creditRes.currency || senderCurrency) === "KHR" ? "៛" : "$";
     const receiverSym =
@@ -3834,18 +4293,18 @@ const refundTransaction = async (req, res) => {
         userId: senderUser._id,
         username: senderUser.username,
         title: "ប្រាក់ត្រូវបានបង្វិលត្រឡប់ (Refunded) ↩️",
-        message: `ទឹកប្រាក់ ${senderSym}${creditToSenderAmt.toLocaleString()} ពីប្រតិបត្តិការ #${cleanRefId} ត្រូវបានបង្វិលចូលគណនី (${creditRes.accountNumber}) របស់អ្នកវិញ។ មូលហេតុ: ${reason}`,
+        message: `ជូនចំពោះ ${customerDisplayName}៖ ទឹកប្រាក់ ${senderSym}${creditToSenderAmt.toLocaleString()} ពីប្រតិបត្តិការ #${cleanRefId} ត្រូវបានបង្វិលចូលគណនី (#${creditRes.accountNumber}) របស់អ្នកវិញ។ មូលហេតុ៖ ${reason}`,
         date: dateNow,
-        type: "refund_receive",
+        type: "refund_receive", // 🔔 Icon សម្រាប់ទទួលប្រាក់បង្វិល
         isRead: false,
       },
       {
         userId: receiverUser._id,
         username: receiverUser.username,
         title: "កាត់ប្រាក់បង្វិលសងអតិថិជន (Refund Deducted) ⚠️",
-        message: `ទឹកប្រាក់ ${receiverSym}${deductFromReceiverAmt.toLocaleString()} នៃប្រតិបត្តិការ #${cleanRefId} ត្រូវបានដកចេញពីគណនី (${deductRes.accountNumber}) ដើម្បីបង្វិលជូនអតិថិជនវិញដោយ Admin។ មូលហេតុ: ${reason}`,
+        message: `ជូនចំពោះ ${getDisplayName(receiverUser)}៖ ទឹកប្រាក់ ${receiverSym}${deductFromReceiverAmt.toLocaleString()} នៃប្រតិបត្តិការ #${cleanRefId} ត្រូវបានដកចេញពីគណនី (#${deductRes.accountNumber}) ដើម្បីបង្វិលជូនអតិថិជន (${customerDisplayName}) វិញ។ មូលហេតុ៖ ${reason}`,
         date: dateNow,
-        type: "info",
+        type: "refund_deduct", // 🔔 Icon សម្រាប់កាត់ប្រាក់បង្វិល
         isRead: false,
       },
     ]);
@@ -3856,15 +4315,15 @@ const refundTransaction = async (req, res) => {
     }
 
     await logAdminAction(
-      req.admin.username,
+      adminDisplayName,
       "Refund Transaction",
-      `${receiverUser.username} -> ${senderUser.username}`,
-      `Refunded ${receiverSym}${deductFromReceiverAmt} (Ref: ${cleanRefId}). Reason: ${reason}`,
+      `${receiverUser._id} -> ${senderUser._id}`,
+      `Refunded ${receiverSym}${deductFromReceiverAmt} (Ref: ${cleanRefId}) from "${shopOrReceiverName}" to "${customerDisplayName}". Reason: ${reason}`,
     );
 
     return res.json({
       success: true,
-      message: `បង្វិលប្រាក់ពី ${shopOrReceiverName} ទៅកាន់គណនី (${creditRes.accountNumber}) របស់ @${senderUser.username} បានជោគជ័យ ១០០%!`,
+      message: `បង្វិលប្រាក់ពី "${shopOrReceiverName}" ទៅកាន់គណនី (#${creditRes.accountNumber}) របស់ "${customerDisplayName}" បានជោគជ័យ ១០០%!`,
     });
   } catch (err) {
     console.error("Admin Refund Error:", err);
@@ -3874,11 +4333,11 @@ const refundTransaction = async (req, res) => {
   }
 };
 
-// =======================================================
-// 🟢 [Admin] ដោះ Hold ប្រតិបត្តិការហាង (Release Escrow Hold -> Success)
-// =======================================================
+/**
+ * 🔹 ៧.៥ ដោះ Hold ប្រតិបត្តិការហាងទំនិញ (Release Merchant Escrow Hold -> Success)
+ */
 const releaseMerchantHold = async (req, res) => {
-  const access = await checkAdminAccess(req.admin, "approveTransaction"); // ឬសិទ្ធិសមស្រប
+  const access = await checkAdminAccess(req.admin, "approveTransaction");
   if (!access.allowed)
     return res.status(403).json({ success: false, message: access.message });
 
@@ -3898,17 +4357,14 @@ const releaseMerchantHold = async (req, res) => {
       });
     }
 
-    // ១. ប្តូរស្ថានភាព Transaction ពី Hold ទៅជា Success
     trx.status = "Success";
     await trx.save();
 
-    // មកអាប់ដេតគ្រប់ transaction ពាក់ព័ន្ធទាំងអស់ (ទាំងฝั่ง Sender និង Receiver)
     await Transaction.updateMany(
       { $or: [{ refId: cleanRefId }, { hash: cleanRefId }], status: "Hold" },
       { $set: { status: "Success" } },
     );
 
-    // ២. ຊອກរកហាង (Merchant) ដើម្បីកាត់លុយចេញពី Escrow Hold បូកចូល Collected ពិតប្រាកដ
     const merchIdVal = trx.merchantId;
     if (merchIdVal) {
       const shop = await Merchant.findOne({
@@ -3935,28 +4391,26 @@ const releaseMerchantHold = async (req, res) => {
       }
     }
 
-    // ៣. ផ្ញើសារជូនដំណឹងទៅកាន់អតិថិជន (User)
-    const u = await User.findOne({ username: trx.username });
+    const u = trx.userId
+      ? await User.findById(trx.userId)
+      : await User.findOne({ username: trx.username });
     if (u) {
       const curSym = trx.currency === "KHR" ? "៛" : "$";
       await Notification.create({
         userId: u._id,
         username: u.username,
-        title: "Payment Released ✅",
-        message: `ការទូទាត់ទឹកប្រាក់ ${curSym}${Math.abs(trx.amount).toLocaleString()} របស់អ្នកត្រូវបានអនុម័ត និងទម្លាក់ជូនហាងជោគជ័យ។ (Ref: ${cleanRefId})`,
-        date:
-          typeof getFormattedDate === "function"
-            ? getFormattedDate()
-            : new Date().toLocaleString(),
-        type: "info",
+        title: "ការទូទាត់ត្រូវបានអនុម័ត (Payment Released) ✅",
+        message: `ជូនចំពោះ ${getDisplayName(u)}៖ ការទូទាត់ទឹកប្រាក់ ${curSym}${Math.abs(trx.amount).toLocaleString()} ត្រូវបានអនុម័ត និងទម្លាក់ចូលហាងជោគជ័យ។ (លេខយោង: ${cleanRefId})`,
+        date: getFormattedDate(),
+        type: "merchant_release", // 🔔 Icon សម្រាប់ដោះ Hold ហាងទំនិញ
         isRead: false,
       });
     }
 
     await logAdminAction(
-      req.admin.username,
+      await getAdminFullDisplayName(req.admin),
       "Release Merchant Hold",
-      u ? u.username : "Merchant",
+      u ? String(u._id) : "Merchant",
       `Released Hold for Trx ID: ${cleanRefId}`,
     );
 
@@ -3972,11 +4426,13 @@ const releaseMerchantHold = async (req, res) => {
   }
 };
 
+/**
+ * 🔹 ៧.៦ ទាញយកវិក្កយបត្រសាធារណៈពេលស្កេន QR លើក្រដាសវិក្កយបត្រ (getPublicReceipt by `_id`)
+ */
 const getPublicReceipt = async (req, res) => {
   try {
     const { id } = req.params;
 
-    // 🟢 ថែម { ticketId: id } ចូលទីនេះ ដើម្បីឱ្យវាស្គាល់លេខ TCK-... ពេលស្កេន QR
     let ticketQuery = [{ transactionId: id }, { ticketId: id }];
     if (mongoose.isValidObjectId(id)) {
       ticketQuery.push({ _id: id });
@@ -3989,11 +4445,10 @@ const getPublicReceipt = async (req, res) => {
       if (ticketObj.maker) {
         const adminMaker = await Admin.findOne({ username: ticketObj.maker });
         ticketObj.makerFullName = adminMaker
-          ? adminMaker.fullName || adminMaker.username
+          ? getDisplayName(adminMaker)
           : ticketObj.maker;
       }
 
-      // 🟢 បើក្នុង ticket.slipData គ្មានសមតុល្យ យើងគណនាជំនួសអោយ
       if (!ticketObj.slipData) ticketObj.slipData = {};
       if (ticketObj.slipData.priorBalance === undefined) {
         const targetUser = await User.findById(ticketObj.userId);
@@ -4014,7 +4469,6 @@ const getPublicReceipt = async (req, res) => {
             if (sub) currentBal = sub.balance || 0;
           }
 
-          // គណនាសមតុល្យថយក្រោយរក Prior Balance
           ticketObj.slipData.newBalance = currentBal;
           ticketObj.slipData.priorBalance =
             ticketObj.requestType === "Deposit"
@@ -4026,7 +4480,6 @@ const getPublicReceipt = async (req, res) => {
       return res.json({ success: true, data: ticketObj, source: "ticket" });
     }
 
-    // ២. បើជា Transaction
     const trx = await Transaction.findOne({ refId: id });
     if (trx) {
       const originalTicket = await CashierTicket.findOne({
@@ -4039,7 +4492,7 @@ const getPublicReceipt = async (req, res) => {
           username: originalTicket.maker,
         });
         finalData.maker = adminMaker
-          ? adminMaker.fullName || adminMaker.username
+          ? getDisplayName(adminMaker)
           : originalTicket.maker;
         if (originalTicket.slipData) {
           finalData.slipData = originalTicket.slipData;
@@ -4048,22 +4501,22 @@ const getPublicReceipt = async (req, res) => {
         finalData.maker = "System";
       }
 
-      // 🟢 បើ transaction គ្មាន slipData សមតុល្យ យើងគណនារកអោយដូចគ្នា
       if (!finalData.slipData) finalData.slipData = {};
       if (finalData.slipData.priorBalance === undefined) {
-        const targetUser = await User.findOne({
-          $or: [
-            { username: finalData.username },
-            {
-              "mainAccounts.USD.accountNumber":
-                finalData.receiverAcc || finalData.senderAcc,
-            },
-            {
-              "mainAccounts.KHR.accountNumber":
-                finalData.receiverAcc || finalData.senderAcc,
-            },
-          ],
-        });
+        const targetUser = finalData.userId
+          ? await User.findById(finalData.userId)
+          : await User.findOne({
+              $or: [
+                {
+                  "mainAccounts.USD.accountNumber":
+                    finalData.receiverAcc || finalData.senderAcc,
+                },
+                {
+                  "mainAccounts.KHR.accountNumber":
+                    finalData.receiverAcc || finalData.senderAcc,
+                },
+              ],
+            });
 
         if (targetUser) {
           let currentBal = targetUser.mainAccounts?.USD?.balance || 0;
@@ -4075,8 +4528,7 @@ const getPublicReceipt = async (req, res) => {
           finalData.slipData.priorBalance = isDep
             ? currentBal - Math.abs(finalData.amount)
             : currentBal + Math.abs(finalData.amount);
-          finalData.slipData.customerName =
-            targetUser.fullName || targetUser.username;
+          finalData.slipData.customerName = getDisplayName(targetUser);
           finalData.slipData.depositorAccount = "N/A";
         }
       }
@@ -4100,35 +4552,28 @@ const getPublicReceipt = async (req, res) => {
   }
 };
 
-// ==========================================
-// 🛍️ ផ្នែកទី ៨៖ បញ្ជរគិតប្រាក់ (Cashier System)
-// ==========================================
+// ============================================================================
+// 🛍️ ជំពូកទី ៨៖ ប្រព័ន្ធបញ្ជរគិតប្រាក់ និងការអនុម័ត (CASHIER MAKER-CHECKER BY `_id`)
+// ============================================================================
 
+/**
+ * 🔹 ៨.១ ស្វែងរកអតិថិជននៅបញ្ជរគិតប្រាក់តាម `_id` ឬលេខគណនី
+ */
 const searchCashierUser = async (req, res) => {
   try {
     const { identifier } = req.params;
-    // ដើម្បីកុំឱ្យ Case-sensitive ពេលវាយ Username (ឧ. DARA និង dara គឺដូចគ្នា)
-    const regex = new RegExp("^" + identifier + "$", "i");
+    const user = await resolveCustomerById(identifier, "-password -pin");
 
-    // 🟢 កែប្រែ៖ ឱ្យអាចស្វែងរកបានតាម លេខគណនី, Username, ID អតិថិជន, ឬ លេខទូរស័ព្ទ
-    const user = await User.findOne({
-      $or: [
-        { "mainAccounts.USD.accountNumber": identifier },
-        { "mainAccounts.KHR.accountNumber": identifier },
-        { "subAccounts.accountNumber": identifier },
-        { username: regex },
-        { userId: identifier },
-        { phone: identifier },
-      ],
-    }).select("-password -pin");
-
-    if (!user)
+    if (!user) {
       return res.json({
         success: false,
-        message: "រកមិនឃើញគណនីដែលមានលេខកុង ឬឈ្មោះនេះទេ!",
+        message: "រកមិនឃើញគណនីដែលមានលេខកុង ឬអត្តសញ្ញាណនេះទេ!",
       });
+    }
 
     let userDetails = user.toObject();
+    userDetails._id = String(user._id);
+    userDetails.id = String(user._id);
     userDetails.kycDocument =
       userDetails.kycDocument ||
       userDetails.kycImage ||
@@ -4142,9 +4587,9 @@ const searchCashierUser = async (req, res) => {
   }
 };
 
-// ========================================================================
-// 🛠️ HELPER FUNCTION: អនុវត្តការកាត់/បញ្ចូលលុយពិតប្រាកដក្នុង Database
-// ========================================================================
+/**
+ * 🔹 ៨.២ អនុគមន៍អនុវត្តប្រតិបត្តិការដាក់/ដកសាច់ប្រាក់ពិតប្រាកដនៅបញ្ជរ (ប្រើ `_id` & `fullName`)
+ */
 const executeCashierTransaction = async (
   targetUser,
   targetAccount,
@@ -4190,7 +4635,6 @@ const executeCashierTransaction = async (
   const userModifier =
     requestType === "Deposit" ? finalReceiveAmount : -finalReceiveAmount;
 
-  // 🟢 ផ្នែកទី ១៖ ធ្វើការកាត់ ឬ បញ្ចូលលុយ (Hold ឬ ទូទាត់ពិតប្រាកដ)
   if (
     [
       "FULL",
@@ -4232,8 +4676,10 @@ const executeCashierTransaction = async (
     else if (destCurrency === "KHR" && subIndex === -1)
       targetUser.mainAccounts.KHR.balance =
         (targetUser.mainAccounts.KHR.balance || 0) + finalUserMod;
-    else if (subIndex !== -1)
+    else if (subIndex !== -1) {
       targetUser.subAccounts[subIndex].balance += finalUserMod;
+      targetUser.markModified("subAccounts");
+    }
 
     if (isInputKHR)
       centralBank.mainAccounts.KHR.balance =
@@ -4242,11 +4688,12 @@ const executeCashierTransaction = async (
       centralBank.mainAccounts.USD.balance =
         (centralBank.mainAccounts.USD.balance || 0) + finalBankMod;
 
+    targetUser.markModified("mainAccounts");
+    centralBank.markModified("mainAccounts");
     await targetUser.save();
     await centralBank.save();
   }
 
-  // 🟢 បើគ្រាន់តែ Hold លុយ ឬ សងលុយ គឺបញ្ចប់ត្រឹមនេះ
   if (actionType === "HOLD_WITHDRAWAL" || actionType === "REVERT_WITHDRAWAL") {
     return { success: true, transactionId: "HELD_OR_REVERTED" };
   }
@@ -4258,6 +4705,7 @@ const executeCashierTransaction = async (
   const refId = generateStandardRefId(
     requestType === "Deposit" ? "DEP" : "WIT",
   );
+  const customerFullName = getDisplayName(targetUser);
 
   const autoRemark =
     requestType === "Deposit"
@@ -4283,10 +4731,10 @@ const executeCashierTransaction = async (
     currency: destCurrency,
     fee: 0,
     senderName:
-      requestType === "Deposit" ? "Cash Deposit" : targetUser.fullName,
+      requestType === "Deposit" ? "បញ្ជរសាច់ប្រាក់ U-Pay" : customerFullName,
     senderAcc: requestType === "Deposit" ? "" : actualReceiverAcc,
     receiverName:
-      requestType === "Deposit" ? targetUser.fullName : "Cash Withdrawal",
+      requestType === "Deposit" ? customerFullName : "បញ្ជរសាច់ប្រាក់ U-Pay",
     receiverAcc: requestType === "Deposit" ? actualReceiverAcc : "",
     remark: finalRemark,
     status: "Success",
@@ -4308,8 +4756,8 @@ const executeCashierTransaction = async (
 
   let notifMsg =
     requestType === "Deposit"
-      ? `ទឹកប្រាក់ ${formattedAmount} ត្រូវបានដាក់បញ្ចូលទៅក្នុងគណនី (${actualReceiverAcc}) របស់អ្នកដោយជោគជ័យ តាមរយៈបញ្ជរធនាគារ (Cashier)។ [អ្នកដាក់ប្រាក់: ${depositorName}]`
-      : `ទឹកប្រាក់ ${formattedAmount} ត្រូវបានដកចេញពីគណនី (${actualReceiverAcc}) របស់អ្នកដោយជោគជ័យ តាមរយៈបញ្ជរធនាគារ (Cashier)។ [អ្នកដកប្រាក់: ${depositorName}]`;
+      ? `ជូនចំពោះ ${customerFullName}៖ ទឹកប្រាក់ ${formattedAmount} ត្រូវបានដាក់បញ្ចូលទៅក្នុងគណនី (#${actualReceiverAcc}) របស់អ្នកដោយជោគជ័យ តាមរយៈបញ្ជរធនាគារ។ [អ្នកដាក់ប្រាក់៖ ${depositorName}]`
+      : `ជូនចំពោះ ${customerFullName}៖ ទឹកប្រាក់ ${formattedAmount} ត្រូវបានដកចេញពីគណនី (#${actualReceiverAcc}) របស់អ្នកដោយជោគជ័យ តាមរយៈបញ្ជរធនាគារ។ [អ្នកដកប្រាក់៖ ${depositorName}]`;
 
   let cleanRemark = remark ? remark.trim() : "";
   if (cleanRemark.includes(" | ")) cleanRemark = cleanRemark.split(" | ")[0];
@@ -4319,22 +4767,26 @@ const executeCashierTransaction = async (
     userId: targetUser._id,
     username: targetUser.username,
     title:
-      requestType === "Deposit" ? "Deposit Received ✅" : "Balance Deducted 🔻",
+      requestType === "Deposit"
+        ? "ទទួលបានប្រាក់ដាក់បញ្ចូល (Deposit Received) ✅"
+        : "ដកប្រាក់តាមបញ្ជរជោគជ័យ (Cash Withdrawal) 🔻",
     message: notifMsg,
     date: dateStr,
-    type: requestType === "Deposit" ? "deposit" : "deduction",
+    type: requestType === "Deposit" ? "deposit" : "deduction", // 🔔 Icon តាមប្រភេទដាក់/ដកប្រាក់
     isRead: false,
-    metadata: { refId: refId, sender: "system" },
+    metadata: { refId: refId, sender: "បញ្ជរធនាគារ U-Pay" },
   });
 
   return { success: true, transactionId: refId };
 };
 
-// ========================================================================
-// 🏦 MAIN API 1: បង្កើតប្រតិបត្តិការ (Maker Request)
-// ========================================================================
+/**
+ * 🔹 ៨.៣ បង្កើតសំបុត្រដាក់/ដកប្រាក់នៅបញ្ជរដោយ Maker (createCashierTicket by `_id`)
+ */
 const createCashierTicket = async (req, res) => {
   const {
+    targetUserId,
+    _id,
     targetUsername,
     targetAccount,
     requestType,
@@ -4346,13 +4798,13 @@ const createCashierTicket = async (req, res) => {
   } = req.body;
 
   try {
-    const targetUser = await User.findOne({ username: targetUsername });
+    const targetUser = await resolveCustomerById(
+      targetUserId || _id || targetUsername,
+    );
     if (!targetUser)
       return res.json({ success: false, message: "រកមិនឃើញអតិថិជននេះទេ!" });
 
     const cashAmount = parseFloat(amount);
-
-    // 🟢 គណនាសមតុល្យ (Balance) ឱ្យហើយ សម្រាប់ទាំង Withdrawal និង Deposit
     let currentBal = 0;
     let targetCurrency = "USD";
 
@@ -4372,7 +4824,6 @@ const createCashierTicket = async (req, res) => {
       }
     }
 
-    // គណនាទឹកប្រាក់ (ករណីជាន់រូបិយប័ណ្ណ)
     let finalReceiveAmount = cashAmount;
     const currentFXRates = readFXRates();
     if (currency === "USD" && targetCurrency === "KHR") {
@@ -4381,13 +4832,11 @@ const createCashierTicket = async (req, res) => {
       finalReceiveAmount = cashAmount / currentFXRates.usdToKhrSell;
     }
 
-    if (requestType === "Withdrawal") {
-      if (currentBal < finalReceiveAmount) {
-        return res.json({
-          success: false,
-          message: `ប្រតិបត្តិការបរាជ័យ! លុយក្នុងគណនី (${targetAccount}) មិនគ្រប់គ្រាន់ទេ!`,
-        });
-      }
+    if (requestType === "Withdrawal" && currentBal < finalReceiveAmount) {
+      return res.json({
+        success: false,
+        message: `ប្រតិបត្តិការបរាជ័យ! លុយក្នុងគណនី (${targetAccount}) មិនគ្រប់គ្រាន់ទេ!`,
+      });
     }
 
     const isBigTrx =
@@ -4421,7 +4870,6 @@ const createCashierTicket = async (req, res) => {
         ? `${remark.trim()} | ${autoRemark}`
         : autoRemark;
 
-    // 🟢 កំណត់ Prior Balance និង New Balance ឱ្យច្បាស់លាស់ ទុកបង្ហាញលើ Slip
     const priorBalance = currentBal;
     const newBalance =
       requestType === "Deposit"
@@ -4440,10 +4888,10 @@ const createCashierTicket = async (req, res) => {
       status: ticketStatus,
       remark: finalRemark,
       slipData: {
-        customerName: targetUser.fullName || targetUser.username,
+        customerName: getDisplayName(targetUser),
         depositorAccount: depositorAccount || "N/A",
-        priorBalance: priorBalance, // 🟢 Save សមតុល្យចាស់ចូល DB
-        newBalance: newBalance, // 🟢 Save សមតុល្យថ្មីចូល DB
+        priorBalance: priorBalance,
+        newBalance: newBalance,
       },
     });
 
@@ -4466,10 +4914,10 @@ const createCashierTicket = async (req, res) => {
 
     await newTicket.save();
     await logAdminAction(
-      req.admin.username,
+      await getAdminFullDisplayName(req.admin),
       "Create Cashier Ticket",
-      targetUser.username,
-      `Type: ${requestType}, Amount: ${cashAmount}`,
+      String(targetUser._id),
+      `Type: ${requestType}, Amount: ${cashAmount} ${currency} for "${getDisplayName(targetUser)}"`,
     );
 
     res.json({
@@ -4484,9 +4932,9 @@ const createCashierTicket = async (req, res) => {
   }
 };
 
-// ========================================================================
-// 🏦 MAIN API 2: ទាញយកបញ្ជី Ticket ទាំងអស់ (សម្រាប់ Checker)
-// ========================================================================
+/**
+ * 🔹 ៨.៤ ទាញយកបញ្ជីសំបុត្របញ្ជរទាំងអស់ និងការអនុម័ត/បដិសេធដោយ Checker តាម `_id`
+ */
 const getCashierTickets = async (req, res) => {
   try {
     const tickets = await CashierTicket.find()
@@ -4498,20 +4946,18 @@ const getCashierTickets = async (req, res) => {
   }
 };
 
-// ========================================================================
-// 🏦 MAIN API 3: អនុម័ត / បដិសេធ ប្រតិបត្តិការ (Checker Action)
-// ========================================================================
 const actionCashierTicket = async (req, res) => {
   const { ticketId, action, reason } = req.body;
   try {
     const ticket = await CashierTicket.findById(ticketId);
     if (!ticket)
       return res.json({ success: false, message: "រកមិនឃើញសំបុត្រនេះទេ!" });
-    if (ticket.maker === req.admin.username)
+    if (ticket.maker === req.admin.username) {
       return res.json({
         success: false,
         message: "អ្នកមិនអាចអនុម័តប្រតិបត្តិការដែលខ្លួនឯងបញ្ចូលបានទេ!",
       });
+    }
 
     const targetUser = await User.findById(ticket.userId);
     if (!targetUser)
@@ -4571,12 +5017,12 @@ const actionCashierTicket = async (req, res) => {
         await Notification.create({
           userId: targetUser._id,
           username: targetUser.username,
-          title: "Withdrawal Rejected ❌",
-          message: `សំណើដកប្រាក់ចំនួន ${curSymbol}${ticket.amount.toLocaleString()} ត្រូវបានបដិសេធ។ ទឹកប្រាក់ត្រូវបានបង្វិលចូលគណនីរបស់អ្នកវិញរួចរាល់។ មូលហេតុ: ${reason}`,
+          title: "សំណើដកប្រាក់ត្រូវបានបដិសេធ (Withdrawal Rejected) ❌",
+          message: `ជូនចំពោះ ${getDisplayName(targetUser)}៖ សំណើដកប្រាក់ចំនួន ${curSymbol}${ticket.amount.toLocaleString()} ត្រូវបានបដិសេធ។ ទឹកប្រាក់ត្រូវបានបង្វិលចូលគណនីរបស់អ្នកវិញរួចរាល់។ មូលហេតុ៖ ${reason}`,
           date: dateStr,
-          type: "info",
+          type: "withdrawal_rejected", // 🔔 Icon ក្រហមសម្រាប់បដិសេធការដកប្រាក់
           isRead: false,
-          metadata: { sender: "system" },
+          metadata: { sender: await getAdminFullDisplayName(req.admin) },
         });
       }
 
@@ -4596,11 +5042,13 @@ const actionCashierTicket = async (req, res) => {
   }
 };
 
-// ==========================================
-// 💳 ផ្នែកទី ៩៖ កាតនិម្មិត និងហាងទំនិញ
-// ==========================================
+// ============================================================================
+// 💳 ជំពូកទី ៩៖ ការគ្រប់គ្រងកាតនិម្មិត, កាត NFC និងហាងទំនិញ (CARDS & MERCHANTS BY `_id`)
+// ============================================================================
 
-// 🔍 អនុគមន៍ជំនួយ៖ ស្វែងរកគណនីពិតប្រាកដរបស់ User (Main, Sub, ឬ Joint)
+/**
+ * 🔹 ៩.១ អនុគមន៍ជំនួយស្វែងរកគណនីរបស់អតិថិជន (Main, Sub, ឬ Joint) និងស្វែងរកកាតតាម `_id`
+ */
 async function resolveAdminUserAccount(user, linkedAccStr) {
   let rawAcc = String(linkedAccStr || "USD");
   let accNum = rawAcc.includes("_") ? rawAcc.split("_")[1] : rawAcc;
@@ -4656,12 +5104,32 @@ async function resolveAdminUserAccount(user, linkedAccStr) {
   return null;
 }
 
+async function findCardByAdminIdentifier(cardId, userIdentifier = null) {
+  if (!cardId) return null;
+  const cleanCardId = String(cardId).trim();
+  const cardConds = [{ id: cleanCardId }];
+  if (mongoose.isValidObjectId(cleanCardId)) {
+    cardConds.unshift({ _id: cleanCardId });
+  }
+
+  if (userIdentifier) {
+    const userDoc = await resolveCustomerById(userIdentifier, "_id");
+    if (userDoc) {
+      const found = await Card.findOne({
+        $and: [{ $or: cardConds }, { userId: userDoc._id }],
+      });
+      if (found) return found;
+    }
+  }
+
+  return await Card.findOne({ $or: cardConds });
+}
+
 /**
- * 📌 [Admin] ទាញយកកាតទាំងអស់ក្នុងប្រព័ន្ធ (រួមទាំង Auto-Migrate កាតចាស់ៗទាំងអស់ក្នុងប្រព័ន្ធ)
+ * 🔹 ៩.២ ទាញយកកាតទាំងអស់ក្នុងប្រព័ន្ធ (រួមទាំង Auto-Migrate កាតចាស់ៗឱ្យភ្ជាប់ `userId: _id` សុទ្ធ)
  */
 const adminGetAllCards = async (req, res) => {
   try {
-    // 🔄 ១. ឆែកមើលក្រែងលោមាន User ចាស់ៗណាខ្លះដែលនៅសល់ virtualCards ក្នុង Collection User
     const rawUsersWithOldCards = await User.collection
       .find({ "virtualCards.0": { $exists: true } })
       .toArray();
@@ -4673,7 +5141,6 @@ const adminGetAllCards = async (req, res) => {
             const oldC = rawU.virtualCards[i];
             if (!oldC || !oldC.number) continue;
 
-            // ឆែកកុំឱ្យចម្លងជាន់គ្នា
             const exists = await Card.findOne({
               $or: [{ id: oldC.id }, { number: oldC.number }],
             });
@@ -4694,7 +5161,7 @@ const adminGetAllCards = async (req, res) => {
               await Card.create({
                 userId: rawU._id,
                 username: rawU.username,
-                userCustomId: rawU.id || rawU._id.toString(),
+                userCustomId: rawU._id.toString(),
                 id: oldC.id || "card_" + Date.now() + "_" + i,
                 type: oldC.type || "standard",
                 name: oldC.name || "STANDARD",
@@ -4717,7 +5184,6 @@ const adminGetAllCards = async (req, res) => {
             }
           }
         }
-        // លុប virtualCards ចាស់ចេញពី User ក្រោយពេលចម្លងរួច
         await User.collection.updateOne(
           { _id: rawU._id },
           { $unset: { virtualCards: "" } },
@@ -4725,7 +5191,6 @@ const adminGetAllCards = async (req, res) => {
       }
     }
 
-    // 💳 ២. ទាញយកកាតទាំងអស់ពី Model Card.js ថ្មីបោះទៅឱ្យ Admin
     const cards = await Card.find()
       .sort({ createdAt: -1, orderIndex: 1 })
       .lean();
@@ -4738,10 +5203,12 @@ const adminGetAllCards = async (req, res) => {
 };
 
 /**
- * 📌 [Admin] បង្កើតកាតថ្មីឱ្យអតិថិជន (គាំទ្រទាំង ៣ ប្រភេទ៖ Virtual, Debit, និង Credit)
+ * 🔹 ៩.៣ បង្កើតកាតថ្មីឱ្យអតិថិជនតាម `_id` (គាំទ្រទាំង Virtual, Debit, និង Credit)
  */
 const adminCreateCard = async (req, res) => {
   const {
+    _id,
+    userId,
     username,
     cardCategory = "virtual",
     cardType,
@@ -4754,10 +5221,10 @@ const adminCreateCard = async (req, res) => {
   } = req.body;
 
   try {
-    const user = await User.findOne({ username });
+    const user = await resolveCustomerById(_id || userId || username);
     if (!user) return res.json({ success: false, message: "រកគណនីមិនឃើញទេ!" });
 
-    const existingCount = await Card.countDocuments({ username });
+    const existingCount = await Card.countDocuments({ userId: user._id });
     if (existingCount >= 10) {
       return res.json({
         success: false,
@@ -4818,7 +5285,6 @@ const adminCreateCard = async (req, res) => {
       });
     }
 
-    // 💸 កាត់លុយថ្លៃសេវាពីគណនីដែលបានជ្រើសរើសផ្ទាល់
     if (targetAcc.type === "MAIN_USD") {
       user.mainAccounts.USD.balance -= feeInAccCurrency;
       user.markModified("mainAccounts");
@@ -4874,7 +5340,7 @@ const adminCreateCard = async (req, res) => {
     await Card.create({
       userId: user._id,
       username: user.username,
-      userCustomId: user.id || user._id.toString(),
+      userCustomId: String(user._id),
       id: newCardId,
       cardCategory: cleanCategory,
       type: finalCardType,
@@ -4912,6 +5378,8 @@ const adminCreateCard = async (req, res) => {
         : cleanCategory === "debit"
           ? "Physical Debit Card"
           : "Virtual Card";
+    const customerFullName = getDisplayName(user);
+    const adminDisplayName = await getAdminFullDisplayName(req.admin);
 
     await Transaction.create({
       userId: user._id,
@@ -4922,14 +5390,14 @@ const adminCreateCard = async (req, res) => {
       type: "Card Issuance Fee",
       amount: -feeInAccCurrency,
       currency: targetAcc.currency,
-      senderName: user.fullName || user.username,
+      senderName: customerFullName,
       senderAcc: targetAcc.accountNumber,
-      receiverName: "Card Issuance Service",
+      receiverName: "សេវាបង្កើតកាត U-Pay",
       receiverAcc: "888000999",
       cardId: newCardId,
       cardNumber: details.number,
       status: "Success",
-      remark: `Issued ${tier.name} ${catDisplayLabel} (By Admin: ${req.admin ? req.admin.username : "System"})`,
+      remark: `បង្កើតកាត ${tier.name} (${catDisplayLabel}) ដោយ ${adminDisplayName}`,
     });
 
     await Transaction.create({
@@ -4941,7 +5409,7 @@ const adminCreateCard = async (req, res) => {
       type: "System Income",
       amount: issuanceFeeUSD,
       currency: "USD",
-      senderName: user.username,
+      senderName: customerFullName,
       receiverName: "Central Bank Fee Income",
       senderAcc: targetAcc.accountNumber,
       receiverAcc: "888000999",
@@ -4949,14 +5417,22 @@ const adminCreateCard = async (req, res) => {
       remark: `${catDisplayLabel} Issuance Fee`,
     });
 
-    if (req.admin && req.admin.username) {
-      await logAdminAction(
-        req.admin.username,
-        `Create ${catDisplayLabel}`,
-        username,
-        `បង្កើតកាត ${tier.name} (${details.number.slice(-4)}) ប្រភេទ ${cleanCategory.toUpperCase()}។ មូលហេតុ: ${remark || "គ្មាន"}`,
-      );
-    }
+    await Notification.create({
+      userId: user._id,
+      username: user.username,
+      title: `បង្កើតកាតថ្មីជោគជ័យ (${tier.name}) 💳`,
+      message: `ជូនចំពោះ ${customerFullName}៖ កាត ${tier.name} (${catDisplayLabel}) របស់អ្នកត្រូវបានបង្កើតដោយជោគជ័យ និងភ្ជាប់ជាមួយគណនី #${targetAcc.accountNumber}។`,
+      date: dateStr,
+      type: "card_update", // 🔔 Icon កាតធនាគារ
+      isRead: false,
+    });
+
+    await logAdminAction(
+      adminDisplayName,
+      `Create ${catDisplayLabel}`,
+      String(user._id),
+      `បង្កើតកាត ${tier.name} (${details.number.slice(-4)}) ជូន "${customerFullName}"។ មូលហេតុ: ${remark || "គ្មាន"}`,
+    );
 
     res.json({ success: true, message: "បង្កើតកាតបានជោគជ័យ!" });
   } catch (err) {
@@ -4966,23 +5442,26 @@ const adminCreateCard = async (req, res) => {
 };
 
 /**
- * 📌 [Admin] លុបកាត
+ * 🔹 ៩.៤ លុបកាត, បិទ/បើកកាត, កំណត់ Limit, ប្តូរឈ្មោះ និងប្តូរគណនីភ្ជាប់កាតតាម `_id`
  */
 const adminDeleteCard = async (req, res) => {
-  const { username, cardId, reason } = req.body;
+  const { _id, userId, username, cardId, reason } = req.body;
   try {
-    const card = await Card.findOneAndDelete({ id: cardId, username });
+    const card = await findCardByAdminIdentifier(
+      cardId,
+      _id || userId || username,
+    );
     if (!card)
       return res.json({ success: false, message: "រកកាតនេះមិនឃើញទេ!" });
 
-    if (req.admin && req.admin.username) {
-      await logAdminAction(
-        req.admin.username,
-        "Delete Virtual Card",
-        username,
-        `លុបកាត ${card.number.slice(-4)}។ មូលហេតុ: ${reason}`,
-      );
-    }
+    await Card.deleteOne({ _id: card._id });
+
+    await logAdminAction(
+      await getAdminFullDisplayName(req.admin),
+      "Delete Card",
+      String(card.userId || username),
+      `លុបកាត **** ${card.number.slice(-4)}។ មូលហេតុ: ${reason || "Admin Deleted"}`,
+    );
 
     res.json({ success: true, message: "លុបកាតជោគជ័យ!" });
   } catch (err) {
@@ -4990,27 +5469,25 @@ const adminDeleteCard = async (req, res) => {
   }
 };
 
-/**
- * 📌 [Admin] បិទ/បើកកាត (Lock/Unlock)
- */
 const toggleAdminCardLock = async (req, res) => {
-  const { username, cardId, isLocked } = req.body;
+  const { _id, userId, username, cardId, isLocked } = req.body;
   try {
-    const card = await Card.findOne({ id: cardId, username });
+    const card = await findCardByAdminIdentifier(
+      cardId,
+      _id || userId || username,
+    );
     if (!card) return res.json({ success: false, message: "រកកាតមិនឃើញទេ!" });
 
-    card.isLocked = isLocked;
+    card.isLocked = Boolean(isLocked);
     card.lockedByAdmin = Boolean(isLocked);
     await card.save();
 
-    if (req.admin && req.admin.username) {
-      await logAdminAction(
-        req.admin.username,
-        "Toggle Card Lock",
-        username,
-        `កាត ${card.number.slice(-4)} ត្រូវបាន ${isLocked ? "FROZEN" : "UNFROZEN"}`,
-      );
-    }
+    await logAdminAction(
+      await getAdminFullDisplayName(req.admin),
+      "Toggle Card Lock",
+      String(card.userId || username),
+      `កាត **** ${card.number.slice(-4)} ត្រូវបាន ${isLocked ? "FROZEN" : "UNFROZEN"}`,
+    );
 
     res.json({
       success: true,
@@ -5021,14 +5498,21 @@ const toggleAdminCardLock = async (req, res) => {
   }
 };
 
-/**
- * 📌 [Admin] ផ្លាស់ប្តូរដែនកំណត់កាត (គាំទ្រទាំង Daily Limit និង Credit Limit)
- */
 const adminUpdateCardLimit = async (req, res) => {
-  const { username, cardId, newCreditLimit, newLimit, newCountLimit } =
-    req.body;
+  const {
+    _id,
+    userId,
+    username,
+    cardId,
+    newCreditLimit,
+    newLimit,
+    newCountLimit,
+  } = req.body;
   try {
-    const card = await Card.findOne({ id: cardId, username });
+    const card = await findCardByAdminIdentifier(
+      cardId,
+      _id || userId || username,
+    );
     if (!card) return res.json({ success: false, message: "រកកាតមិនឃើញទេ!" });
 
     if (newCreditLimit !== undefined && !isNaN(newCreditLimit)) {
@@ -5039,95 +5523,82 @@ const adminUpdateCardLimit = async (req, res) => {
       card.dailyTxCountLimit = parseInt(newCountLimit, 10);
     await card.save();
 
-    if (req.admin && req.admin.username) {
-      await logAdminAction(
-        req.admin.username,
-        "Update Card Limit",
-        username,
-        `កែ Limit កាត ${card.number.slice(-4)} -> Daily: $${newLimit}, Count: ${newCountLimit}${newCreditLimit ? `, CreditLimit: $${newCreditLimit}` : ""}`,
-      );
-    }
+    await logAdminAction(
+      await getAdminFullDisplayName(req.admin),
+      "Update Card Limit",
+      String(card.userId || username),
+      `កែ Limit កាត **** ${card.number.slice(-4)} -> Daily: $${newLimit}, Count: ${newCountLimit}`,
+    );
     res.json({ success: true, message: "បានកំណត់ Limit កាតជោគជ័យ!" });
   } catch (err) {
     res.status(500).json({ success: false, message: "Server Error" });
   }
 };
 
-/**
- * 📌 [Admin] បិទ/បើក ការទិញអនឡាញរបស់កាត (Toggle Online Pay)
- */
 const adminToggleCardOnline = async (req, res) => {
-  const { username, cardId, isEnabled } = req.body;
+  const { _id, userId, username, cardId, isEnabled } = req.body;
   try {
-    const card = await Card.findOne({ id: cardId, username });
+    const card = await findCardByAdminIdentifier(
+      cardId,
+      _id || userId || username,
+    );
     if (!card) return res.json({ success: false, message: "រកកាតមិនឃើញទេ!" });
 
-    card.isOnlinePayEnabled = isEnabled;
+    card.isOnlinePayEnabled = Boolean(isEnabled);
     await card.save();
 
-    if (req.admin && req.admin.username) {
-      await logAdminAction(
-        req.admin.username,
-        "Toggle Card Online Pay",
-        username,
-        `Online Pay សម្រាប់កាត ${card.number.slice(-4)} ត្រូវបាន ${isEnabled ? "ON" : "OFF"}`,
-      );
-    }
+    await logAdminAction(
+      await getAdminFullDisplayName(req.admin),
+      "Toggle Card Online Pay",
+      String(card.userId || username),
+      `Online Pay សម្រាប់កាត **** ${card.number.slice(-4)} ត្រូវបាន ${isEnabled ? "ON" : "OFF"}`,
+    );
     res.json({ success: true, message: "ធ្វើបច្ចុប្បន្នភាពជោគជ័យ!" });
   } catch (err) {
     res.status(500).json({ success: false, message: "Server Error" });
   }
 };
 
-/**
- * 📌 [Admin] ប្តូរឈ្មោះកាត (Rename Card)
- */
 const adminRenameCard = async (req, res) => {
-  const { username, cardId, name } = req.body;
+  const { _id, userId, username, cardId, name } = req.body;
   try {
-    const card = await Card.findOne({ id: cardId, username });
+    const card = await findCardByAdminIdentifier(
+      cardId,
+      _id || userId || username,
+    );
     if (!card) return res.json({ success: false, message: "រកកាតមិនឃើញទេ!" });
 
     const oldName = card.name;
-    card.name = name.toUpperCase();
+    card.name = String(name || "").toUpperCase();
     await card.save();
 
-    if (req.admin && req.admin.username) {
-      await logAdminAction(
-        req.admin.username,
-        "Rename Card",
-        username,
-        `ប្តូរឈ្មោះកាតពី ${oldName || "N/A"} ទៅជា ${card.name}`,
-      );
-    }
+    await logAdminAction(
+      await getAdminFullDisplayName(req.admin),
+      "Rename Card",
+      String(card.userId || username),
+      `ប្តូរឈ្មោះកាតពី ${oldName || "N/A"} ទៅជា ${card.name}`,
+    );
     res.json({ success: true, message: "ប្តូរឈ្មោះកាតជោគជ័យ!" });
   } catch (err) {
     res.status(500).json({ success: false, message: "Server Error" });
   }
 };
 
-/**
- * 📌 [Admin] ផ្លាស់ប្តូរគណនីដែលបានភ្ជាប់ជាមួយកាត (Change Card Linked Account - Fixed Model Card)
- */
 const adminChangeCardLinkedAccount = async (req, res) => {
-  const { username, cardId, linkedAccount } = req.body;
+  const { _id, userId, username, cardId, linkedAccount } = req.body;
   try {
-    const user = await User.findOne({ username });
-    if (!user) return res.json({ success: false, message: "រកគណនីមិនឃើញទេ!" });
-
-    // 🔍 ស្វែងរកកាតដោយផ្អែកលើ id ឬ _id ក្នុងតារាង Card.js
-    let card = await Card.findOne({
-      $or: [
-        { id: cardId },
-        ...(mongoose.isValidObjectId(cardId) ? [{ _id: cardId }] : []),
-      ],
-      username: username,
-    });
-
+    const card = await findCardByAdminIdentifier(
+      cardId,
+      _id || userId || username,
+    );
     if (!card)
       return res.json({ success: false, message: "រកកាតនេះមិនឃើញទេ!" });
 
-    // 🔍 ស្វែងរកគណនីពិតប្រាកដ (Main, Sub, ឬ Joint)
+    const user =
+      (await resolveCustomerById(_id || userId || card.userId || username)) ||
+      (await User.findById(card.userId));
+    if (!user) return res.json({ success: false, message: "រកគណនីមិនឃើញទេ!" });
+
     const targetAcc = await resolveAdminUserAccount(user, linkedAccount);
     if (!targetAcc) {
       return res.json({
@@ -5138,17 +5609,15 @@ const adminChangeCardLinkedAccount = async (req, res) => {
 
     const oldAcc = card.linkedAccount;
     card.linkedAccount = targetAcc.accountNumber;
-    card.currency = targetAcc.currency; // 🌟 អាប់ដេតរូបិយប័ណ្ណកាតតាមគណនីថ្មីអូតូ (USD ឬ KHR)
+    card.currency = targetAcc.currency;
     await card.save();
 
-    if (req.admin && req.admin.username) {
-      await logAdminAction(
-        req.admin.username,
-        "Change Card Account",
-        username,
-        `ប្តូរគណនីភ្ជាប់កាត ${card.number.slice(-4)} ពី ${oldAcc} ទៅជា ${targetAcc.accountNumber} (${targetAcc.currency})`,
-      );
-    }
+    await logAdminAction(
+      await getAdminFullDisplayName(req.admin),
+      "Change Card Account",
+      String(user._id),
+      `ប្តូរគណនីភ្ជាប់កាត **** ${card.number.slice(-4)} ពី ${oldAcc} ទៅជា ${targetAcc.accountNumber} (${targetAcc.currency})`,
+    );
     res.json({ success: true, message: "បានប្តូរគណនីភ្ជាប់ជោគជ័យ!" });
   } catch (err) {
     console.error("Change Card Account Error:", err);
@@ -5159,11 +5628,11 @@ const adminChangeCardLinkedAccount = async (req, res) => {
 };
 
 /**
- * 📌 [Admin] ភ្ជាប់កាត NFC (ហាមភ្ជាប់លើកាត Virtual សុទ្ធ)
+ * 🔹 ៩.៥ ភ្ជាប់/ផ្តាច់បន្ទះឈីប NFC និងកែប្រែស្ថានភាពដឹកជញ្ជូនកាតរូបវ័ន្តតាម `_id`
  */
 const adminBindNfcCard = async (req, res) => {
   try {
-    const { username, cardId, pin, uid } = req.body;
+    const { _id, userId, username, cardId, pin, uid } = req.body;
     const cleanUid = String(uid || "")
       .replaceAll(":", "")
       .trim()
@@ -5178,7 +5647,10 @@ const adminBindNfcCard = async (req, res) => {
       });
     }
 
-    const targetCard = await Card.findOne({ id: cardId, username });
+    const targetCard = await findCardByAdminIdentifier(
+      cardId,
+      _id || userId || username,
+    );
     if (!targetCard)
       return res.json({ success: false, message: "រកកាតនេះមិនឃើញទេ!" });
 
@@ -5202,14 +5674,12 @@ const adminBindNfcCard = async (req, res) => {
     targetCard.isPhysical = true;
     await targetCard.save();
 
-    if (req.admin && req.admin.username) {
-      await logAdminAction(
-        req.admin.username,
-        "Bind NFC Card",
-        username,
-        `ភ្ជាប់ NFC (${cleanUid}) ទៅកាត ${targetCard.number.slice(-4)}`,
-      );
-    }
+    await logAdminAction(
+      await getAdminFullDisplayName(req.admin),
+      "Bind NFC Card",
+      String(targetCard.userId || username),
+      `ភ្ជាប់ NFC (${cleanUid}) ទៅកាត **** ${targetCard.number.slice(-4)}`,
+    );
 
     res.json({ success: true, message: "ភ្ជាប់ជោគជ័យ!" });
   } catch (error) {
@@ -5217,13 +5687,13 @@ const adminBindNfcCard = async (req, res) => {
   }
 };
 
-/**
- * 📌 [Admin] ផ្តាច់កាត NFC (រក្សាទុក isPhysical សម្រាប់កាត Debit និង Credit)
- */
 const adminUnbindNfcCard = async (req, res) => {
   try {
-    const { username, cardId } = req.body;
-    const card = await Card.findOne({ id: cardId, username });
+    const { _id, userId, username, cardId } = req.body;
+    const card = await findCardByAdminIdentifier(
+      cardId,
+      _id || userId || username,
+    );
 
     if (card) {
       const oldUid = card.uid;
@@ -5233,14 +5703,12 @@ const adminUnbindNfcCard = async (req, res) => {
       }
       await card.save();
 
-      if (req.admin && req.admin.username) {
-        await logAdminAction(
-          req.admin.username,
-          "Unbind NFC Card",
-          username,
-          `ផ្តាច់ NFC (${oldUid}) ចេញពីកាត ${card.number.slice(-4)}`,
-        );
-      }
+      await logAdminAction(
+        await getAdminFullDisplayName(req.admin),
+        "Unbind NFC Card",
+        String(card.userId || username),
+        `ផ្តាច់ NFC (${oldUid}) ចេញពីកាត **** ${card.number.slice(-4)}`,
+      );
       return res.json({ success: true, message: "ផ្តាច់កាតជោគជ័យ!" });
     }
     res.json({ success: false, message: "បរាជ័យ" });
@@ -5249,12 +5717,11 @@ const adminUnbindNfcCard = async (req, res) => {
   }
 };
 
-/**
- * 📌 [Admin] កែប្រែស្ថានភាពផលិត និងដឹកជញ្ជូនកាតរូបវ័ន្ត (លាក់លេខ ៤ ខ្ទង់ក្នុងសារ រហូតទាល់តែ Activated)
- */
 const adminUpdatePhysicalCardStatus = async (req, res) => {
   try {
     const {
+      _id,
+      userId,
       username,
       cardId,
       deliveryStatus,
@@ -5264,7 +5731,10 @@ const adminUpdatePhysicalCardStatus = async (req, res) => {
       deliveryPhone,
     } = req.body;
 
-    const card = await Card.findOne({ id: cardId, username });
+    const card = await findCardByAdminIdentifier(
+      cardId,
+      _id || userId || username,
+    );
     if (!card) {
       return res.json({ success: false, message: "រកមិនឃើញកាតនេះទេ!" });
     }
@@ -5289,37 +5759,38 @@ const adminUpdatePhysicalCardStatus = async (req, res) => {
 
     await card.save();
 
-    // 🔒 លាក់លេខ ៤ ខ្ទង់ចុងក្រោយក្នុងសារជូនដំណឹង រហូតទាល់តែកាតត្រូវបានបើកដំណើរការ (Activated)
-    const user = await User.findOne({ username });
+    const user =
+      (card.userId && (await User.findById(card.userId))) ||
+      (await resolveCustomerById(_id || userId || username));
+
     if (user) {
+      const custFullName = getDisplayName(user);
       const statusLabels = {
         Requested: "សំណើផលិតកាតរូបវ័ន្តត្រូវបានទទួល 📝",
         Printing: "កាតរូបវ័ន្តរបស់អ្នកកំពុងស្ថិតក្នុងដំណាក់កាលបោះពុម្ព 🖨️",
-        Shipped: `កាតរូបវ័ន្តកំពុងដឹកជញ្ជូនតាម ${deliveryMethod || "សេវាដឹកជញ្ជូន"} ${trackingNumber ? `(Tracking: #${trackingNumber})` : ""} 🚚`,
+        Shipped: `កាតរូបវ័ន្តកំពុងដឹកជញ្ជូនតាម ${deliveryMethod || "សេវាដឹកជញ្ជូន"} ${trackingNumber ? `(លេខតាមដាន: #${trackingNumber})` : ""} 🚚`,
         Delivered:
-          "កាតរូបវ័ន្តត្រូវបានប្រគល់ជូនដោយជោគជ័យ 📦 សូមពិនិត្យមើលលេខ ៤ ខ្ទង់ចុងក្រោយលើកាតពិត ដើម្បីបើកដំណើរការក្នុង App!",
+          "កាតរូបវ័ន្តត្រូវបានប្រគល់ជូនដោយជោគជ័យ 📦 សូមពិនិត្យមើលលេខ ៤ ខ្ទង់ចុងក្រោយលើកាតពិត ដើម្បីបើកដំណើរការក្នុងកម្មវិធី!",
         Activated: `កាតរូបវ័ន្ត (**** ${card.number.slice(-4)}) និង NFC ត្រូវបានបើកដំណើរការពេញលេញ 🟢`,
       };
 
       await Notification.create({
         userId: user._id,
         username: user.username,
-        title: `💳 Physical Card Update (${card.name || card.type.toUpperCase()})`,
-        message: `${statusLabels[deliveryStatus] || `ស្ថានភាពកាត: ${deliveryStatus}`}`,
+        title: `💳 ស្ថានភាពកាតរូបវ័ន្ត (${card.name || card.type.toUpperCase()})`,
+        message: `ជូនចំពោះ ${custFullName}៖ ${statusLabels[deliveryStatus] || `ស្ថានភាពកាត: ${deliveryStatus}`}`,
         date: nowStr,
-        type: "info",
+        type: "card_update", // 🔔 Icon កាតធនាគារ
         isRead: false,
       });
     }
 
-    if (req.admin && req.admin.username) {
-      await logAdminAction(
-        req.admin.username,
-        "Update Physical Card Delivery",
-        username,
-        `Card **** ${card.number.slice(-4)} -> Status: ${deliveryStatus}, Method: ${deliveryMethod || "N/A"}, Tracking: ${trackingNumber || "N/A"}`,
-      );
-    }
+    await logAdminAction(
+      await getAdminFullDisplayName(req.admin),
+      "Update Physical Card Delivery",
+      String(card.userId || username),
+      `Card **** ${card.number.slice(-4)} -> Status: ${deliveryStatus}`,
+    );
 
     res.json({
       success: true,
@@ -5331,12 +5802,9 @@ const adminUpdatePhysicalCardStatus = async (req, res) => {
   }
 };
 
-/**
- * 📌 [Admin] កំណត់លេខកូដ PIN ៤ ខ្ទង់សម្រាប់កាត NFC ពេលស្កេនម៉ាស៊ីន POS
- */
 const adminUpdatePhysicalCardPin = async (req, res) => {
   try {
-    const { username, cardId, newPin } = req.body;
+    const { _id, userId, username, cardId, newPin } = req.body;
     if (!/^\d{4}$/.test(String(newPin || ""))) {
       return res.json({
         success: false,
@@ -5344,7 +5812,10 @@ const adminUpdatePhysicalCardPin = async (req, res) => {
       });
     }
 
-    const card = await Card.findOne({ id: cardId, username });
+    const card = await findCardByAdminIdentifier(
+      cardId,
+      _id || userId || username,
+    );
     if (!card) {
       return res.json({ success: false, message: "រកមិនឃើញកាតនេះទេ!" });
     }
@@ -5352,14 +5823,12 @@ const adminUpdatePhysicalCardPin = async (req, res) => {
     card.pin = String(newPin);
     await card.save();
 
-    if (req.admin && req.admin.username) {
-      await logAdminAction(
-        req.admin.username,
-        "Reset Physical Card PIN",
-        username,
-        `កំណត់លេខកូដ POS PIN ថ្មីសម្រាប់កាត **** ${card.number.slice(-4)}`,
-      );
-    }
+    await logAdminAction(
+      await getAdminFullDisplayName(req.admin),
+      "Reset Physical Card PIN",
+      String(card.userId || username),
+      `កំណត់លេខកូដ POS PIN ថ្មីសម្រាប់កាត **** ${card.number.slice(-4)}`,
+    );
 
     res.json({
       success: true,
@@ -5370,14 +5839,22 @@ const adminUpdatePhysicalCardPin = async (req, res) => {
   }
 };
 
-// ===============================
-// Create & Edit Merchant (Admin Pro)
-// ===============================
+/**
+ * 🔹 ៩.៦ ការគ្រប់គ្រងហាងទំនិញដោយ Admin តាម `_id` (Create, Get by User `_id`, Edit, Freeze, Delete)
+ */
 const adminCreateMerchant = async (req, res) => {
-  const { username, name, city, category, linkedAccUSD, linkedAccKHR } =
-    req.body;
+  const {
+    _id,
+    userId,
+    username,
+    name,
+    city,
+    category,
+    linkedAccUSD,
+    linkedAccKHR,
+  } = req.body;
   try {
-    const user = await User.findOne({ username });
+    const user = await resolveCustomerById(_id || userId || username);
     if (!user) return res.json({ success: false, message: "រកមិនឃើញអតិថិជន" });
 
     if (!linkedAccUSD && !linkedAccKHR) {
@@ -5390,10 +5867,8 @@ const adminCreateMerchant = async (req, res) => {
     const merchantId =
       "500" +
       Math.floor(100000000000 + Math.random() * 900000000000).toString();
-
-    const apiKey =
-      "upay_live_" + require("crypto").randomBytes(16).toString("hex");
-    const apiSecret = require("crypto").randomBytes(32).toString("hex");
+    const apiKey = "upay_live_" + crypto.randomBytes(16).toString("hex");
+    const apiSecret = crypto.randomBytes(32).toString("hex");
 
     let linkedAccountsObj = { USD: null, KHR: null };
     let accountNumbersObj = { USD: null, KHR: null };
@@ -5403,7 +5878,6 @@ const adminCreateMerchant = async (req, res) => {
       accountNumbersObj.USD =
         "888" + Math.floor(100000000 + Math.random() * 900000000).toString();
     }
-
     if (linkedAccKHR) {
       linkedAccountsObj.KHR = linkedAccKHR;
       accountNumbersObj.KHR =
@@ -5412,7 +5886,7 @@ const adminCreateMerchant = async (req, res) => {
 
     const newMerchant = new Merchant({
       ownerId: user._id,
-      userCustomId: user.userId || user.id || user._id.toString(),
+      userCustomId: String(user._id),
       username: user.username,
       userId: user.username,
       name,
@@ -5433,20 +5907,17 @@ const adminCreateMerchant = async (req, res) => {
       userId: user._id,
       username: user.username,
       title: "បង្កើតហាងជោគជ័យ! 🏪",
-      message: `អបអរសាទរ! ហាង "${name}" ត្រូវបានបង្កើតដោយជោគជ័យ និងរួចរាល់សម្រាប់ទទួលប្រាក់។`,
-      type: "system_alert",
-      date:
-        typeof getFormattedDate === "function"
-          ? getFormattedDate()
-          : new Date().toLocaleString(),
+      message: `ជូនចំពោះ ${getDisplayName(user)}៖ សាខាហាង "${name}" ត្រូវបានបង្កើតដោយជោគជ័យ និងរួចរាល់សម្រាប់ទទួលប្រាក់។`,
+      type: "merchant_alert", // 🔔 Icon ហាងទំនិញ
+      date: getFormattedDate(),
       isRead: false,
     });
 
     await logAdminAction(
-      req.admin.username,
+      await getAdminFullDisplayName(req.admin),
       "Create Merchant",
-      user.username,
-      `Created merchant shop: ${name} (MID: ${merchantId})`,
+      String(user._id),
+      `Created merchant shop "${name}" (MID: ${merchantId}) for "${getDisplayName(user)}"`,
     );
 
     res.status(201).json({ success: true, merchant: savedMerchant });
@@ -5458,44 +5929,22 @@ const adminCreateMerchant = async (req, res) => {
   }
 };
 
-// 🌟 ទាញយកតែហាងរបស់ User ជាក់លាក់ (រួមទាំង Auto-Migrate សុវត្ថិភាព ៣ ជាន់)
 const adminGetMerchantsByUser = async (req, res) => {
   try {
-    const { username } = req.params;
-    const user = await User.findOne({ username }).select(
-      "_id id userId username",
-    );
-
-    const query = user
-      ? {
-          $or: [
-            { userId: username },
-            { username: username },
-            { ownerId: user._id },
-          ],
-        }
-      : { $or: [{ userId: username }, { username: username }] };
-
-    const merchants = await Merchant.find(query);
-
-    if (user && merchants.length > 0) {
-      for (const m of merchants) {
-        if (!m.ownerId || !m.username || !m.userCustomId) {
-          m.ownerId = user._id;
-          m.username = user.username;
-          m.userCustomId = user.userId || user.id || user._id.toString();
-          await m.save();
-        }
-      }
+    const identifier = req.params.id || req.params.username;
+    const user = await resolveCustomerById(identifier, "_id username");
+    if (!user) {
+      return res.json({ success: true, merchants: [] });
     }
 
+    // 🎯 ទាញយកហាងទំនិញតាម `ownerId: user._id` តែមួយគត់!
+    const merchants = await Merchant.find({ ownerId: user._id });
     res.json({ success: true, merchants });
   } catch (error) {
     res.status(500).json({ success: false, message: "Server Error" });
   }
 };
 
-// 🌟 Admin កែប្រែព័ត៌មានហាង និងគណនីភ្ជាប់ (Fixed 100% សម្រាប់គ្រប់ប្រភេទគណនី)
 const adminEditMerchant = async (req, res) => {
   try {
     const {
@@ -5527,10 +5976,12 @@ const adminEditMerchant = async (req, res) => {
     if (!merchantToUpdate)
       return res.json({ success: false, message: "រកហាងមិនឃើញទេ!" });
 
-    const user = await User.findOne({
-      username:
+    const user =
+      (merchantToUpdate.ownerId &&
+        (await User.findById(merchantToUpdate.ownerId))) ||
+      (await resolveCustomerById(
         username || merchantToUpdate.username || merchantToUpdate.userId,
-    });
+      ));
     if (!user)
       return res.json({ success: false, message: "រកម្ចាស់ហាងមិនឃើញទេ!" });
 
@@ -5540,7 +5991,6 @@ const adminEditMerchant = async (req, res) => {
       KHR: merchantToUpdate.accountNumbers?.KHR || null,
     };
 
-    // 🟢 ករណីទី ១៖ បើបញ្ជូនលេខគណនីជាក់លាក់មកតាម linkedAccUSD / linkedAccKHR (ពី Customer 360)
     if (linkedAccUSD !== undefined || linkedAccKHR !== undefined) {
       if (!linkedAccUSD && !linkedAccKHR) {
         return res.json({
@@ -5557,7 +6007,7 @@ const adminEditMerchant = async (req, res) => {
             Math.floor(100000000 + Math.random() * 900000000).toString();
         }
       } else {
-        accountNumbersObj.USD = null; // បើផ្តាច់កុង USD លុបលេខកុង QR USD ចេញ
+        accountNumbersObj.USD = null;
       }
 
       if (linkedAccKHR) {
@@ -5568,11 +6018,9 @@ const adminEditMerchant = async (req, res) => {
             Math.floor(100000000 + Math.random() * 900000000).toString();
         }
       } else {
-        accountNumbersObj.KHR = null; // បើផ្តាច់កុង KHR លុបលេខកុង QR KHR ចេញ
+        accountNumbersObj.KHR = null;
       }
-    }
-    // 🟢 ករណីទី ២៖ Fallback សម្រាប់កន្លែងផ្សេងដែលបោះមកត្រឹមពាក្យ "USD", "KHR", "BOTH"
-    else if (linkedAccount) {
+    } else if (linkedAccount) {
       if (linkedAccount === "USD" || linkedAccount === "BOTH") {
         linkedAccountsObj.USD =
           merchantToUpdate.linkedAccounts?.USD ||
@@ -5607,25 +6055,21 @@ const adminEditMerchant = async (req, res) => {
     if (category) merchantToUpdate.category = category;
     if (webhookUrl !== undefined) merchantToUpdate.webhookUrl = webhookUrl;
 
-    // ធានាការភ្ជាប់សុវត្ថិភាព ៣ ជាន់
     merchantToUpdate.ownerId = user._id;
     merchantToUpdate.username = user.username;
-    merchantToUpdate.userCustomId =
-      user.userId || user.id || user._id.toString();
-
+    merchantToUpdate.userCustomId = String(user._id);
     merchantToUpdate.linkedAccounts = linkedAccountsObj;
     merchantToUpdate.accountNumbers = accountNumbersObj;
 
     merchantToUpdate.markModified("linkedAccounts");
     merchantToUpdate.markModified("accountNumbers");
-
     await merchantToUpdate.save();
 
     await logAdminAction(
-      req.admin.username,
+      await getAdminFullDisplayName(req.admin),
       "Edit Merchant",
-      user.username,
-      `Updated merchant shop: ${merchantToUpdate.name} (USD: ${linkedAccountsObj.USD || "None"}, KHR: ${linkedAccountsObj.KHR || "None"})`,
+      String(user._id),
+      `Updated merchant shop: ${merchantToUpdate.name} for "${getDisplayName(user)}"`,
     );
 
     res.json({
@@ -5639,7 +6083,6 @@ const adminEditMerchant = async (req, res) => {
   }
 };
 
-// ផ្អាក ឬបើកដំណើរការហាង (Freeze/Unfreeze)
 const adminToggleMerchantFreeze = async (req, res) => {
   try {
     const { id, isFrozen } = req.body;
@@ -5647,9 +6090,9 @@ const adminToggleMerchantFreeze = async (req, res) => {
     const m = await Merchant.findByIdAndUpdate(id, { status: status });
     if (m) {
       await logAdminAction(
-        req.admin.username,
+        await getAdminFullDisplayName(req.admin),
         "Toggle Merchant Freeze",
-        m.userId,
+        String(m.ownerId || m.userId),
         `Merchant ${m.name} set to ${status}`,
       );
     }
@@ -5659,7 +6102,6 @@ const adminToggleMerchantFreeze = async (req, res) => {
   }
 };
 
-// Admin លុបហាងចោលពីប្រព័ន្ធ
 const adminDeleteMerchant = async (req, res) => {
   try {
     const m = await Merchant.findById(req.params.id);
@@ -5667,24 +6109,25 @@ const adminDeleteMerchant = async (req, res) => {
 
     await Merchant.findByIdAndDelete(req.params.id);
 
-    // 🌟 ផ្តល់ដំណឹងចូល App ពេលលុបហាង
-    const owner = await User.findOne({ username: m.userId });
+    const owner =
+      (m.ownerId && (await User.findById(m.ownerId))) ||
+      (await User.findOne({ username: m.userId }));
     if (owner) {
       await Notification.create({
         userId: owner._id,
         username: owner.username,
-        title: "ហាងត្រូវបានលុប! ❌",
-        message: `ហាង "${m.name}" របស់អ្នកត្រូវបានលុបចេញពីប្រព័ន្ធ U-Pay ដោយអ្នកគ្រប់គ្រង (Admin)។`,
-        type: "system_alert",
+        title: "សាខាហាងត្រូវបានលុប! ❌",
+        message: `ជូនចំពោះ ${getDisplayName(owner)}៖ ហាង "${m.name}" របស់អ្នកត្រូវបានលុបចេញពីប្រព័ន្ធ U-Pay ដោយផ្នែកគ្រប់គ្រងធនាគារ។`,
+        type: "merchant_alert", // 🔔 Icon ហាងទំនិញ
         date: getFormattedDate(),
         isRead: false,
       });
     }
 
     await logAdminAction(
-      req.admin.username,
+      await getAdminFullDisplayName(req.admin),
       "Delete Merchant",
-      m.userId,
+      owner ? String(owner._id) : m.userId,
       `Deleted merchant shop: ${m.name}`,
     );
     res.json({ success: true, message: "Merchant deleted successfully" });
@@ -5693,10 +6136,13 @@ const adminDeleteMerchant = async (req, res) => {
   }
 };
 
-// ==========================================
-// 📢 ផ្នែកទី ១០៖ ទីផ្សារ ជំនួយ និងបញ្ជូនសារ (Promo, Support & Broadcast)
-// ==========================================
+// ============================================================================
+// 📢 ជំពូកទី ១០៖ ប្រូម៉ូសិន, បញ្ជូនសារ, សំណើជំនួយ និង LIVE SUPPORT CHAT (BY `_id` & `fullName`)
+// ============================================================================
 
+/**
+ * 🔹 ១០.១ គ្រប់គ្រងកូដប្រូម៉ូសិន (Promo Codes)
+ */
 const createPromoCode = async (req, res) => {
   if (req.admin.role !== "super_admin" && req.admin.role !== "finance_admin") {
     return res.status(403).json({
@@ -5714,13 +6160,13 @@ const createPromoCode = async (req, res) => {
     const newPromo = new PromoCode({
       code: code.toUpperCase(),
       rewardValue: parseFloat(rewardValue),
-      maxUsage: parseInt(maxUsage) || 100,
+      maxUsage: parseInt(maxUsage, 10) || 100,
       expiresAt: expiresAt ? new Date(expiresAt) : null,
     });
     await newPromo.save();
 
     await logAdminAction(
-      req.admin.username,
+      await getAdminFullDisplayName(req.admin),
       "Create Promo Code",
       code,
       `Reward: $${rewardValue}, Max: ${maxUsage}`,
@@ -5758,6 +6204,9 @@ const togglePromoCode = async (req, res) => {
   }
 };
 
+/**
+ * 🔹 ១០.២ បញ្ជូនសារជូនដំណឹងរួម (Broadcast) និងសារផ្ទាល់ខ្លួន (Direct Message) ដោយប្រើ `fullName` & Icon ច្បាស់លាស់
+ */
 const broadcast = async (req, res) => {
   try {
     if (req.admin.role !== "super_admin") {
@@ -5769,30 +6218,32 @@ const broadcast = async (req, res) => {
         });
     }
     const { title, message, sender } = req.body;
+    const adminDisplayName = await getAdminFullDisplayName(req.admin);
     const users = await User.find({ role: { $ne: "admin" } }).select(
-      "_id username",
+      "_id username fullName",
     );
 
     if (users.length > 0) {
       const dateStr = getFormattedDate();
+      const bcId = "BC-" + Date.now();
       const broadcastNotifs = users.map((u) => ({
         userId: u._id,
         username: u.username,
         title: title,
         message: message,
-        type: "info",
+        type: "broadcast", // 🔔 Icon ឧឃោសនស័ព្ទសម្រាប់សារ Broadcast
         date: dateStr,
         isRead: false,
         metadata: {
-          sender: sender || "admin",
-          broadcastId: "BC-" + Date.now(),
+          sender: sender || adminDisplayName,
+          broadcastId: bcId,
         },
       }));
       await Notification.insertMany(broadcastNotifs);
     }
 
     await logAdminAction(
-      req.admin.username,
+      adminDisplayName,
       "Broadcast",
       "All Users",
       `Sent: ${title}`,
@@ -5838,7 +6289,7 @@ const deleteBroadcast = async (req, res) => {
     const { notifId } = req.body;
     await Notification.deleteMany({ "metadata.broadcastId": notifId });
     await logAdminAction(
-      req.admin.username,
+      await getAdminFullDisplayName(req.admin),
       "Delete Broadcast",
       "All Users",
       `Deleted broadcast ID: ${notifId}`,
@@ -5851,15 +6302,14 @@ const deleteBroadcast = async (req, res) => {
 
 const sendDirectMessage = async (req, res) => {
   try {
-    const { username, message } = req.body;
-
-    // រកមើលអតិថិជន
-    const user = await User.findOne({ username });
+    const { _id, userId, username, message } = req.body;
+    const user = await resolveCustomerById(_id || userId || username);
     if (!user) {
       return res.json({ success: false, message: "រកមិនឃើញអតិថិជននេះទេ!" });
     }
 
-    // ទាញយកម៉ោងបច្ចុប្បន្ន
+    const adminDisplayName = await getAdminFullDisplayName(req.admin);
+    const custFullName = getDisplayName(user);
     const dateStr =
       typeof getFormattedDate === "function"
         ? getFormattedDate()
@@ -5868,24 +6318,22 @@ const sendDirectMessage = async (req, res) => {
             hour12: true,
           });
 
-    // បង្កើត Notification ប្រភេទ Info ផ្ញើទៅគាត់តែម្នាក់ឯង
     await Notification.create({
       userId: user._id,
       username: user.username,
-      title: "សារពីធនាគារ (Direct Message)",
-      message: message,
+      title: "សារផ្លូវការពីធនាគារ (Direct Message) 📩",
+      message: `ជូនចំពោះ ${custFullName}៖ ${message}`,
       date: dateStr,
-      type: "info", // ប្រភេទសារ Info Notification
+      type: "direct_message", // 🔔 Icon សំបុត្រសម្រាប់សារផ្ទាល់ខ្លួន
       isRead: false,
-      metadata: { sender: req.admin.username },
+      metadata: { sender: adminDisplayName },
     });
 
-    // កត់ត្រាចូលក្នុង Audit Log
     await logAdminAction(
-      req.admin.username,
+      adminDisplayName,
       "Send Direct Message",
-      user.username,
-      `Sent Info: ${message}`,
+      String(user._id),
+      `Sent message to "${custFullName}": ${message}`,
     );
 
     return res.json({ success: true, message: "សារត្រូវបានផ្ញើជោគជ័យ!" });
@@ -5896,156 +6344,20 @@ const sendDirectMessage = async (req, res) => {
 };
 
 /**
- * 📌 បង្កើតគណនីអតិថិជនថ្មីដោយ Admin (គាំទ្រការឆែកលេខអត្តសញ្ញាណប័ណ្ណស្ទួន និង Sync មូលហេតុគ្រប់គណនី)
+ * 🔹 ១០.៣ ការគ្រប់គ្រងសំបុត្រស្នើសុំជំនួយ (Support Tickets by `_id` & `fullName`)
  */
-const adminCreateUser = async (req, res) => {
-  const {
-    username,
-    password,
-    pin,
-    fullName,
-    phone,
-    email,
-    dob,
-    gender,
-    idNumber,
-    duplicateReason,
-    duplicateIdReason,
-    idCardUrl,
-    selfieUrl,
-  } = req.body;
-
-  try {
-    const existingUser = await User.findOne({
-      $or: [{ username: username }, { email: email || "N/A_EMAIL_CHECK" }],
-    });
-
-    if (existingUser) {
-      return res.json({
-        success: false,
-        message: "Username ឬ Email នេះមានគេប្រើប្រាស់រួចហើយ!",
-      });
-    }
-
-    const cleanIdNumber = String(idNumber || "").trim();
-    let finalDupReason = String(
-      duplicateIdReason || duplicateReason || "",
-    ).trim();
-
-    // 🔍 ឆែកមើលថាតើលេខអត្តសញ្ញាណប័ណ្ណនេះធ្លាប់មានគណនីចាស់ប្រើរួចហើយឬនៅ
-    if (cleanIdNumber && cleanIdNumber !== "N/A") {
-      const existingIdUsers = await User.find({ idNumber: cleanIdNumber });
-      if (existingIdUsers.length > 0 && !finalDupReason) {
-        return res.json({
-          success: false,
-          requireDuplicateReason: true,
-          message: `លេខអត្តសញ្ញាណប័ណ្ណ (${cleanIdNumber}) ធ្លាប់មានគណនីប្រើប្រាស់រួចហើយ! សូមបញ្ចូលមូលហេតុនៃការបង្កើតគណនីបន្ថែម។`,
-        });
-      }
-    }
-
-    const tsId = Date.now().toString();
-    const prefix = Math.floor(Math.random() * 9) + 1;
-    const suffix = Math.floor(Math.random() * 890) + 100;
-    const baseAcc = parseInt(`${prefix}00${prefix}00${suffix}`);
-
-    const newAccUSD = baseAcc.toString();
-    const newAccKHR = (baseAcc + 1).toString();
-    const newUserId = Math.floor(
-      10000000 + Math.random() * 90000000,
-    ).toString();
-
-    let initialKycStatus = idCardUrl && selfieUrl ? "pending" : "unverified";
-
-    const newUser = new User({
-      id: tsId,
-      userId: newUserId,
-      username: username,
-      password: password || "1234",
-      pin: pin || "1234",
-      fullName: fullName,
-      email: email || "",
-      phone: phone || "",
-      dob: dob || "",
-      gender: gender || "",
-      idNumber: cleanIdNumber,
-      duplicateIdReason: finalDupReason,
-
-      kycStatus: initialKycStatus,
-      kycDocument: idCardUrl || "",
-      kycImage: idCardUrl || "",
-      selfieUrl: selfieUrl || "",
-      kycSubmittedAt: initialKycStatus === "pending" ? getFormattedDate() : "",
-      kycUploadedBy: idCardUrl || selfieUrl ? req.admin.username : "",
-
-      mainAccounts: {
-        USD: {
-          accountId: "MAIN_USD_" + tsId,
-          accountNumber: newAccUSD,
-          accountName: "Main Account USD",
-          accountType: "main",
-          currency: "USD",
-          balance: 0.0,
-          dailyLimit: 1000.0,
-          dailySpent: 0.0,
-          isFrozen: false,
-          isHidden: false,
-        },
-        KHR: {
-          accountId: "MAIN_KHR_" + tsId,
-          accountNumber: newAccKHR,
-          accountName: "Main Account KHR",
-          accountType: "main",
-          currency: "KHR",
-          balance: 0.0,
-          dailyLimit: 4000000.0,
-          dailySpent: 0.0,
-          isFrozen: false,
-          isHidden: false,
-        },
-      },
-      role: "user",
-      joinDate: new Date().toISOString(),
-      lastActive: new Date().toISOString(),
-    });
-
-    await newUser.save();
-
-    // 🔗 GLOBAL SYNC: បើមានលេខ ID ស្ទួន យកមូលហេតុទៅដាក់ចូលគ្រប់គណនីចាស់-ថ្មីទាំងអស់ដែលមានលេខ ID នោះ!
-    if (cleanIdNumber && finalDupReason) {
-      await User.updateMany(
-        { idNumber: cleanIdNumber },
-        { $set: { duplicateIdReason: finalDupReason } },
-      );
-    }
-
-    await logAdminAction(
-      req.admin.username,
-      "Create User",
-      username,
-      `Created new account for ${fullName}${finalDupReason ? ` (Duplicate ID Reason: ${finalDupReason})` : ""}`,
-    );
-
-    res.json({ success: true, message: "គណនីត្រូវបានបង្កើតដោយជោគជ័យ!" });
-  } catch (err) {
-    console.error("Admin Create User Error:", err);
-    res
-      .status(500)
-      .json({ success: false, message: "Server Error ពេលបង្កើតគណនី" });
-  }
-};
-
 const ticketReply = async (req, res) => {
-  const { username, ticketId, replyMessage } = req.body;
+  const { _id, userId, username, ticketId, replyMessage } = req.body;
   try {
-    const u = await User.findOne({ username });
+    const u = await resolveCustomerById(_id || userId || username);
     if (u && u.tickets) {
       const t = u.tickets.find(
         (item) =>
           item.ticketId === ticketId || item._id?.toString() === ticketId,
       );
       if (t) {
-        const adminUsername = req.admin?.username || "admin";
+        const adminDisplayName = await getAdminFullDisplayName(req.admin);
+        const custFullName = getDisplayName(u);
         const replyTime =
           typeof getFormattedDate === "function"
             ? getFormattedDate()
@@ -6053,19 +6365,19 @@ const ticketReply = async (req, res) => {
 
         t.status = "Answered";
         t.adminReply = replyMessage;
-        t.repliedBy = adminUsername; // 🟢 កត់ត្រា username អ្នកឆ្លើយតប
+        t.repliedBy = adminDisplayName;
         t.repliedAt = replyTime;
 
         await Notification.create({
           userId: u._id,
           username: u.username,
-          title: `របាយការណ៍ឆ្លើយតបសំណើ: ${t.subject}`,
-          message: `ឆ្លើយតបដោយ @${adminUsername}: ${replyMessage}`, // 🟢 បង្ហាញ @username ច្បាស់ៗក្នុងសារ
+          title: `ការឆ្លើយតបសំណើជំនួយ៖ ${t.subject} 💬`,
+          message: `ជូនចំពោះ ${custFullName}៖ មន្ត្រីធនាគារ (${adminDisplayName}) បានឆ្លើយតប៖ "${replyMessage}"`,
           date: replyTime,
-          type: "support_reply", // 🟢 កំណត់ប្រភេទដាច់ដោយឡែកដើម្បីបង្ហាញ Icon របាយការណ៍ស្អាត
+          type: "support_reply", // 🔔 Icon ឆ្លើយតបសំណើជំនួយ
           isRead: false,
           metadata: {
-            sender: adminUsername,
+            sender: adminDisplayName,
             ticketId: t.ticketId,
             subject: t.subject,
           },
@@ -6075,13 +6387,13 @@ const ticketReply = async (req, res) => {
         await u.save();
 
         await logAdminAction(
-          adminUsername,
+          adminDisplayName,
           "Reply Ticket",
-          u.username,
-          `(@${adminUsername}) Replied to ticket ID: ${ticketId}`,
+          String(u._id),
+          `Replied to ticket ID: ${ticketId} for "${custFullName}"`,
         );
 
-        res.json({ success: true, repliedBy: adminUsername });
+        res.json({ success: true, repliedBy: adminDisplayName });
       } else {
         res.json({ success: false, message: "រកមិនឃើញសំណូមពរនេះទេ!" });
       }
@@ -6094,13 +6406,10 @@ const ticketReply = async (req, res) => {
   }
 };
 
-// ==========================================
-// 🎫 [Admin] ទាញយក Support Tickets ទាំងអស់សម្រាប់ Menu ធំ (ផ្ទាំងទី ១៤)
-// ==========================================
 const getAllSupportTickets = async (req, res) => {
   try {
     const users = await User.find({ "tickets.0": { $exists: true } }).select(
-      "username fullName phone profileImage userId tickets",
+      "_id username fullName phone profileImage tickets",
     );
 
     let allTickets = [];
@@ -6110,17 +6419,17 @@ const getAllSupportTickets = async (req, res) => {
           const tObj = t.toObject ? t.toObject() : t;
           allTickets.push({
             ...tObj,
+            userId: String(u._id),
             username: u.username,
-            fullName: u.fullName || u.username,
+            fullName: getDisplayName(u),
             phone: u.phone || "N/A",
             profileImage: u.profileImage || "../images/default-avatar.png",
-            userCustomId: u.userId || "N/A",
+            userCustomId: String(u._id),
           });
         });
       }
     });
 
-    // តម្រៀបពីសំបុត្រថ្មីបំផុតមកមុន
     allTickets.sort(
       (a, b) =>
         new Date(b.createdAt || b.date || 0) -
@@ -6134,15 +6443,12 @@ const getAllSupportTickets = async (req, res) => {
   }
 };
 
-// ==========================================
-// 🎫 ទាញយក Support Tickets របស់អតិថិជនម្នាក់ៗ (Fixed for User.tickets array)
-// ==========================================
 const getUserTickets = async (req, res) => {
   try {
-    const { username } = req.params;
-    // ទាញយក Field tickets ផ្ទាល់ពី Document របស់ User នោះ
-    const user = await User.findOne({ username }).select(
-      "tickets username fullName",
+    const identifier = req.params.username || req.params.id;
+    const user = await resolveCustomerById(
+      identifier,
+      "_id tickets username fullName",
     );
 
     if (!user) {
@@ -6156,11 +6462,10 @@ const getUserTickets = async (req, res) => {
   }
 };
 
-// ២. Admin ตอบ ឬបិទ Ticket (Close/Reply Support Ticket)
 const adminResolveTicket = async (req, res) => {
   try {
-    const { username, ticketId, adminReply, newStatus } = req.body;
-    const user = await User.findOne({ username });
+    const { _id, userId, username, ticketId, adminReply, newStatus } = req.body;
+    const user = await resolveCustomerById(_id || userId || username);
     if (!user)
       return res.json({ success: false, message: "រកមិនឃើញអតិថិជនទេ!" });
 
@@ -6178,15 +6483,15 @@ const adminResolveTicket = async (req, res) => {
       });
 
     if (adminReply) ticket.adminReply = adminReply;
-    if (newStatus) ticket.status = newStatus; // 'Resolved', 'Closed', 'In Progress'
+    if (newStatus) ticket.status = newStatus;
 
     user.markModified("tickets");
     await user.save();
 
     await logAdminAction(
-      req.admin.username,
+      await getAdminFullDisplayName(req.admin),
       "Resolve Support Ticket",
-      username,
+      String(user._id),
       `Updated ticket ID: ${ticketId} to status: ${newStatus || ticket.status}`,
     );
 
@@ -6197,63 +6502,24 @@ const adminResolveTicket = async (req, res) => {
   }
 };
 
-// ============================================================================
-// 💬 ផ្នែកទី ១០.២៖ ADMIN LIVE SUPPORT CHAT ENGINE (ផ្ដាច់ដាច់ដោយឡែកពី User 100%)
-// - បង្ហាញតែអតិថិជនណាដែលស្នើសុំជួបភ្នាក់ងារផ្ទាល់ (needsSupport: true) មិនលោតរំខានពេលគេសួរ Bot!
-// - គាំទ្រការចាប់តាម User _id 100%, ធីក ២ (✓✓), និង Online/Last Seen ពិតប្រាកដ
-// ============================================================================
+/**
+ * 🔹 ១០.៤ ប្រើប្រាស់តែ MongoDB `_id` របស់អតិថិជនសម្រាប់ភ្ជាប់ប្រអប់សារ Support Chat
+ */
 const getAdminSupportUserVariants = (u) => {
-  if (!u) return [];
-  const arr = [String(u._id)];
-  if (u.mainAccounts?.USD?.accountNumber)
-    arr.push(String(u.mainAccounts.USD.accountNumber));
-  if (u.mainAccounts?.KHR?.accountNumber)
-    arr.push(String(u.mainAccounts.KHR.accountNumber));
-  if (u.accountNumber) arr.push(String(u.accountNumber));
-  if (u.accountNumberKHR) arr.push(String(u.accountNumberKHR));
-  if (u.username) arr.push(String(u.username));
-  return arr;
+  if (!u || !u._id) return [];
+  return [String(u._id)];
 };
 
 const getAdminSupportPrimaryAcc = (u) => {
   if (!u) return "";
   return (
     u.mainAccounts?.USD?.accountNumber ||
-    u.accountNumber ||
     u.mainAccounts?.KHR?.accountNumber ||
     u.username ||
     ""
   );
 };
 
-const findAdminSupportCustomer = async (identifier) => {
-  if (!identifier) return null;
-  const clean = String(identifier).replace(/^@/, "").trim();
-  const orConds = [
-    { "mainAccounts.USD.accountNumber": clean },
-    { "mainAccounts.KHR.accountNumber": clean },
-    { "subAccounts.accountNumber": clean },
-    { accountNumber: clean },
-    { phone: clean },
-    { phoneNumber: clean },
-    { userId: clean },
-  ];
-  if (mongoose.Types.ObjectId.isValid(clean)) {
-    orConds.unshift({ _id: clean });
-  }
-  const exactRx = new RegExp(
-    "^" + clean.replace(/[.*+?^${}()|[\]\\]/g, "\\$&") + "$",
-    "i",
-  );
-  orConds.push({ username: exactRx }, { fullName: exactRx });
-  return await User.findOne({ $or: orConds });
-};
-
-/**
- * 📌 ១. ទាញយកបញ្ជីអតិថិជនក្នុង Live Support Queue សម្រាប់ Admin
- * - គោលការណ៍តឹងរឹង ១០០%៖ បង្ហាញតែអតិថិជនណាដែលបានចុចភ្ជាប់ទៅភ្នាក់ងារផ្ទាល់ (Live Agent) ប៉ុណ្ណោះ!
- * - បើអតិថិជនកំពុងឆាតសួរ Bot ធម្មតា គឺមិនបង្ហាញឱ្យរំខាន Admin ដាច់ខាត!
- */
 const adminGetSupportQueue = async (req, res) => {
   try {
     const allChats = await Chat.find({
@@ -6270,7 +6536,7 @@ const adminGetSupportQueue = async (req, res) => {
 
     const users = await User.find({ role: { $ne: "admin" } })
       .select(
-        "_id username fullName name phone profileImage mainAccounts accountNumber accountNumberKHR needsSupport chatStatus chatSentiment isOnline lastActive kycStatus",
+        "_id username fullName name phone profileImage mainAccounts needsSupport chatStatus chatSentiment isOnline lastActive kycStatus",
       )
       .lean();
 
@@ -6307,32 +6573,22 @@ const adminGetSupportQueue = async (req, res) => {
 
       const msgTxt = String(c.message || "");
 
-      // 🔍 តាមដានស្ថានភាពពិតប្រាកដតាមលំដាប់សារ៖
-      // ១. បើសារបញ្ចប់ការសន្ទនា -> បិទវគ្គជំនួយ (ត្រឡប់ទៅ Bot Mode)
       if (isFromAdmin && msgTxt.includes("ការសន្ទនាត្រូវបានបញ្ចប់")) {
         queueMap[canonicalId].inLiveAgentMode = false;
         queueMap[canonicalId].unreadFromUser = 0;
-      }
-      // ២. បើ Bot ឆ្លើយថា "បានបញ្ជូនសំណើរបស់បងទៅកាន់ភ្នាក់ងារ" ឬ "កំពុងភ្ជាប់ទៅកាន់ភ្នាក់ងារ" -> បើកវគ្គ Live Agent!
-      else if (
+      } else if (
         isBotMsg &&
         (msgTxt.includes("បានបញ្ជូនសំណើរបស់បងទៅកាន់ភ្នាក់ងារ") ||
           msgTxt.includes("កំពុងភ្ជាប់ទៅកាន់ភ្នាក់ងារ"))
       ) {
         queueMap[canonicalId].inLiveAgentMode = true;
-      }
-      // ៣. បើ Bot ឆ្លើយសំណួរធម្មតា (ឧ. របៀបវេរលុយ, សួស្តីបង...) -> មានន័យថាគាត់កំពុងនិយាយជាមួយ Bot សុទ្ធសាធ!
-      else if (isBotMsg) {
+      } else if (isBotMsg) {
         queueMap[canonicalId].inLiveAgentMode = false;
         queueMap[canonicalId].unreadFromUser = 0;
-      }
-      // ៤. បើ Admin ពិតប្រាកដឆ្លើយតប -> ស្ថិតក្នុងវគ្គ Live Agent
-      else if (isFromAdmin && !isBotMsg) {
+      } else if (isFromAdmin && !isBotMsg) {
         queueMap[canonicalId].inLiveAgentMode = true;
         queueMap[canonicalId].hasHumanAgentReply = true;
-      }
-      // ៥. បើអតិថិជនវាយពាក្យសុំជួបភ្នាក់ងារ
-      else if (
+      } else if (
         !isFromAdmin &&
         msgTxt
           .toLowerCase()
@@ -6351,8 +6607,6 @@ const adminGetSupportQueue = async (req, res) => {
       const u = item.customer;
       const lastC = item.lastMsg;
 
-      // 🧹 Auto-Heal៖ បើក្នុងប្រវត្តិសារចុងក្រោយ គាត់កំពុងនិយាយជាមួយ Bot ធម្មតា (inLiveAgentMode === false)
-      // ប៉ុន្តែក្នុង DB ចាស់នៅជាប់ needsSupport: true គឺបិទវាចោលអូតូ កុំឱ្យលោតរំខាន Admin!
       if (!item.inLiveAgentMode && u.needsSupport) {
         await User.updateOne({ _id: u._id }, { $set: { needsSupport: false } });
         u.needsSupport = false;
@@ -6366,7 +6620,6 @@ const adminGetSupportQueue = async (req, res) => {
         u.chatStatus === "resolved" &&
         item.hasHumanAgentReply;
 
-      // 🛑 បើមិនទាន់ភ្ជាប់មកភ្នាក់ងារផ្ទាល់ទេ គឺរំលងចោលទាំងស្រុង (មិនបង្ហាញក្នុង Admin ដាច់ខាត!)
       if (!isEscalatedSession && !isResolvedHumanSession) {
         continue;
       }
@@ -6377,10 +6630,11 @@ const adminGetSupportQueue = async (req, res) => {
 
       contacts.push({
         partnerId: String(u._id),
+        _id: String(u._id),
         accountNumber: getAdminSupportPrimaryAcc(u),
         username: u.username || "",
-        name: u.fullName || u.name || u.username,
-        fullName: u.fullName || u.username,
+        name: getDisplayName(u),
+        fullName: getDisplayName(u),
         phone: u.phone || "",
         profileImage: u.profileImage || "",
         kycStatus: u.kycStatus || "unverified",
@@ -6408,13 +6662,10 @@ const adminGetSupportQueue = async (req, res) => {
   }
 };
 
-/**
- * 📌 ២. ទាញយកប្រវត្តិសារសន្ទនារបស់អតិថិជនម្នាក់សម្រាប់ Admin (តាម _id) + បាញ់ធីក ២ (✓✓)
- */
 const adminGetChatHistory = async (req, res) => {
   try {
     const { targetIdentifier } = req.body || {};
-    const customer = await findAdminSupportCustomer(targetIdentifier);
+    const customer = await resolveCustomerById(targetIdentifier);
     if (!customer) {
       return res.json({
         success: false,
@@ -6426,7 +6677,6 @@ const adminGetChatHistory = async (req, res) => {
     const custVariants = getAdminSupportUserVariants(customer);
     const canonicalCustId = String(customer._id);
 
-    // អាប់ដេតសារដែលអតិថិជនផ្ញើមកឱ្យទៅជាបានអាន (isRead: true)
     const unreadMsgs = await Chat.find({
       $or: [
         { senderId: { $in: custVariants }, receiverId: "ADMIN" },
@@ -6475,9 +6725,10 @@ const adminGetChatHistory = async (req, res) => {
       history,
       customerInfo: {
         partnerId: canonicalCustId,
+        _id: canonicalCustId,
         accountNumber: getAdminSupportPrimaryAcc(customer),
         username: customer.username,
-        fullName: customer.fullName || customer.username,
+        fullName: getDisplayName(customer),
         phone: customer.phone || "",
         profileImage: customer.profileImage || "",
         kycStatus: customer.kycStatus || "unverified",
@@ -6493,9 +6744,6 @@ const adminGetChatHistory = async (req, res) => {
   }
 };
 
-/**
- * 📌 ៣. Admin ផ្ញើសារ ឬ រូបភាព/ឯកសារ ទៅកាន់អតិថិជន (ភ្ជាប់ @username ពិតប្រាកដពី req.admin)
- */
 const adminSendSupportMessage = async (req, res) => {
   try {
     const {
@@ -6508,12 +6756,18 @@ const adminSendSupportMessage = async (req, res) => {
       fileSize,
     } = req.body || {};
 
-    const customer = await findAdminSupportCustomer(targetIdentifier);
+    const customer = await resolveCustomerById(targetIdentifier);
     if (!customer) {
       return res.json({ success: false, message: "រកមិនឃើញគណនីអតិថិជនទេ!" });
     }
 
-    const adminHandle = `@${String(req.admin?.username || "admin").replace(/^@/, "")}`;
+    // ទាញយក Username របស់ Admin ជំនួសឱ្យ Full Name ដើម្បីឱ្យខាងភ្ញៀវមើលឃើញ Username
+    const adminObj = await Admin.findById(req.admin._id || req.admin.id)
+      .select("username")
+      .lean();
+    const adminUsernameDisplay = adminObj
+      ? adminObj.username
+      : req.admin.username || "admin";
     const canonicalCustId = String(customer._id);
     const nowTs = Date.now();
     const timeFormatted = new Date(nowTs).toLocaleTimeString("en-US", {
@@ -6523,7 +6777,6 @@ const adminSendSupportMessage = async (req, res) => {
       hour12: true,
     });
 
-    // បើកទង់ needsSupport ឱ្យអតិថិជនស្ថិតក្នុងការសន្ទនាផ្ទាល់ជាមួយភ្នាក់ងារ
     customer.needsSupport = true;
     if (customer.chatStatus === "resolved") {
       customer.chatStatus = "pending";
@@ -6534,7 +6787,7 @@ const adminSendSupportMessage = async (req, res) => {
       id: "MSG-ADM-" + nowTs + "-" + Math.floor(100 + Math.random() * 899),
       senderId: "ADMIN",
       receiverId: canonicalCustId,
-      adminName: adminHandle,
+      adminName: adminUsernameDisplay, // 👈 ប្រើ Username របស់ Admin ទីនេះ
       message: String(message || "").trim() || "ឯកសារភ្ជាប់ 📁",
       time: timeFormatted,
       timestamp: nowTs,
@@ -6555,24 +6808,25 @@ const adminSendSupportMessage = async (req, res) => {
       global.io.emit("new_chat_message", newMsg);
     }
 
-    res.json({ success: true, message: newMsg, adminHandle });
+    res.json({
+      success: true,
+      message: newMsg,
+      adminHandle: adminFullName,
+    });
   } catch (err) {
     console.error("Admin Send Support Message Error:", err);
     res.status(500).json({ success: false, message: "Server Error" });
   }
 };
 
-/**
- * 📌 ៤. Admin ចុចចាប់ផ្តើមឆាតទៅកាន់អតិថិជនណាម្នាក់មុន (+ ឆាតថ្មី)
- */
 const adminStartSupportSession = async (req, res) => {
   try {
     const { identifier } = req.body || {};
-    const customer = await findAdminSupportCustomer(identifier);
+    const customer = await resolveCustomerById(identifier);
     if (!customer) {
       return res.json({
         success: false,
-        message: "រកមិនឃើញអតិថិជនដែលមានលេខគណនី ឬ @username នេះទេ!",
+        message: "រកមិនឃើញអតិថិជនដែលមានអត្តសញ្ញាណ ឬលេខគណនីនេះទេ!",
       });
     }
 
@@ -6583,9 +6837,10 @@ const adminStartSupportSession = async (req, res) => {
     res.json({
       success: true,
       partnerId: String(customer._id),
+      _id: String(customer._id),
       accountNumber: getAdminSupportPrimaryAcc(customer),
       username: customer.username,
-      name: customer.fullName || customer.username,
+      name: getDisplayName(customer),
       profileImage: customer.profileImage || "",
       status: customer.chatStatus,
     });
@@ -6594,13 +6849,10 @@ const adminStartSupportSession = async (req, res) => {
   }
 };
 
-/**
- * 📌 ៥. Admin ប្តូរស្ថានភាពសន្ទនា (pending / urgent / resolved)
- */
 const adminUpdateSupportStatus = async (req, res) => {
   try {
     const { targetIdentifier, status } = req.body || {};
-    const customer = await findAdminSupportCustomer(targetIdentifier);
+    const customer = await resolveCustomerById(targetIdentifier);
     if (!customer) {
       return res.json({ success: false, message: "រកមិនឃើញគណនីអតិថិជនទេ!" });
     }
@@ -6619,18 +6871,15 @@ const adminUpdateSupportStatus = async (req, res) => {
   }
 };
 
-/**
- * 📌 ៦. Admin បញ្ចប់ការសន្ទនា (End Chat Session -> ត្រឡប់អតិថិជនទៅ Bot Mode វិញ)
- */
 const adminEndSupportSession = async (req, res) => {
   try {
     const { targetIdentifier } = req.body || {};
-    const customer = await findAdminSupportCustomer(targetIdentifier);
+    const customer = await resolveCustomerById(targetIdentifier);
     if (!customer) {
       return res.json({ success: false, message: "រកមិនឃើញអតិថិជនទេ!" });
     }
 
-    const adminHandle = `@${String(req.admin?.username || "admin").replace(/^@/, "")}`;
+    const adminFullName = await getAdminFullDisplayName(req.admin);
     const canonicalCustId = String(customer._id);
     const nowTs = Date.now();
     const timeFormatted = new Date(nowTs).toLocaleTimeString("en-US", {
@@ -6648,8 +6897,8 @@ const adminEndSupportSession = async (req, res) => {
       id: "MSG-END-" + nowTs,
       senderId: "ADMIN",
       receiverId: canonicalCustId,
-      adminName: adminHandle,
-      message: `ការសន្ទនាត្រូវបានបញ្ចប់ដោយ Admin (${adminHandle})។ អរគុណដែលបានទាក់ទងមកកាន់ភ្នាក់ងារ U-PAY! សូមគោរពលា 🙏`,
+      adminName: adminFullName,
+      message: `ការសន្ទនាត្រូវបានបញ្ចប់ដោយមន្ត្រីធនាគារ (${adminFullName})។ សូមអរគុណ ${getDisplayName(customer)} ដែលបានទាក់ទងមកកាន់ U-PAY! 🙏`,
       time: timeFormatted,
       timestamp: nowTs,
       isRead: false,
@@ -6660,10 +6909,10 @@ const adminEndSupportSession = async (req, res) => {
     }
 
     await logAdminAction(
-      req.admin?.username,
+      adminFullName,
       "End Live Support Chat",
-      customer.username,
-      `Closed live chat session with @${customer.username}`,
+      canonicalCustId,
+      `Closed live chat session with "${getDisplayName(customer)}"`,
     );
 
     res.json({ success: true, message: endMsg });
@@ -6672,15 +6921,15 @@ const adminEndSupportSession = async (req, res) => {
   }
 };
 
-// ==========================================
-// 📤 ផ្នែកទី ១១៖ បញ្ចេញមុខងារ (Exports)
-// ==========================================
+// ============================================================================
+// 📤 ជំពូកទី ១១៖ ការនាំចេញមុខងារទាំងអស់ (MODULE EXPORTS)
+// ============================================================================
 module.exports = {
-  // Helpers
+  // ជំពូកទី ២៖ Helpers
   checkAdminAccess,
   logCustomAction,
 
-  // Admin Manage
+  // ជំពូកទី ៣៖ Admin Staff Management
   getMe,
   getAdminsList,
   getUserLogs,
@@ -6691,7 +6940,7 @@ module.exports = {
   checkAdminNfcUid,
   getAdminLogs,
 
-  // System
+  // ជំពូកទី ៤៖ System & FX Control
   toggleSystem,
   getSystemStatus,
   getFXRates,
@@ -6700,12 +6949,12 @@ module.exports = {
   updateFeeSettings,
   syncNbcFXRates,
 
-  // Dashboard
+  // ជំពូកទី ៥៖ Dashboard & Analytics
   getStats,
   getDashboardExtra,
   getDashboardAnalyticsPro,
 
-  // User Manage
+  // ជំពូកទី ៦៖ Customer 360° & KYC Management
   adminCreateUser,
   searchUserByAdmin,
   getUserByAdmin,
@@ -6724,20 +6973,21 @@ module.exports = {
   kycAction,
   uploadSpecificKyc,
 
-  // Transactions
+  // ជំពូកទី ៧៖ Finance & Transactions
   getTransaction,
   adjustBalance,
   approveTransaction,
   refundTransaction,
+  releaseMerchantHold,
   getPublicReceipt,
 
-  // Cashier
+  // ជំពូកទី ៨៖ Cashier System
   searchCashierUser,
   getCashierTickets,
   actionCashierTicket,
   createCashierTicket,
 
-  // Cards
+  // ជំពូកទី ៩៖ Cards & Merchants
   adminGetAllCards,
   adminCreateCard,
   adminDeleteCard,
@@ -6750,16 +7000,13 @@ module.exports = {
   adminUnbindNfcCard,
   adminUpdatePhysicalCardStatus,
   adminUpdatePhysicalCardPin,
-
-  // Merchants
   adminCreateMerchant,
   adminGetMerchantsByUser,
   adminToggleMerchantFreeze,
   adminDeleteMerchant,
   adminEditMerchant,
-  releaseMerchantHold,
 
-  // Promo, Broadcast
+  // ជំពូកទី ១០៖ Promo, Broadcast, Tickets & Live Support Chat
   createPromoCode,
   getPromoCodes,
   togglePromoCode,
@@ -6767,14 +7014,10 @@ module.exports = {
   getBroadcastHistory,
   deleteBroadcast,
   sendDirectMessage,
-
-  // Tickets
   ticketReply,
   getAllSupportTickets,
   getUserTickets,
   adminResolveTicket,
-
-  // Live Support Chat (Admin Dedicated)
   adminGetSupportQueue,
   adminGetChatHistory,
   adminSendSupportMessage,

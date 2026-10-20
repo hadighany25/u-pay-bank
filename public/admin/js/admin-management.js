@@ -1,8 +1,12 @@
-// ========================================================================
+// ============================================================================
 // ឯកសារ: js/admin-management.js (100% Pro Staff 360° Hub, Cloudinary & ID Badge)
 // អត្ថន័យ: គ្រប់គ្រងបុគ្គលិកបែប 360° Tabs, Upload រូបថត Cloudinary, NFC Toggle & កាតបុគ្គលិក
-// ========================================================================
+// ស្តង់ដារថ្មី: ចាប់ទិន្នន័យបុគ្គលិក និងគោលដៅតាម MongoDB `_id` សុទ្ធសាធ + បង្ហាញឈ្មោះពេញ (fullName)
+// ============================================================================
 
+// ============================================================================
+// 🛡️ ជំពូកទី ១៖ អថេរសកល និងអនុគមន៍ជំនួយគ្រប់គ្រងបុគ្គលិកតាម `_id` (GLOBAL STATE & HELPERS)
+// ============================================================================
 let globalAdminsData = [];
 let filteredAdminsData = [];
 let globalStaffAuditLogs = [];
@@ -11,11 +15,13 @@ let currentAdminTablePage = 1;
 const ADMINS_PER_PAGE = 6;
 let aadmCurrentFilter = "ALL";
 
-// ☁️ ការកំណត់ Cloudinary ពិតប្រាកដ (ដូចគ្នាបេះបិទជាមួយ settings.html)
+// ☁️ ការកំណត់ Cloudinary សម្រាប់បង្ហោះរូបថតបុគ្គលិក
 const STAFF_CLOUDINARY_CLOUD_NAME = "jp9yg3dj";
 const STAFF_CLOUDINARY_UPLOAD_PRESET = "iaxuqmpb";
 
-// 🕒 ១. ពិនិត្យមើលថាតើបុគ្គលិកកំពុងស្ថិតក្នុងម៉ោងធ្វើការបច្ចុប្បន្នឬអត់ (Phnom Penh Time)
+/**
+ * 🔹 ១.១ ពិនិត្យមើលថាតើបុគ្គលិកកំពុងស្ថិតក្នុងម៉ោងធ្វើការបច្ចុប្បន្នឬអត់ (Phnom Penh Time)
+ */
 function isStaffCurrentlyOnShift(adminObj) {
   if (!adminObj || adminObj.isActive === false) return false;
   if (adminObj.role === "super_admin") return true;
@@ -38,7 +44,9 @@ function isStaffCurrentlyOnShift(adminObj) {
   return currentTime >= start && currentTime <= end;
 }
 
-// 🎨 ២. ទាញយកពណ៌ និងផ្លាកសម្រាប់តួនាទីនីមួយៗ
+/**
+ * 🔹 ១.២ ទាញយកពណ៌ រូបតំណាង និងផ្លាកសម្រាប់តួនាទីបុគ្គលិកនីមួយៗ
+ */
 function getAdminRoleMeta(adminObj) {
   const r = adminObj?.role || "support_agent";
   if (r === "super_admin") {
@@ -90,17 +98,82 @@ function getAdminRoleMeta(adminObj) {
   };
 }
 
-// 📊 ៣. រាប់ចំនួនសកម្មភាព (Logs) របស់បុគ្គលិកម្នាក់ៗ
-function getLogsForStaffUsername(username) {
-  if (!username || !Array.isArray(globalStaffAuditLogs)) return [];
-  const cleanUser = String(username).replace(/^@/, "").toLowerCase().trim();
+/**
+ * 🔹 ១.៣ ទាញយកឈ្មោះពេញរបស់បុគ្គលិកសម្រាប់បង្ហាញលើ UI និងសារជូនដំណឹង
+ */
+function getStaffFullName(adminObj) {
+  if (!adminObj) return "បុគ្គលិក U-Pay";
+  if (adminObj.fullName && String(adminObj.fullName).trim() !== "") {
+    return String(adminObj.fullName).trim();
+  }
+  if (adminObj.nickname && String(adminObj.nickname).trim() !== "") {
+    return String(adminObj.nickname).trim();
+  }
+  return adminObj.username || "បុគ្គលិក U-Pay";
+}
+
+/**
+ * 🔹 ១.៤ រាប់ និងទាញយកសកម្មភាព (Audit Logs) របស់បុគ្គលិកម្នាក់ៗ (គាំទ្រទាំង fullName និង username)
+ */
+function getLogsForStaffMember(adminOrIdentifier) {
+  if (!adminOrIdentifier || !Array.isArray(globalStaffAuditLogs)) return [];
+
+  let staffObj =
+    typeof adminOrIdentifier === "object"
+      ? adminOrIdentifier
+      : globalAdminsData.find(
+          (a) =>
+            String(a._id) === String(adminOrIdentifier) ||
+            a.username === adminOrIdentifier,
+        );
+
+  const validNames = new Set();
+  if (staffObj) {
+    if (staffObj.username)
+      validNames.add(staffObj.username.toLowerCase().trim());
+    if (staffObj.fullName)
+      validNames.add(staffObj.fullName.toLowerCase().trim());
+    if (staffObj.nickname)
+      validNames.add(staffObj.nickname.toLowerCase().trim());
+  } else {
+    validNames.add(
+      String(adminOrIdentifier).replace(/^@/, "").toLowerCase().trim(),
+    );
+  }
+
   return globalStaffAuditLogs.filter((log) => {
     const logAdmin = String(log.admin || "")
       .replace(/^@/, "")
       .toLowerCase()
       .trim();
-    return logAdmin === cleanUser;
+    return validNames.has(logAdmin);
   });
+}
+
+// រក្សាទុកឈ្មោះអនុគមន៍ចាស់ការពារករណីមានការហៅពីកន្លែងផ្សេង
+window.getLogsForStaffUsername = getLogsForStaffMember;
+
+/**
+ * 🔹 ១.៥ បម្លែងលេខសម្គាល់គោលដៅ (`_id`) ក្នុង Audit Log ឱ្យទៅជាឈ្មោះពេញរបស់អតិថិជន
+ */
+function formatStaffLogTargetDisplay(targetStr = "") {
+  const clean = String(targetStr || "").trim();
+  if (!clean || clean === "-") return "-";
+  if (Array.isArray(window.globalUsersData)) {
+    const foundUser = window.globalUsersData.find(
+      (u) => String(u._id || u.id) === clean || u.username === clean,
+    );
+    if (foundUser) {
+      return `${foundUser.fullName || foundUser.username}`;
+    }
+  }
+  const foundAdm = globalAdminsData.find(
+    (a) => String(a._id) === clean || a.username === clean,
+  );
+  if (foundAdm) {
+    return `${getStaffFullName(foundAdm)} (Staff)`;
+  }
+  return clean;
 }
 
 function generateAutoStaffId() {
@@ -111,18 +184,17 @@ function normalizeUID(uid) {
   if (!uid) return "";
   uid = String(uid).replaceAll(":", "").replace(/\s/g, "").trim().toUpperCase();
   if (/^\d{10}$/.test(uid)) {
-    let hex = parseInt(uid, 10).toString(16).toUpperCase();
-    hex = hex.padStart(8, "0");
-    let byte1 = hex.substring(6, 8);
-    let byte2 = hex.substring(4, 6);
-    let byte3 = hex.substring(2, 4);
-    let byte4 = hex.substring(0, 2);
-    return byte1 + byte2 + byte3 + byte4;
+    let hex = parseInt(uid, 10).toString(16).toUpperCase().padStart(8, "0");
+    return (
+      hex.substring(6, 8) +
+      hex.substring(4, 6) +
+      hex.substring(2, 4) +
+      hex.substring(0, 2)
+    );
   }
   return uid;
 }
 
-// 🧹 មុខងារបិទ Modal ចាស់ៗទាំងអស់ឱ្យដាច់ ១០០% (ការពារករណីជាប់ !important)
 function forceCloseLegacyAdminModal() {
   const legacyModal = document.getElementById("adminAccModal");
   if (legacyModal) {
@@ -135,10 +207,13 @@ function forceCloseLegacyAdminModal() {
   }
 }
 
-// ========================================================================
-// 🔄 SECTION 1: LOAD ADMINS & AUDIT LOGS, KPI STATS & FILTERING
-// ========================================================================
+// ============================================================================
+// 🔄 ជំពូកទី ២៖ ការទាញយកទិន្នន័យបុគ្គលិក, ស្ថិតិ KPI និងការចម្រាញ់តាម `_id` (LOAD & FILTER BY `_id`)
+// ============================================================================
 
+/**
+ * 🔹 ២.១ ទាញយកបញ្ជីបុគ្គលិក Admin និងកំណត់ត្រាសកម្មភាពពី Server
+ */
 window.loadAdminList = async function (showToast = false) {
   if (typeof adminRole !== "undefined" && adminRole !== "super_admin") return;
 
@@ -153,7 +228,10 @@ window.loadAdminList = async function (showToast = false) {
 
     const dataAdmins = await resAdmins.json();
     if (dataAdmins.success) {
-      globalAdminsData = dataAdmins.admins || [];
+      globalAdminsData = (dataAdmins.admins || []).map((a) => ({
+        ...a,
+        _id: String(a._id || a.id),
+      }));
     }
 
     if (resLogs && resLogs.ok) {
@@ -185,6 +263,9 @@ window.loadAdminList = async function (showToast = false) {
 };
 setTimeout(() => loadAdminList(false), 1000);
 
+/**
+ * 🔹 ២.២ គណនា និងបង្ហាញតួលេខ KPI ទាំង ៥ របស់បុគ្គលិក
+ */
 function updateAdminKpiCards() {
   let activeCount = 0;
   let onShiftCount = 0;
@@ -207,6 +288,9 @@ function updateAdminKpiCards() {
   setTxt("aadm-stat-logs", globalStaffAuditLogs.length.toLocaleString("en-US"));
 }
 
+/**
+ * 🔹 ២.៣ ចម្រាញ់បញ្ជីបុគ្គលិកតាមតួនាទី ស្ថានភាព និងពាក្យស្វែងរក
+ */
 window.aadmSetRoleFilter = function (filterKey) {
   aadmCurrentFilter = filterKey;
   currentAdminTablePage = 1;
@@ -251,6 +335,7 @@ window.filterAdminList = function () {
 
     if (keyword) {
       const searchStr = [
+        a._id,
         a.fullName,
         a.username,
         a.staffId,
@@ -273,10 +358,13 @@ window.filterAdminList = function () {
   renderAdminTable(filteredAdminsData);
 };
 
-// ========================================================================
-// 📋 SECTION 2: RENDER ADMIN TABLE (រូប Profile ពិត + ប៊ូតុង NFC ពណ៌បៃតង/ប្រផេះ + ប៊ូតុងកាតបុគ្គលិក)
-// ========================================================================
+// ============================================================================
+// 📋 ជំពូកទី ៣៖ ការគូរតារាងបុគ្គលិក និងការភ្ជាប់/ផ្តាច់កាត NFC តាម `_id` (TABLE & NFC BY `_id`)
+// ============================================================================
 
+/**
+ * 🔹 ៣.១ គូរតារាងបុគ្គលិកទាំងអស់ដោយប្រើ MongoDB `_id` សម្រាប់គ្រប់ប៊ូតុងសកម្មភាព
+ */
 window.renderAdminTable = function (adminsToRender = null) {
   if (Array.isArray(adminsToRender)) {
     filteredAdminsData = adminsToRender;
@@ -322,21 +410,21 @@ window.renderAdminTable = function (adminsToRender = null) {
 
   tbody.innerHTML = pageItems
     .map((a, idx) => {
+      const adminId = String(a._id);
+      const staffFullName = getStaffFullName(a);
       const roleMeta = getAdminRoleMeta(a);
       const isActive = a.isActive !== false;
       const onShift = isStaffCurrentlyOnShift(a);
-      const staffLogs = getLogsForStaffUsername(a.username);
+      const staffLogs = getLogsForStaffMember(a);
       const avatarBg = colors[(startIndex + idx) % colors.length];
-      const initials = String(a.fullName || a.username || "AD")
-        .substring(0, 2)
-        .toUpperCase();
+      const initials = String(staffFullName).substring(0, 2).toUpperCase();
 
       const hasNfc = Boolean(a.nfcUid && String(a.nfcUid).trim() !== "");
 
       const avatarHtml =
         a.profileImage && String(a.profileImage).trim() !== ""
-          ? `<img src="${a.profileImage}" style="width: 44px; height: 44px; border-radius: 13px; object-fit: cover; border: 2px solid #0d9488; flex-shrink: 0; cursor: pointer;" onclick="openStaff360Modal('${a._id}', 'profile')" onerror="this.outerHTML='<div style=\\'width:44px;height:44px;border-radius:13px;background:${avatarBg};color:#fff;display:flex;align-items:center;justify-content:center;font-weight:900;font-size:0.95rem;flex-shrink:0;\\'>${initials}</div>'">`
-          : `<div onclick="openStaff360Modal('${a._id}', 'profile')" style="width: 44px; height: 44px; border-radius: 13px; background: ${avatarBg}; color: #ffffff; display: flex; align-items: center; justify-content: center; font-weight: 900; font-size: 0.95rem; flex-shrink: 0; cursor: pointer;">
+          ? `<img src="${a.profileImage}" style="width: 44px; height: 44px; border-radius: 13px; object-fit: cover; border: 2px solid #0d9488; flex-shrink: 0; cursor: pointer;" onclick="openStaff360Modal('${adminId}', 'profile')" onerror="this.outerHTML='<div style=\\'width:44px;height:44px;border-radius:13px;background:${avatarBg};color:#fff;display:flex;align-items:center;justify-content:center;font-weight:900;font-size:0.95rem;flex-shrink:0;\\'>${initials}</div>'">`
+          : `<div onclick="openStaff360Modal('${adminId}', 'profile')" style="width: 44px; height: 44px; border-radius: 13px; background: ${avatarBg}; color: #ffffff; display: flex; align-items: center; justify-content: center; font-weight: 900; font-size: 0.95rem; flex-shrink: 0; cursor: pointer;">
                ${initials}
              </div>`;
 
@@ -353,13 +441,12 @@ window.renderAdminTable = function (adminsToRender = null) {
 
       return `
         <tr style="border-bottom: 1px solid var(--border, #e2e8f0); transition: 0.15s;" onmouseover="this.style.background='rgba(15, 23, 42, 0.015)'" onmouseout="this.style.background='transparent'">
-          <!-- ១. ឈ្មោះបុគ្គលិក, រូបថត Profile, @username & Staff ID -->
           <td style="padding: 14px 12px;">
             <div style="display: flex; align-items: center; gap: 12px;">
               ${avatarHtml}
               <div>
-                <div onclick="openStaff360Modal('${a._id}', 'profile')" style="font-weight: 800; font-size: 0.94rem; color: var(--text-main); text-transform: uppercase; cursor: pointer;">
-                  ${a.fullName || a.username}
+                <div onclick="openStaff360Modal('${adminId}', 'profile')" style="font-weight: 800; font-size: 0.94rem; color: var(--text-main); text-transform: uppercase; cursor: pointer;">
+                  ${staffFullName}
                   ${a.nickname ? `<span style="font-size:0.75rem; color:var(--text-muted); font-weight:700;">(${a.nickname})</span>` : ""}
                 </div>
                 <div style="font-size: 0.78rem; color: var(--text-muted); margin-top: 2px; display: flex; align-items: center; gap: 6px;">
@@ -371,7 +458,6 @@ window.renderAdminTable = function (adminsToRender = null) {
             </div>
           </td>
 
-          <!-- ២. តួនាទី & នាយកដ្ឋាន -->
           <td style="padding: 14px 12px;">
             <span class="aadm-role-badge" style="background: ${roleMeta.bg}; color: ${roleMeta.color}; border: 1px solid ${roleMeta.border};">
               <i class="fa-solid ${roleMeta.icon}"></i>
@@ -382,7 +468,6 @@ window.renderAdminTable = function (adminsToRender = null) {
             </div>
           </td>
 
-          <!-- ៣. ម៉ោងធ្វើការ & ស្ថានភាពវេន -->
           <td style="padding: 14px 12px;">
             <div style="font-family: 'JetBrains Mono', monospace; font-weight: 800; font-size: 0.86rem; color: var(--text-main);">
               <i class="fa-regular fa-clock" style="color: #0d9488;"></i>
@@ -393,22 +478,20 @@ window.renderAdminTable = function (adminsToRender = null) {
             </span>
           </td>
 
-          <!-- ៤. សិទ្ធិប្រើប្រាស់ & ប៊ូតុងឆែក Logs បុគ្គលិកម្នាក់ៗ -->
           <td style="padding: 14px 12px;">
             <div style="font-size: 0.76rem; color: var(--text-muted); font-weight: 700; margin-bottom: 5px;">
               ម៉ឺនុយ៖ <b style="color:var(--text-main);">${menuCount}</b> • សិទ្ធិពិសេស៖ <b style="color:var(--text-main);">${actCount}</b>
             </div>
-            <button type="button" onclick="openStaff360Modal('${a._id}', 'logs')" style="background: rgba(13, 148, 136, 0.1); color: #0d9488; border: 1px dashed rgba(13, 148, 136, 0.45); padding: 4px 11px; border-radius: 8px; font-size: 0.75rem; font-weight: 800; cursor: pointer; display: inline-flex; align-items: center; gap: 6px;">
+            <button type="button" onclick="openStaff360Modal('${adminId}', 'logs')" style="background: rgba(13, 148, 136, 0.1); color: #0d9488; border: 1px dashed rgba(13, 148, 136, 0.45); padding: 4px 11px; border-radius: 8px; font-size: 0.75rem; font-weight: 800; cursor: pointer; display: inline-flex; align-items: center; gap: 6px;">
               <i class="fa-solid fa-clipboard-check"></i>
               <span>${staffLogs.length} សកម្មភាព (មើល Logs)</span>
             </button>
           </td>
 
-          <!-- ៥. កុងតាក់បិទ/បើកគណនី -->
           <td style="padding: 14px 12px;">
             <label style="position: relative; display: inline-block; width: 46px; height: 24px; cursor: pointer;">
               <input type="checkbox" ${isActive ? "checked" : ""} 
-                onchange="toggleAdminStatusAccount('${a._id}')" 
+                onchange="toggleAdminStatusAccount('${adminId}')" 
                 style="opacity: 0; width: 0; height: 0;">
               <span style="position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: ${isActive ? "#10b981" : "#cbd5e1"}; transition: .3s; border-radius: 24px;"></span>
               <span style="position: absolute; content: ''; height: 18px; width: 18px; left: ${isActive ? "24px" : "3px"}; bottom: 3px; background-color: white; transition: .3s; border-radius: 50%;"></span>
@@ -418,10 +501,8 @@ window.renderAdminTable = function (adminsToRender = null) {
             </div>
           </td>
 
-          <!-- ៦. ប៊ូតុងសកម្មភាព (Wi-Fi NFC បៃតង/ប្រផេះ, កាតបុគ្គលិក ID Badge, Staff 360° Edit, Reset Pass, Delete) -->
           <td style="padding: 14px 12px; text-align: right; white-space: nowrap;">
             <div style="display: inline-flex; gap: 6px; align-items: center;">
-              <!-- 📡 ប៊ូតុង Wi-Fi សម្រាប់ភ្ជាប់ ឬផ្តាច់កាត NFC (បៃតង = ភ្ជាប់រួច, ប្រផេះ = មិនទាន់ភ្ជាប់) -->
               <button
                 type="button"
                 class="aadm-act-btn"
@@ -430,7 +511,7 @@ window.renderAdminTable = function (adminsToRender = null) {
                     ? "background: rgba(16, 185, 129, 0.16); color: #10b981; border-color: rgba(16, 185, 129, 0.4);"
                     : "background: rgba(148, 163, 184, 0.15); color: #64748b; border-color: rgba(148, 163, 184, 0.35);"
                 }"
-                onclick="handleQuickNfcToggle('${a._id}')"
+                onclick="handleQuickNfcToggle('${adminId}')"
                 title="${
                   hasNfc
                     ? `ភ្ជាប់កាត NFC រួចរាល់ (${a.nfcUid}) - ចុចដើម្បីផ្តាច់ ឬប្តូរកាត`
@@ -440,47 +521,43 @@ window.renderAdminTable = function (adminsToRender = null) {
                 <i class="fa-solid fa-wifi"></i>
               </button>
 
-              <!-- 🪪 ប៊ូតុងថ្មី៖ កាតសម្គាល់ខ្លួនបុគ្គលិកលំដាប់ពិភពលោក (Staff ID Card) -->
               <button
                 type="button"
                 class="aadm-act-btn"
                 style="background: rgba(14, 165, 233, 0.14); color: #0284c7; border-color: rgba(14, 165, 233, 0.35);"
-                onclick="openStaffIdCardModal('${a._id}')"
+                onclick="openStaffIdCardModal('${adminId}')"
                 title="បើកមើល និងបោះពុម្ពកាតសម្គាល់ខ្លួនបុគ្គលិក (Staff ID Badge)"
               >
                 <i class="fa-solid fa-id-badge"></i>
               </button>
 
-              <!-- 🕵️‍♂️ ប៊ូតុងបើកផ្ទាំង Staff 360° (មើល/កែប្រែគ្រប់យ៉ាងក្នុងផ្ទាំងតែមួយ) -->
               <button
                 type="button"
                 class="aadm-act-btn"
                 style="background: rgba(16, 185, 129, 0.14); color: #059669; border-color: rgba(16, 185, 129, 0.35);"
-                onclick="openStaff360Modal('${a._id}', 'profile')"
+                onclick="openStaff360Modal('${adminId}', 'profile')"
                 title="បើកមជ្ឈមណ្ឌលគ្រប់គ្រងបុគ្គលិក 360° (កែប្រែព័ត៌មាន, សិទ្ធិ & Logs)"
               >
                 <i class="fa-solid fa-user-pen"></i> 360°
               </button>
 
-              <!-- 🔑 ប៊ូតុង Reset Password -->
               <button
                 type="button"
                 class="aadm-act-btn"
                 style="background: rgba(245, 158, 11, 0.14); color: #d97706; border-color: rgba(245, 158, 11, 0.3);"
-                onclick="promptResetAdminPassword('${a._id}', '${a.username}')"
+                onclick="promptResetAdminPassword('${adminId}')"
                 title="កំណត់ពាក្យសម្ងាត់ថ្មី (Reset Password)"
               >
                 <i class="fa-solid fa-key"></i>
               </button>
 
-              <!-- 🗑️ ប៊ូតុង Delete -->
               ${
                 a.username !== "admin"
                   ? `<button
                        type="button"
                        class="aadm-act-btn"
                        style="background: rgba(239, 68, 68, 0.14); color: #ef4444; border-color: rgba(239, 68, 68, 0.3);"
-                       onclick="deleteAdminAcc('${a._id}')"
+                       onclick="deleteAdminAcc('${adminId}')"
                        title="លុបគណនីបុគ្គលិក"
                      >
                        <i class="fa-solid fa-trash-can"></i>
@@ -520,20 +597,19 @@ window.changeAdminTablePage = function (step) {
   renderAdminTable();
 };
 
-// ========================================================================
-// 📡 SECTION 3: QUICK NFC TOGGLE ON TABLE (បៃតង = សួរបញ្ជាក់ផ្តាច់ / ប្រផេះ = ស្កេនភ្ជាប់ភ្លាម)
-// ========================================================================
-
+/**
+ * 🔹 ៣.២ មុខងារស្កេនភ្ជាប់ ឬផ្តាច់កាត NFC របស់បុគ្គលិកតាមរយៈ MongoDB `_id`
+ */
 window.handleQuickNfcToggle = async function (adminId) {
-  const staff = globalAdminsData.find((a) => a._id === adminId);
+  const staff = globalAdminsData.find((a) => String(a._id) === String(adminId));
   if (!staff) return;
 
+  const staffFullName = getStaffFullName(staff);
   const hasNfc = Boolean(staff.nfcUid && String(staff.nfcUid).trim() !== "");
 
-  // ១. បើមានភ្ជាប់កាត NFC រួចហើយ (ប៊ូតុងពណ៌បៃតង) -> លោត SweetAlert សួរបញ្ជាក់ការផ្តាច់កាត!
   if (hasNfc) {
     const res = await Swal.fire({
-      title: `<span style="font-family:'Kantumruy Pro',sans-serif; font-size:1.2rem; color:#0f172a;"><i class="fa-solid fa-wifi" style="color:#10b981;"></i> កាត NFC របស់ @${staff.username}</span>`,
+      title: `<span style="font-family:'Kantumruy Pro',sans-serif; font-size:1.2rem; color:#0f172a;"><i class="fa-solid fa-wifi" style="color:#10b981;"></i> កាត NFC របស់ ${staffFullName}</span>`,
       html: `
         <div style="font-family:'Kantumruy Pro',sans-serif; padding:8px 0;">
           <div style="font-size:0.86rem; color:#64748b; margin-bottom:10px;">បុគ្គលិកនេះបានភ្ជាប់ជាមួយលេខកូដកាត NFC៖</div>
@@ -563,17 +639,16 @@ window.handleQuickNfcToggle = async function (adminId) {
       startQuickNfcScannerForStaff(staff);
     }
   } else {
-    // ២. បើមិនទាន់មានកាត NFC (ប៊ូតុងពណ៌ប្រផេះ) -> បើកផ្ទាំងស្កេនភ្ជាប់កាតភ្លាមៗ!
     startQuickNfcScannerForStaff(staff);
   }
 };
 
 function startQuickNfcScannerForStaff(staff) {
   let isScanning = true;
-  let scanBuffer = "";
+  const staffFullName = getStaffFullName(staff);
 
   Swal.fire({
-    title: `<span style="font-family:'Kantumruy Pro',sans-serif; font-size:1.18rem;">ភ្ជាប់កាត NFC ជូន @${staff.username}</span>`,
+    title: `<span style="font-family:'Kantumruy Pro',sans-serif; font-size:1.18rem;">ភ្ជាប់កាត NFC ជូន ${staffFullName}</span>`,
     html: `
       <div style="padding: 15px 0; font-family: 'Kantumruy Pro', sans-serif;">
         <div style="width: 82px; height: 82px; border-radius: 50%; background: rgba(59, 130, 246, 0.12); display: flex; align-items: center; justify-content: center; margin: 0 auto 14px; border: 2px dashed #3b82f6;">
@@ -658,7 +733,7 @@ async function updateStaffNfcOnServer(staffObj, newNfcUid) {
         return Swal.fire({
           icon: "error",
           title: "កាត NFC ជាន់គ្នា!",
-          text: `កាត (${newNfcUid}) ត្រូវបានភ្ជាប់ជាមួយគណនី @${chkData.owner} រួចហើយ!`,
+          text: `កាត (${newNfcUid}) ត្រូវបានភ្ជាប់ជាមួយគណនីបុគ្គលិក "${chkData.owner}" រួចហើយ!`,
           customClass: { popup: "kh-text" },
         });
       }
@@ -668,6 +743,7 @@ async function updateStaffNfcOnServer(staffObj, newNfcUid) {
       method: "POST",
       headers: getAuthHeaders(),
       body: JSON.stringify({
+        _id: staffObj._id,
         id: staffObj._id,
         username: staffObj.username,
         fullName: staffObj.fullName,
@@ -685,7 +761,7 @@ async function updateStaffNfcOnServer(staffObj, newNfcUid) {
         icon: "success",
         title: newNfcUid
           ? `បានភ្ជាប់កាត NFC (${newNfcUid}) ជោគជ័យ!`
-          : `បានផ្តាច់កាត NFC ចេញពី @${staffObj.username}!`,
+          : `បានផ្តាច់កាត NFC ចេញពីគណនីរបស់ "${getStaffFullName(staffObj)}"!`,
         showConfirmButton: false,
         timer: 1800,
         customClass: { popup: "kh-text" },
@@ -698,10 +774,9 @@ async function updateStaffNfcOnServer(staffObj, newNfcUid) {
   }
 }
 
-// ========================================================================
-// 🕵️‍♂️ SECTION 4: STAFF 360° TABBED COMMAND MODAL (ជំនួស Wizard 4-Step ចាស់!)
-// គាំទ្រការបង្កើតថ្មី និងកែប្រែក្នុងផ្ទាំងតែមួយ + Upload រូបថតចូល Cloudinary ផ្ទាល់
-// ========================================================================
+// ============================================================================
+// 🕵️‍♂️ ជំពូកទី ៤៖ មជ្ឈមណ្ឌលគ្រប់គ្រងបុគ្គលិក 360° តាម `_id` (STAFF 360° COMMAND MODAL BY `_id`)
+// ============================================================================
 
 window.openAdminModal = function (id = "") {
   forceCloseLegacyAdminModal();
@@ -712,12 +787,15 @@ window.inspectStaffAuditLogs = function (id) {
   openStaff360Modal(id, "logs");
 };
 
+/**
+ * 🔹 ៤.១ បើកផ្ទាំងគ្រប់គ្រងបុគ្គលិក 360° (ប្រវត្តិរូប, តួនាទី & សិទ្ធិម៉ឺនុយ, និងប្រវត្តិសកម្មភាព) តាមរយៈ `_id`
+ */
 window.openStaff360Modal = function (adminId = "", initialTab = "profile") {
   forceCloseLegacyAdminModal();
 
   const isEdit = Boolean(adminId);
   const existing = isEdit
-    ? globalAdminsData.find((a) => a._id === adminId)
+    ? globalAdminsData.find((a) => String(a._id) === String(adminId))
     : null;
 
   const staffData = {
@@ -759,7 +837,7 @@ window.openStaff360Modal = function (adminId = "", initialTab = "profile") {
     },
   };
 
-  const staffLogs = isEdit ? getLogsForStaffUsername(staffData.username) : [];
+  const staffLogs = isEdit ? getLogsForStaffMember(existing || staffData) : [];
 
   const menuItemsList = [
     { key: "users", label: "អតិថិជន 360° (Customer 360)", icon: "fa-users" },
@@ -827,11 +905,10 @@ window.openStaff360Modal = function (adminId = "", initialTab = "profile") {
   Swal.fire({
     title: `<span style="font-family:'Kantumruy Pro',sans-serif; font-size:1.18rem; font-weight:800; color:var(--text-main,#0f172a);">
       <i class="fa-solid ${isEdit ? "fa-user-gear" : "fa-user-plus"}" style="color:#0d9488;"></i>
-      ${isEdit ? `មជ្ឈមណ្ឌលគ្រប់គ្រងបុគ្គលិក 360° (@${staffData.username})` : "បង្កើតគណនីបុគ្គលិកថ្មី (New Staff Onboarding)"}
+      ${isEdit ? `មជ្ឈមណ្ឌលគ្រប់គ្រងបុគ្គលិក 360° (${staffData.fullName || staffData.username})` : "បង្កើតគណនីបុគ្គលិកថ្មី (New Staff Onboarding)"}
     </span>`,
     html: `
       <div class="aadm-swal-scope" style="text-align: left; font-family: 'Kantumruy Pro', sans-serif; margin-top: 6px;">
-        <!-- របារ Tabs ទាំង ៣ ដូច Customer 360° -->
         <div style="display: flex; gap: 6px; background: #f1f5f9; padding: 5px; border-radius: 12px; margin-bottom: 16px;">
           <button type="button" id="s360-tab-btn-profile" onclick="switchStaff360Tab('profile')" style="flex: 1; padding: 9px 12px; border-radius: 9px; border: none; font-weight: 800; font-size: 0.82rem; cursor: pointer; transition: 0.2s;">
             <i class="fa-solid fa-id-card-clip"></i> ១. ប្រវត្តិរូប & រូបថត
@@ -848,11 +925,8 @@ window.openStaff360Modal = function (adminId = "", initialTab = "profile") {
           }
         </div>
 
-        <!-- ==========================================
-             TAB 1: ព័ត៌មានបុគ្គលិក & CLOUDINARY PROFILE PHOTO
-             ========================================== -->
+        <!-- TAB 1: ព័ត៌មានបុគ្គលិក & CLOUDINARY PROFILE PHOTO -->
         <div id="s360-pane-profile" style="display: none;">
-          <!-- ប្រអប់ Upload រូបថត Profile បុគ្គលិក -->
           <div style="display: flex; align-items: center; gap: 16px; background: #f8fafc; border: 1px solid #e2e8f0; padding: 14px 16px; border-radius: 14px; margin-bottom: 14px;">
             <div id="s360-avatar-preview-box" style="width: 68px; height: 68px; border-radius: 18px; background: linear-gradient(135deg, #004d40, #0d9488); color: #ffffff; display: flex; align-items: center; justify-content: center; font-size: 1.5rem; font-weight: 900; overflow: hidden; border: 2px solid #0d9488; flex-shrink: 0;">
               ${
@@ -874,7 +948,6 @@ window.openStaff360Modal = function (adminId = "", initialTab = "profile") {
             </div>
           </div>
 
-          <!-- ប្រអប់បំពេញព័ត៌មានបុគ្គលិក -->
           <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
             <div>
               <label style="font-size: 0.78rem; font-weight: 800; color: #475569; display: block; margin-bottom: 4px;">លេខសម្គាល់បុគ្គលិក (Staff ID)</label>
@@ -925,9 +998,7 @@ window.openStaff360Modal = function (adminId = "", initialTab = "profile") {
           </div>
         </div>
 
-        <!-- ==========================================
-             TAB 2: តួនាទី, ម៉ោងធ្វើការ, សិទ្ធិម៉ឺនុយ & កាត NFC
-             ========================================== -->
+        <!-- TAB 2: តួនាទី, ម៉ោងធ្វើការ, សិទ្ធិម៉ឺនុយ & កាត NFC -->
         <div id="s360-pane-perms" style="display: none;">
           <div style="display: grid; grid-template-columns: 1.2fr 1fr 1fr; gap: 10px; margin-bottom: 12px;">
             <div>
@@ -936,7 +1007,7 @@ window.openStaff360Modal = function (adminId = "", initialTab = "profile") {
                 <option value="support_agent" ${staffData.role === "support_agent" ? "selected" : ""}>🎧 Support Agent</option>
                 <option value="finance_admin" ${staffData.role === "finance_admin" ? "selected" : ""}>💰 Finance Admin</option>
                 <option value="super_admin" ${staffData.role === "super_admin" ? "selected" : ""}>👑 Super Admin</option>
-                <option value="custom" ${staffData.role === "custom" ? "selected" : ""}>⚙️ Custom Role (កំណត់เอง)</option>
+                <option value="custom" ${staffData.role === "custom" ? "selected" : ""}>⚙️ Custom Role (កំណត់ដោយខ្លួនឯង)</option>
               </select>
             </div>
             <div>
@@ -954,7 +1025,6 @@ window.openStaff360Modal = function (adminId = "", initialTab = "profile") {
             <input type="text" id="s360-customRoleName" value="${staffData.customRoleName}" placeholder="ឧ. ប្រធានផ្នែកត្រួតពិនិត្យ KYC..." style="width: 100%; height: 38px; padding: 0 12px; border-radius: 9px; border: 1.5px solid #c084fc; font-weight: 800; box-sizing: border-box;">
           </div>
 
-          <!-- ប្រអប់កាត NFC ក្នុងផ្ទាំង 360 -->
           <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 10px 14px; margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap;">
             <div>
               <div style="font-size: 0.78rem; font-weight: 800; color: #0f172a;"><i class="fa-solid fa-wifi" style="color:#3b82f6;"></i> លេខកូដកាតសម្គាល់ខ្លួន NFC (Staff NFC UID)</div>
@@ -968,7 +1038,6 @@ window.openStaff360Modal = function (adminId = "", initialTab = "profile") {
             </div>
           </div>
 
-          <!-- ធីកជ្រើសរើសម៉ឺនុយទាំង ១២ -->
           <div style="margin-bottom: 12px;">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
               <span style="font-size: 0.78rem; font-weight: 800; color: #475569;">សិទ្ធិមើលម៉ឺនុយ (ALLOWED MENUS)៖</span>
@@ -993,7 +1062,6 @@ window.openStaff360Modal = function (adminId = "", initialTab = "profile") {
             </div>
           </div>
 
-          <!-- ធីកជ្រើសរើសសិទ្ធិប្រតិបត្តិការពិសេសទាំង ៥ -->
           <div>
             <div style="font-size: 0.78rem; font-weight: 800; color: #475569; margin-bottom: 6px;">សិទ្ធិប្រតិបត្តិការជាន់ខ្ពស់ (CRITICAL ACTIONS)៖</div>
             <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 7px;">
@@ -1011,15 +1079,13 @@ window.openStaff360Modal = function (adminId = "", initialTab = "profile") {
           </div>
         </div>
 
-        <!-- ==========================================
-             TAB 3: ប្រវត្តិសកម្មភាពបុគ្គលិក (INDIVIDUAL AUDIT LOGS)
-             ========================================== -->
+        <!-- TAB 3: ប្រវត្តិសកម្មភាពបុគ្គលិក (INDIVIDUAL AUDIT LOGS) -->
         <div id="s360-pane-logs" style="display: none;">
           <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; gap: 10px; flex-wrap: wrap;">
             <span style="font-weight: 800; font-size: 0.88rem; color: #0f172a;">
-              ប្រវត្តិសកម្មភាពសរុបរបស់ @${staffData.username} (${staffLogs.length} កំណត់ត្រា)
+              ប្រវត្តិសកម្មភាពសរុបរបស់ ${staffData.fullName || staffData.username} (${staffLogs.length} កំណត់ត្រា)
             </span>
-            <button type="button" onclick="exportSingleStaffLogsCSV('${staffData.username}', getLogsForStaffUsername('${staffData.username}'))" style="background: #0d9488; color: #ffffff; border: none; padding: 6px 12px; border-radius: 8px; font-size: 0.76rem; font-weight: 800; cursor: pointer;">
+            <button type="button" onclick="exportSingleStaffLogsCSV('${staffData.username}', getLogsForStaffMember('${staffData.id}'))" style="background: #0d9488; color: #ffffff; border: none; padding: 6px 12px; border-radius: 8px; font-size: 0.76rem; font-weight: 800; cursor: pointer;">
               <i class="fa-solid fa-file-csv"></i> ទាញយក CSV
             </button>
           </div>
@@ -1044,7 +1110,7 @@ window.openStaff360Modal = function (adminId = "", initialTab = "profile") {
                           <tr style="border-bottom: 1px solid #f1f5f9;">
                             <td style="padding: 8px; font-family: monospace; color: #64748b; white-space: nowrap;">${l.date || "N/A"}</td>
                             <td style="padding: 8px; font-weight: 800; color: #0d9488;">${l.action || "-"}</td>
-                            <td style="padding: 8px; font-weight: 800;">${l.target || "-"}</td>
+                            <td style="padding: 8px; font-weight: 800;">${formatStaffLogTargetDisplay(l.target)}</td>
                             <td style="padding: 8px; color: #475569;">${l.details || "-"}</td>
                           </tr>
                         `,
@@ -1098,6 +1164,7 @@ window.openStaff360Modal = function (adminId = "", initialTab = "profile") {
       });
 
       return {
+        _id: staffData.id,
         id: staffData.id,
         staffId:
           document.getElementById("s360-staffId")?.value || staffData.staffId,
@@ -1188,12 +1255,13 @@ window.previewStaffPhotoFromUrl = function (url) {
   }
 };
 
-// ☁️ មុខងារបង្ហោះរូបថតបុគ្គលិកចូល Cloudinary ផ្ទាល់ (ដូចក្នុង settings.html ១០០%)
+/**
+ * 🔹 ៤.២ មុខងារបង្ហោះរូបថតបុគ្គលិកចូល Cloudinary ផ្ទាល់
+ */
 window.uploadStaffPhotoToCloudinary = async function (fileInput) {
   const file = fileInput?.files?.[0];
   if (!file) return;
 
-  // ១. ឆែកទំហំរូបភាពមិនឱ្យលើស 3MB (ដូចក្នុង settings.html)
   if (file.size > 3 * 1024 * 1024) {
     Swal.showValidationMessage(
       "ទំហំរូបភាពធំពេក! សូមជ្រើសរើសរូបភាពដែលមានទំហំតូចជាង 3MB",
@@ -1282,13 +1350,13 @@ async function executeSaveStaff360(payload) {
   }
 }
 
-// រក្សាទុកអនុគមន៍ saveAdminAccount ការពារករណីមានការហៅពីប៊ូតុង HTML ចាស់
 window.saveAdminAccount = async function () {
   const id = document.getElementById("manageAdminId")?.value || "";
   const role =
     document.getElementById("manageAdminRole")?.value || "support_agent";
 
   const payload = {
+    _id: id,
     id,
     staffId: document.getElementById("staffId")?.value || generateAutoStaffId(),
     username: document.getElementById("manageAdminUser")?.value || "",
@@ -1309,22 +1377,24 @@ window.saveAdminAccount = async function () {
   await executeSaveStaff360(payload);
 };
 
-// ========================================================================
-// 🪪 SECTION 5: WORLD-CLASS BANK STAFF ID BADGE GENERATOR (កាតសម្គាល់ខ្លួនបុគ្គលិក)
-// ========================================================================
+// ============================================================================
+// 🪪 ជំពូកទី ៥៖ ម៉ាស៊ីនផលិតកាតសម្គាល់ខ្លួនបុគ្គលិក និងរបាយការណ៍លទ្ធផលការងារតាម `_id` (ID BADGE & REPORTS)
+// ============================================================================
 
+/**
+ * 🔹 ៥.១ បើកមើល និងបោះពុម្ពកាតសម្គាល់ខ្លួនបុគ្គលិកផ្លូវការតាមរយៈ MongoDB `_id`
+ */
 window.openStaffIdCardModal = function (adminId) {
-  const staff = globalAdminsData.find((a) => a._id === adminId);
+  const staff = globalAdminsData.find((a) => String(a._id) === String(adminId));
   if (!staff) return;
 
+  const staffFullName = getStaffFullName(staff);
   const roleMeta = getAdminRoleMeta(staff);
-  const initials = String(staff.fullName || staff.username || "ST")
-    .substring(0, 2)
-    .toUpperCase();
+  const initials = String(staffFullName).substring(0, 2).toUpperCase();
   const staffIdCode = staff.staffId || "UPAY-888999";
   const hasNfc = Boolean(staff.nfcUid && String(staff.nfcUid).trim() !== "");
 
-  const verifyQrData = `UPAY-STAFF:${staffIdCode}|USER:@${staff.username}|ROLE:${roleMeta.label}`;
+  const verifyQrData = `UPAY-STAFF:${staffIdCode}|ID:${staff._id}|NAME:${staffFullName}|ROLE:${roleMeta.label}`;
   const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=160x160&data=${encodeURIComponent(verifyQrData)}`;
 
   const avatarHtml =
@@ -1336,12 +1406,8 @@ window.openStaffIdCardModal = function (adminId) {
     title: `<span style="font-family:'Kantumruy Pro',sans-serif; font-size:1.15rem; font-weight:800;"><i class="fa-solid fa-id-badge" style="color:#0284c7;"></i> ប័ណ្ណសម្គាល់ខ្លួនបុគ្គលិកផ្លូវការ (Official Staff ID Card)</span>`,
     html: `
       <div style="display: flex; flex-direction: column; align-items: center; padding: 10px 0; font-family: 'Kantumruy Pro', 'Inter', sans-serif;">
-        <!-- 🪪 តួកាតសម្គាល់ខ្លួនបុគ្គលិក (CR80 Vertical World-Class Badge) -->
         <div id="staffIdBadgeCapture" style="width: 315px; border-radius: 24px; overflow: hidden; background: #ffffff; box-shadow: 0 20px 45px rgba(15, 23, 42, 0.28); border: 1px solid #cbd5e1; position: relative; text-align: center; color: #0f172a;">
-          
-          <!-- ផ្នែកក្បាលកាត (Lanyard Slot + Holographic Mesh Header) -->
           <div style="background: ${roleMeta.cardGradient}; padding: 16px 20px 48px; position: relative; color: #ffffff;">
-            <!-- រន្ធខ្សែคล้องក (Lanyard Punch Slot) -->
             <div style="width: 54px; height: 9px; background: rgba(15, 23, 42, 0.65); border-radius: 10px; margin: 0 auto 14px; border: 1px solid rgba(255, 255, 255, 0.25); box-shadow: inset 0 2px 4px rgba(0,0,0,0.5);"></div>
 
             <div style="display: flex; justify-content: space-between; align-items: center;">
@@ -1349,7 +1415,6 @@ window.openStaffIdCardModal = function (adminId) {
                 <div style="font-weight: 900; font-size: 1.05rem; letter-spacing: 1px; color: #ffffff;">U-PAY BANK</div>
                 <div style="font-size: 0.64rem; color: ${roleMeta.accentHex}; font-weight: 800; letter-spacing: 0.8px;">OFFICIAL STAFF CREDENTIAL</div>
               </div>
-              <!-- បន្ទះឈីបមាស & NFC Icon -->
               <div style="display: flex; align-items: center; gap: 7px;">
                 <i class="fa-solid fa-wifi" style="transform: rotate(90deg); color: ${hasNfc ? "#34d399" : "rgba(255,255,255,0.4)"}; font-size: 0.95rem;"></i>
                 <div style="width: 30px; height: 22px; border-radius: 5px; background: linear-gradient(135deg, #fbbf24, #d97706); border: 1px solid #fef08a; box-shadow: 0 2px 6px rgba(0,0,0,0.3);"></div>
@@ -1357,15 +1422,13 @@ window.openStaffIdCardModal = function (adminId) {
             </div>
           </div>
 
-          <!-- រូបថត Profile បុគ្គលិកចំកណ្តាល -->
           <div style="width: 92px; height: 92px; border-radius: 24px; margin: -46px auto 10px; overflow: hidden; border: 4px solid #ffffff; box-shadow: 0 8px 20px rgba(0, 0, 0, 0.18); position: relative; z-index: 2; background: #ffffff;">
             ${avatarHtml}
           </div>
 
-          <!-- ឈ្មោះ និងតួនាទីបុគ្គលិក -->
           <div style="padding: 0 20px 18px;">
             <div style="font-weight: 900; font-size: 1.18rem; color: #0f172a; text-transform: uppercase; letter-spacing: 0.3px;">
-              ${staff.fullName || staff.username}
+              ${staffFullName}
             </div>
             <div style="font-size: 0.78rem; color: #0d9488; font-weight: 800; margin-top: 2px;">
               @${staff.username} ${staff.nickname ? `(${staff.nickname})` : ""}
@@ -1377,7 +1440,6 @@ window.openStaffIdCardModal = function (adminId) {
               </span>
             </div>
 
-            <!-- ប្រអប់ព័ត៌មានលម្អិតលើកាត -->
             <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 14px; padding: 10px 12px; margin-top: 12px; text-align: left; font-size: 0.76rem; display: flex; flex-direction: column; gap: 6px;">
               <div style="display: flex; justify-content: space-between;">
                 <span style="color: #64748b; font-weight: 700;">អត្តលេខ (ID)៖</span>
@@ -1397,7 +1459,6 @@ window.openStaffIdCardModal = function (adminId) {
               </div>
             </div>
 
-            <!-- QR Code & ត្រាសុវត្ថិភាពធនាគារ -->
             <div style="display: flex; align-items: center; justify-content: space-between; margin-top: 14px; padding-top: 12px; border-top: 1.5px dashed #e2e8f0;">
               <div style="text-align: left;">
                 <div style="font-size: 0.65rem; font-weight: 900; color: #004d40; letter-spacing: 0.5px;">AUTHORIZED PERSONNEL</div>
@@ -1412,7 +1473,6 @@ window.openStaffIdCardModal = function (adminId) {
             </div>
           </div>
 
-          <!-- បន្ទាត់ពណ៌ខាងក្រោមបង្អស់ -->
           <div style="height: 7px; background: ${roleMeta.cardGradient};"></div>
         </div>
       </div>
@@ -1442,7 +1502,7 @@ window.openStaffIdCardModal = function (adminId) {
       } else {
         window.print();
       }
-      return false; // រក្សាផ្ទាំងទុកកុំឱ្យបិទភ្លាម
+      return false;
     },
     preDeny: () => {
       const cardHtml = document.getElementById(
@@ -1453,7 +1513,7 @@ window.openStaffIdCardModal = function (adminId) {
         win.document.write(`
           <html>
             <head>
-              <title>Print Staff ID - @${staff.username}</title>
+              <title>Print Staff ID - ${staffFullName}</title>
               <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
               <link href="https://fonts.googleapis.com/css2?family=Kantumruy+Pro:wght@400;700;900&display=swap" rel="stylesheet">
               <style>body { display:flex; justify-content:center; align-items:center; min-height:95vh; margin:0; font-family:'Kantumruy Pro',sans-serif; -webkit-print-color-adjust:exact; print-color-adjust:exact; }</style>
@@ -1468,13 +1528,12 @@ window.openStaffIdCardModal = function (adminId) {
   });
 };
 
-// ========================================================================
-// 📈 SECTION 6: STAFF PERFORMANCE REPORT, EXPORT CSV, RESET PASS & DELETE
-// ========================================================================
-
+/**
+ * 🔹 ៥.២ របាយការណ៍លទ្ធផលការងាររបស់បុគ្គលិកទាំងអស់ និងការទាញយកឯកសារ CSV
+ */
 window.openStaffPerformanceReportModal = function () {
   const summaryRows = globalAdminsData.map((a) => {
-    const logs = getLogsForStaffUsername(a.username);
+    const logs = getLogsForStaffMember(a);
     let kycActions = 0;
     let financeActions = 0;
     let userCardActions = 0;
@@ -1513,7 +1572,7 @@ window.openStaffPerformanceReportModal = function () {
       <tr style="border-bottom: 1px solid #e2e8f0; font-size: 0.83rem;">
         <td style="padding: 10px 8px; font-weight: 900; color: #0d9488;">#${idx + 1}</td>
         <td style="padding: 10px 8px;">
-          <div style="font-weight: 800; color: #0f172a;">${item.admin.fullName || item.admin.username}</div>
+          <div style="font-weight: 800; color: #0f172a;">${getStaffFullName(item.admin)}</div>
           <div style="font-size: 0.73rem; color: #64748b;">@${item.admin.username} • ${item.admin.staffId || "N/A"}</div>
         </td>
         <td style="padding: 10px 8px; text-align: center; font-weight: 800; color: #3b82f6;">${item.kycActions}</td>
@@ -1612,6 +1671,7 @@ window.exportAdminStaffCSV = function () {
     );
   }
   const headers = [
+    "MongoDB_ID",
     "Staff_ID",
     "Full_Name",
     "Username",
@@ -1626,10 +1686,11 @@ window.exportAdminStaffCSV = function () {
   ];
   const rows = filteredAdminsData.map((a) => {
     const roleMeta = getAdminRoleMeta(a);
-    const logsCount = getLogsForStaffUsername(a.username).length;
+    const logsCount = getLogsForStaffMember(a).length;
     return [
+      `"${a._id || ""}"`,
       `"${a.staffId || "N/A"}"`,
-      `"${a.fullName || a.username}"`,
+      `"${getStaffFullName(a)}"`,
       `"${a.username}"`,
       `"${roleMeta.label}"`,
       `"${a.department || "General"}"`,
@@ -1654,9 +1715,16 @@ window.exportAdminStaffCSV = function () {
   URL.revokeObjectURL(url);
 };
 
-async function deleteAdminAcc(id) {
+// ============================================================================
+// 🔐 ជំពូកទី ៦៖ ការប្តូរលេខសម្ងាត់, បិទ/បើកគណនី និងលុបបុគ្គលិកតាម `_id` (SECURITY ACTIONS BY `_id`)
+// ============================================================================
+
+async function deleteAdminAcc(adminId) {
+  const staff = globalAdminsData.find((a) => String(a._id) === String(adminId));
+  const staffFullName = getStaffFullName(staff);
+
   const confirm = await Swal.fire({
-    title: "លុបគណនីបុគ្គលិកនេះ?",
+    title: `លុបគណនីបុគ្គលិក "${staffFullName}"?`,
     text: "គណនីនេះនឹងត្រូវលុបចេញពីប្រព័ន្ធជារៀងរហូត!",
     icon: "warning",
     showCancelButton: true,
@@ -1670,7 +1738,7 @@ async function deleteAdminAcc(id) {
       const res = await fetch("/api/admin/delete-admin", {
         method: "POST",
         headers: getAuthHeaders(),
-        body: JSON.stringify({ id }),
+        body: JSON.stringify({ _id: adminId, id: adminId }),
       });
       const data = await res.json();
       if (data.success) {
@@ -1683,9 +1751,12 @@ async function deleteAdminAcc(id) {
   }
 }
 
-async function promptResetAdminPassword(adminId, username) {
+async function promptResetAdminPassword(adminId) {
+  const staff = globalAdminsData.find((a) => String(a._id) === String(adminId));
+  const staffFullName = getStaffFullName(staff);
+
   const { value: newPassword } = await Swal.fire({
-    title: `<span style="font-family: 'Kantumruy Pro', sans-serif;">Reset Password ជូន @${username}</span>`,
+    title: `<span style="font-family: 'Kantumruy Pro', sans-serif;">Reset Password ជូន ${staffFullName}</span>`,
     input: "text",
     inputLabel: "សូមបញ្ចូលពាក្យសម្ងាត់ថ្មី (New Password)",
     inputPlaceholder: "ឧ. 1234 ឬ admin123...",
