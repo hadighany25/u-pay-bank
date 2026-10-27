@@ -120,7 +120,7 @@ function getCombinedUsdBalance(u) {
 
 let currentUsersList = [];
 let userCurrentPage = 1;
-const USERS_PER_PAGE = 8;
+const USERS_PER_PAGE = 6;
 let isAutoFetchingUsers = false;
 
 function updateUserDirectoryKPIs() {

@@ -1,6 +1,6 @@
 // ============================================================================
 // ឯកសារ: models/User.js
-// អត្ថន័យ: Schema ស្តង់ដារកម្រិតធនាគារសម្រាប់អ្នកប្រើប្រាស់ (Strict _id & userId Binding)
+// អត្ថន័យ: Schema ស្តង់ដារកម្រិតធនាគារសម្រាប់អ្នកប្រើប្រាស់ (Strict _id Binding)
 // ============================================================================
 
 const mongoose = require("mongoose");
@@ -8,16 +8,15 @@ const mongoose = require("mongoose");
 const userSchema = new mongoose.Schema(
   {
     // ==========================================
-    // 👤 ១. ព័ត៌មានគណនីមូលដ្ឋាន (Basic User Info & Immutable IDs)
+    // 👤 ១. ព័ត៌មានគណនីមូលដ្ឋាន (Basic User Info)
     // ==========================================
-    id: { type: String, default: () => Date.now().toString(), index: true },
     userId: {
       type: String,
       unique: true,
       sparse: true,
       index: true,
       default: () => Math.floor(10000000 + Math.random() * 90000000).toString(),
-    }, // លេខសម្គាល់អតិថិជន ៨ខ្ទង់ មិនជាន់គ្នា
+    }, // លេខសម្គាល់អតិថិជន ៨ខ្ទង់ សម្រាប់បង្ហាញ (Display ID)
     username: { type: String, required: true, unique: true, index: true },
     password: { type: String, required: true },
     fullName: { type: String, default: "" },
@@ -31,14 +30,11 @@ const userSchema = new mongoose.Schema(
     duplicateIdReason: { type: String, default: "" },
 
     // ==========================================
-    // 🏦 ២. គណនីចម្បង (Main Accounts - ញែក USD និង KHR ដាច់ពីគ្នា)
+    // 🏦 ២. គណនីចម្បង (Main Accounts - USD & KHR)
     // ==========================================
     mainAccounts: {
       USD: {
-        accountId: {
-          type: String,
-          default: () => "MAIN_USD_" + Date.now().toString(),
-        },
+        accountId: { type: String, default: () => "MAIN_USD_" + Date.now() },
         accountNumber: { type: String, unique: true, sparse: true },
         accountName: { type: String, default: "Main Account USD" },
         accountType: { type: String, default: "main" },
@@ -53,10 +49,7 @@ const userSchema = new mongoose.Schema(
         isHidden: { type: Boolean, default: false },
       },
       KHR: {
-        accountId: {
-          type: String,
-          default: () => "MAIN_KHR_" + Date.now().toString(),
-        },
+        accountId: { type: String, default: () => "MAIN_KHR_" + Date.now() },
         accountNumber: { type: String, unique: true, sparse: true },
         accountName: { type: String, default: "Main Account KHR" },
         accountType: { type: String, default: "main" },
@@ -73,7 +66,7 @@ const userSchema = new mongoose.Schema(
     },
 
     // ==========================================
-    // 👨‍👦 ៣. ការគ្រប់គ្រងកុងកុមារ (Junior Profile Control - Strict _id & userId Link)
+    // 👨‍👦 ៣. ការគ្រប់គ្រងកុងកុមារ (Junior Profile Control)
     // ==========================================
     role: { type: String, default: "user", index: true }, // "user", "junior", "admin"
     parentId: {
@@ -82,30 +75,28 @@ const userSchema = new mongoose.Schema(
       default: null,
       index: true,
     }, // 🔗 ភ្ជាប់ទៅ _id របស់ប៉ាម៉ាក់ផ្ទាល់
-    parentUserId: { type: String, default: null, index: true }, // 🔗 ភ្ជាប់ទៅ userId ៨ខ្ទង់របស់ប៉ាម៉ាក់
-    parentUsername: { type: String, default: null },
     dailyLimit: { type: Number, default: 20.0 },
     dailySpent: { type: Number, default: 0.0 },
 
     // ==========================================
-    // 🛡️ ៤. ការកំណត់ប្រព័ន្ធសុវត្ថិភាព និងរូបភាព Profile
+    // 🛡️ ៤. ប្រព័ន្ធសុវត្ថិភាព និងរូបភាព
     // ==========================================
     pin: { type: String, default: "1111" },
     pinAttempts: { type: Number, default: 0 },
     passwordAttempts: { type: Number, default: 0 },
-    profileImage: { type: String, default: "" }, // 🖼️ រូបភាពសម្រាប់បង្ហាញលើ Profile (ដាច់ពីរូប KYC)
+    profileImage: { type: String, default: "" },
     isFrozen: { type: Boolean, default: false },
     isOnline: { type: Boolean, default: false },
     resetToken: { type: String, default: null },
     resetTokenExpire: { type: Date, default: null },
 
     // ==========================================
-    // 📝 ៥. ព័ត៌មាន KYC (Identity Verification - រក្សាទុកដាច់ដោយឡែកពី Profile)
+    // 📝 ៥. ព័ត៌មាន KYC (Identity Verification)
     // ==========================================
     kycStatus: { type: String, default: "unverified" },
-    kycDocument: { type: String, default: "" }, // រូបអត្តសញ្ញាណប័ណ្ណ ឬ សំបុត្រកំណើតកូន
+    kycDocument: { type: String, default: "" },
     kycImage: { type: String, default: "" },
-    selfieUrl: { type: String, default: "" }, // 🪪 រូបថតមុខពេលធ្វើ KYC (មិនប្រែប្រួលពេលដូរ Profile ទេ)
+    selfieUrl: { type: String, default: "" },
     kycSubmittedAt: { type: String, default: "" },
     kycUploadedBy: { type: String, default: "" },
     kycApprovedBy: { type: String, default: "" },
@@ -115,7 +106,7 @@ const userSchema = new mongoose.Schema(
     kycRejectReason: { type: String, default: "" },
 
     // ==========================================
-    // 🎧 ៦. ការកំណត់សេវាកម្មអតិថិជន និងផែនការចំណាយ (Support & Budget)
+    // 🎧 ៦. សេវាកម្មអតិថិជន និងសំណូមពរ (Support & Tickets)
     // ==========================================
     needsSupport: { type: Boolean, default: false },
     chatStatus: { type: String, default: "pending" },
@@ -141,15 +132,12 @@ const userSchema = new mongoose.Schema(
     ],
 
     // ==========================================
-    // 💸 ៧. សេវាកម្ម និងគណនីរង (P2P Debts, Sub-Accounts, Junior Links)
+    // 💸 ៧. គណនីរង និងសេវាកម្មរួម (Sub-Accounts & P2P Debts)
     // ==========================================
     p2pDebts: [
       {
         type: { type: String, enum: ["owe", "lend"], default: "owe" },
         partnerId: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
-        partnerUserId: String,
-        partnerUsername: String,
-        partnerName: String,
         amount: Number,
         fundName: String,
         date: String,
@@ -159,38 +147,28 @@ const userSchema = new mongoose.Schema(
 
     subAccounts: [
       {
-        accountId: {
-          type: String,
-          default: () => "SUB_" + Date.now().toString(),
-        },
-        // 🔗 សម្រាប់គណនីកូន (Junior) ភ្ជាប់ទៅកាន់ _id និង userId របស់កូនផ្ទាល់
+        accountId: { type: String, default: () => "SUB_" + Date.now() },
         linkedUserId: {
           type: mongoose.Schema.Types.ObjectId,
           ref: "User",
           default: null,
-        },
-        linkedUserCustomId: { type: String, default: null },
+        }, // 🔗 ភ្ជាប់ទៅ _id របស់កូន
         accountNumber: { type: String },
         accountName: { type: String },
         accountType: { type: String, default: "premium" },
         currency: { type: String, default: "USD" },
-
         balance: { type: Number, default: 0.0 },
         holdBalance: { type: Number, default: 0.0 },
-
         dailyLimit: { type: Number, default: 1000.0 },
         dailySpent: { type: Number, default: 0.0 },
         lastSpentDate: { type: String, default: "" },
-
         isFrozen: { type: Boolean, default: false },
         isLocked: { type: Boolean, default: false },
         isSystemLocked: { type: Boolean, default: false },
         isHidden: { type: Boolean, default: false },
-
         members: [
           {
             userId: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
-            username: { type: String },
             role: { type: String, default: "member" },
             dailyLimit: { type: Number, default: 0 },
             spentToday: { type: Number, default: 0 },
@@ -204,7 +182,7 @@ const userSchema = new mongoose.Schema(
     ],
 
     // ==========================================
-    // ⏱️ ៨. កត់ត្រាពេលវេលា និងសកម្មភាព (Timestamps)
+    // ⏱️ ៨. កត់ត្រាពេលវេលា និងឧបករណ៍ (Timestamps & Devices)
     // ==========================================
     lastActive: { type: String, default: "" },
     joinDate: { type: String, default: "" },
@@ -217,7 +195,6 @@ const userSchema = new mongoose.Schema(
   { timestamps: true },
 );
 
-// 🛡️ រក្សាទុកទាំង _id, id, និង userId ពេលបោះទៅ Frontend ដើម្បីឱ្យគ្រប់មុខងារចាប់តាម _id បាន ១០០%
 userSchema.set("toJSON", {
   virtuals: true,
   transform: function (doc, ret) {

@@ -1160,6 +1160,7 @@
       let flowType = "premium"; // 'premium' | 'joint'
       let state = { number: "", price: 0, name: "" };
       let jointState = {
+        partnerUserId: null, // 🆔 _id របស់ដៃគូ
         partnerUsername: null,
         partnerName: null,
         currency: "USD",
@@ -1493,7 +1494,7 @@
           cur === "BOTH" ? "block" : "none";
       }
 
-      // 🤝 មុខងារគណនីរួម (Joint Account)
+      // 🤝 មុខងារគណនីរួម (Joint Account - 100% Pure _id)
       function selectJointCurrency(cur) {
         jointState.currency = cur;
         ["USD", "KHR", "BOTH"].forEach((c) => {
@@ -1522,9 +1523,10 @@
           Swal.close();
 
           if (data.success && data.user) {
-            if (data.user.username === user.username) {
+            if (String(data.user._id) === String(user._id)) {
               return showToast("មិនអាចបន្ថែមគណនីខ្លួនឯងបានទេ!", "error");
             }
+            jointState.partnerUserId = data.user._id; // 🆔 រក្សាទុក _id របស់ដៃគូ
             jointState.partnerUsername = data.user.username;
             jointState.partnerName = data.user.fullName || data.user.username;
             document.getElementById("joint-partner-name").innerText =
@@ -1544,6 +1546,7 @@
       }
 
       function removeJointPartner() {
+        jointState.partnerUserId = null;
         jointState.partnerUsername = null;
         jointState.partnerName = null;
         document.getElementById("joint-partner-container").style.display =
@@ -1553,7 +1556,7 @@
       }
 
       function goToJointNumberSelection() {
-        if (!jointState.partnerUsername) {
+        if (!jointState.partnerUserId) {
           return showToast("សូមស្វែងរក និងបន្ថែមដៃគូជាមុនសិន!", "error");
         }
         switchScreen("screen-search");
@@ -1602,16 +1605,16 @@
           const reqBody =
             flowType === "joint"
               ? {
-                  username: user.username,
+                  userId: user._id, // 🆔 បាញ់ _id ម្ចាស់គណនី
+                  partnerUserId: jointState.partnerUserId, // 🆔 បាញ់ _id ដៃគូ
                   requestedNumber: jointState.number,
-                  partnerUsername: jointState.partnerUsername,
                   price: jointState.price,
                   pin: verifiedPin,
                   currencyOption: jointState.currency,
                   dailyLimit: 0,
                 }
               : {
-                  username: user.username,
+                  userId: user._id, // 🆔 បាញ់ _id ម្ចាស់គណនី
                   requestedNumber: state.number,
                   accountName: state.name,
                   price: state.price,
@@ -1643,7 +1646,6 @@
             const createdNum =
               flowType === "joint" ? jointState.number : state.number;
 
-            // 🧾 បង្ហាញវិក្កយបត្រផ្លូវការលូនឡើងពីក្រោម (openGlobalSlip)
             if (typeof openGlobalSlip === "function") {
               openGlobalSlip({
                 refId: "ACC-" + Date.now().toString().slice(-8),

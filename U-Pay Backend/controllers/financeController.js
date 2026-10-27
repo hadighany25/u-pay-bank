@@ -1,8 +1,13 @@
-// financeController.js
+// ============================================================================
+// ឯកសារ: controllers/financeController.js
+// អត្ថន័យ: ខួរក្បាលស្នូលសម្រាប់គ្រប់គ្រងប្រាក់បញ្ញើមានកាលកំណត់ (Fixed Deposit) និងរង្វាន់ (Strict _id Binding)
+// ============================================================================
+
 const User = require("../models/User");
 const Transaction = require("../models/Transaction");
 const System = require("../models/System");
 const { getFormattedDate } = require("../services/helpers");
+const mongoose = require("mongoose");
 
 const generateStandardHash = () => {
   const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
@@ -37,7 +42,12 @@ const createFixedDeposit = async (req, res) => {
   const safeRate = parseFloat(rate) || 0;
 
   try {
-    const user = await User.findOne({ username: req.user.username });
+    const userId = req.user._id || req.user.id;
+    const user =
+      userId && mongoose.isValidObjectId(userId)
+        ? await User.findById(userId)
+        : await User.findOne({ username: req.user.username });
+
     if (!user || user.pin !== pin)
       return res.json({ success: false, message: "លេខ PIN មិនត្រឹមត្រូវទេ" });
     if (user.isFrozen)
@@ -134,16 +144,25 @@ const createFixedDeposit = async (req, res) => {
     }
 
     // 💸 កាត់លុយចេញពីគណនីប្រភពរបស់ User
+    let sourceAccountIdToSave = "MAIN_USD";
     if (sourceAccount === "MAIN_KHR" || sourceAccount === mainKhrNum) {
-      if (user.mainAccounts?.KHR)
+      if (user.mainAccounts?.KHR) {
         user.mainAccounts.KHR.balance =
           (parseFloat(user.mainAccounts.KHR.balance) || 0) - finalDeducted;
-      else user.balanceKHR = (parseFloat(user.balanceKHR) || 0) - finalDeducted;
+        sourceAccountIdToSave = user.mainAccounts.KHR.accountId;
+      } else {
+        user.balanceKHR = (parseFloat(user.balanceKHR) || 0) - finalDeducted;
+      }
+      user.markModified("mainAccounts");
     } else if (sourceAccount === "MAIN_USD" || sourceAccount === mainUsdNum) {
-      if (user.mainAccounts?.USD)
+      if (user.mainAccounts?.USD) {
         user.mainAccounts.USD.balance =
           (parseFloat(user.mainAccounts.USD.balance) || 0) - finalDeducted;
-      else user.balance = (parseFloat(user.balance) || 0) - finalDeducted;
+        sourceAccountIdToSave = user.mainAccounts.USD.accountId;
+      } else {
+        user.balance = (parseFloat(user.balance) || 0) - finalDeducted;
+      }
+      user.markModified("mainAccounts");
     } else {
       const subIdx = user.subAccounts.findIndex(
         (a) => a.accountNumber === sourceAccount,
@@ -151,6 +170,7 @@ const createFixedDeposit = async (req, res) => {
       if (subIdx !== -1) {
         user.subAccounts[subIdx].balance =
           (parseFloat(user.subAccounts[subIdx].balance) || 0) - finalDeducted;
+        sourceAccountIdToSave = user.subAccounts[subIdx].accountId;
         user.markModified("subAccounts");
       }
     }
@@ -178,6 +198,7 @@ const createFixedDeposit = async (req, res) => {
     await Transaction.create([
       {
         userId: user._id,
+        accountId: sourceAccountIdToSave,
         username: user.username,
         refId,
         hash,
@@ -195,6 +216,7 @@ const createFixedDeposit = async (req, res) => {
       },
       {
         userId: centralBank._id,
+        accountId: depositSubAcc.accountId,
         username: centralBank.username,
         refId,
         hash,
@@ -251,7 +273,12 @@ const withdrawFixedDeposit = async (req, res) => {
   const { depositId } = req.body;
 
   try {
-    const user = await User.findOne({ username: req.user.username });
+    const userId = req.user._id || req.user.id;
+    const user =
+      userId && mongoose.isValidObjectId(userId)
+        ? await User.findById(userId)
+        : await User.findOne({ username: req.user.username });
+
     if (!user || !user.deposits)
       return res.json({
         success: false,
@@ -281,7 +308,7 @@ const withdrawFixedDeposit = async (req, res) => {
     const targetSubAccNum =
       refundCurrency === "KHR" ? "888000666" : "888000777";
 
-    const centralBank = await User.findOne({
+    let centralBank = await User.findOne({
       "subAccounts.accountNumber": targetSubAccNum,
     });
     if (!centralBank) {
@@ -312,16 +339,26 @@ const withdrawFixedDeposit = async (req, res) => {
     const mainKhrNum =
       user.mainAccounts?.KHR?.accountNumber || user.accountNumberKHR;
 
+    let targetRefundAccountIdToSave = "MAIN_USD";
+
     if (refundAccount === "MAIN_KHR" || refundAccount === mainKhrNum) {
-      if (user.mainAccounts?.KHR)
+      if (user.mainAccounts?.KHR) {
         user.mainAccounts.KHR.balance =
           (parseFloat(user.mainAccounts.KHR.balance) || 0) + refundAmount;
-      else user.balanceKHR = (parseFloat(user.balanceKHR) || 0) + refundAmount;
+        targetRefundAccountIdToSave = user.mainAccounts.KHR.accountId;
+      } else {
+        user.balanceKHR = (parseFloat(user.balanceKHR) || 0) + refundAmount;
+      }
+      user.markModified("mainAccounts");
     } else if (refundAccount === "MAIN_USD" || refundAccount === mainUsdNum) {
-      if (user.mainAccounts?.USD)
+      if (user.mainAccounts?.USD) {
         user.mainAccounts.USD.balance =
           (parseFloat(user.mainAccounts.USD.balance) || 0) + refundAmount;
-      else user.balance = (parseFloat(user.balance) || 0) + refundAmount;
+        targetRefundAccountIdToSave = user.mainAccounts.USD.accountId;
+      } else {
+        user.balance = (parseFloat(user.balance) || 0) + refundAmount;
+      }
+      user.markModified("mainAccounts");
     } else {
       const subIdx = user.subAccounts.findIndex(
         (a) => a.accountNumber === refundAccount,
@@ -329,20 +366,27 @@ const withdrawFixedDeposit = async (req, res) => {
       if (subIdx !== -1) {
         user.subAccounts[subIdx].balance =
           (parseFloat(user.subAccounts[subIdx].balance) || 0) + refundAmount;
+        targetRefundAccountIdToSave = user.subAccounts[subIdx].accountId;
         user.markModified("subAccounts");
       } else {
         if (refundCurrency === "KHR") {
-          if (user.mainAccounts?.KHR)
+          if (user.mainAccounts?.KHR) {
             user.mainAccounts.KHR.balance =
               (parseFloat(user.mainAccounts.KHR.balance) || 0) + refundAmount;
-          else
+            targetRefundAccountIdToSave = user.mainAccounts.KHR.accountId;
+          } else {
             user.balanceKHR = (parseFloat(user.balanceKHR) || 0) + refundAmount;
+          }
         } else {
-          if (user.mainAccounts?.USD)
+          if (user.mainAccounts?.USD) {
             user.mainAccounts.USD.balance =
               (parseFloat(user.mainAccounts.USD.balance) || 0) + refundAmount;
-          else user.balance = (parseFloat(user.balance) || 0) + refundAmount;
+            targetRefundAccountIdToSave = user.mainAccounts.USD.accountId;
+          } else {
+            user.balance = (parseFloat(user.balance) || 0) + refundAmount;
+          }
         }
+        user.markModified("mainAccounts");
       }
     }
 
@@ -366,6 +410,7 @@ const withdrawFixedDeposit = async (req, res) => {
     await Transaction.create([
       {
         userId: user._id,
+        accountId: targetRefundAccountIdToSave,
         username: user.username,
         refId,
         hash,
@@ -383,6 +428,7 @@ const withdrawFixedDeposit = async (req, res) => {
       },
       {
         userId: centralBank._id,
+        accountId: depositSubAcc.accountId,
         username: centralBank.username,
         refId,
         hash,
@@ -415,20 +461,34 @@ const withdrawFixedDeposit = async (req, res) => {
 // ==========================================
 const cashbackReward = async (req, res) => {
   const { username, amount, refId } = req.body;
+  if (req.user.username !== username)
+    return res
+      .status(403)
+      .json({ success: false, message: "បម្រាមសុវត្ថិភាព!" });
+
   try {
-    const user = await User.findOne({ username });
+    const userId = req.user._id || req.user.id;
+    const user =
+      userId && mongoose.isValidObjectId(userId)
+        ? await User.findById(userId)
+        : await User.findOne({ username });
+
     if (user) {
       const reward = parseFloat(amount);
+      let targetAccountIdToSave = "MAIN_USD";
       if (reward > 0) {
         if (user.mainAccounts?.USD) {
           user.mainAccounts.USD.balance =
             (parseFloat(user.mainAccounts.USD.balance) || 0) + reward;
+          targetAccountIdToSave = user.mainAccounts.USD.accountId;
+          user.markModified("mainAccounts");
         } else {
           user.balance = (parseFloat(user.balance) || 0) + reward;
         }
 
         await Transaction.create({
           userId: user._id,
+          accountId: targetAccountIdToSave,
           username: user.username,
           refId: generateStandardRefId("RWD"),
           hash: generateStandardHash(),

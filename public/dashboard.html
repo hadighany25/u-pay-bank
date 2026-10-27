@@ -1,4 +1,7 @@
-<!-- dashboard.html -->
+<!-- ============================================================================
+     ឯកសារ: public/dashboard.html
+     អត្ថន័យ: ទំព័រដើមគោលរបស់អតិថិជន U-PAY (100% Pure _id Binding Standard)
+     ============================================================================ -->
 <!doctype html>
 <html lang="en">
   <head>
@@ -10,12 +13,18 @@
     <link rel="icon" type="image/png" href="images/favicon.png" />
     <title>Dashboard - U-Pay</title>
 
+    <!-- ==========================================
+         ១. ផ្នែកនាំចូល STYLESHEETS & FONTS
+         ========================================== -->
     <link rel="stylesheet" href="style.css" />
     <link
       rel="stylesheet"
       href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
     />
 
+    <!-- ==========================================
+         ២. ផ្នែកនាំចូល CORE SCRIPTS & LIBRARIES
+         ========================================== -->
     <script src="js/lang.js"></script>
     <script src="js/u-pay-core.js"></script>
 
@@ -35,7 +44,11 @@
     <script src="https://cdn.socket.io/4.7.2/socket.io.min.js" defer></script>
     <script src="js/pin.js" defer></script>
 
+    <!-- ==========================================
+         ៣. ផ្នែករចនាបថផ្ទាល់ខ្លួន (CUSTOM CSS STYLES)
+         ========================================== -->
     <style>
+      /* --- ៣.១. រចនាបថផ្នែកក្បាល (Header & User Profile) --- */
       .header {
         padding: 20px 20px 15px 20px;
         display: flex;
@@ -121,6 +134,7 @@
         border: 2px solid white;
       }
 
+      /* --- ៣.២. រចនាបថផ្នែករុញកាតគណនី (Account Cards Slider) --- */
       .card-slider-wrapper {
         display: flex;
         overflow-x: auto;
@@ -250,6 +264,7 @@
         font-weight: bold;
       }
 
+      /* --- ៣.៣. រចនាបថម៉ឺនុយមុខងារ (Quick Actions Menu Grid) --- */
       .menu-grid {
         display: grid;
         grid-template-columns: repeat(4, 1fr);
@@ -325,6 +340,7 @@
         transform: scale(0.9);
       }
 
+      /* --- ៣.៤. រចនាបថផ្នែកប្រូម៉ូសិន (Promotions & Offers) --- */
       .promo-section {
         flex: 1;
         background: var(--bg-card);
@@ -409,7 +425,7 @@
         transform: rotate(-15deg);
       }
 
-      /* JUNIOR THEME */
+      /* --- ៣.៥. រចនាបថសម្រាប់គណនីកុមារ (JUNIOR THEME) --- */
       body.junior-mode,
       body.junior-mode .app-container {
         background-color: #fdf2f8 !important;
@@ -441,7 +457,7 @@
         color: white;
       }
 
-      /* DARK MODE OVERRIDES */
+      /* --- ៣.៦. រចនាបថសម្រាប់ផ្ទៃងងឹត (DARK MODE OVERRIDES) --- */
       body.dark-mode .header {
         background: transparent !important;
       }
@@ -498,6 +514,7 @@
       }
     </style>
   </head>
+
   <body>
     <div class="app-container">
       <!-- ==========================================
@@ -537,7 +554,7 @@
           >
             <i class="fa-regular fa-comment-dots"></i>
           </button>
-          <!-- 🚀 ប្តូរមុខងារចុចកណ្តឹង រុញទៅកាន់ History ទំព័រសារតែម្តង -->
+          <!-- 🚀 ប៊ូតុងកណ្តឹង រុញទៅកាន់ History ផ្ទាំងសារជូនដំណឹង -->
           <button
             class="action-btn"
             id="bellIcon"
@@ -570,6 +587,7 @@
             >Transfer</span
           >
         </button>
+
         <button
           class="menu-item"
           id="m2"
@@ -580,6 +598,7 @@
           </div>
           <span class="menu-text kh-text" data-i18n="btn_scan">Scan QR</span>
         </button>
+
         <button
           class="menu-item"
           id="m3"
@@ -590,6 +609,7 @@
           </div>
           <span class="menu-text kh-text" data-i18n="btn_payment">Payment</span>
         </button>
+
         <button
           class="menu-item"
           id="m4"
@@ -600,6 +620,7 @@
           </div>
           <span class="menu-text kh-text" data-i18n="btn_card">Cards</span>
         </button>
+
         <button
           class="menu-item adult-feature"
           id="m5"
@@ -612,6 +633,7 @@
             >Analytics</span
           >
         </button>
+
         <button
           class="menu-item adult-feature"
           id="m6"
@@ -622,6 +644,7 @@
           </div>
           <span class="menu-text kh-text" data-i18n="btn_savings">Savings</span>
         </button>
+
         <button
           class="menu-item adult-feature"
           id="m7"
@@ -634,6 +657,7 @@
             >Split Bill</span
           >
         </button>
+
         <button
           class="menu-item adult-feature"
           id="m8"
@@ -644,6 +668,7 @@
           </div>
           <span class="menu-text kh-text" data-i18n="btn_deposit">Deposit</span>
         </button>
+
         <button
           class="menu-item adult-feature"
           id="m10"
@@ -656,12 +681,14 @@
             >Merchant</span
           >
         </button>
+
         <button class="menu-item" id="m9" onclick="claimPromoPopup()">
           <div class="icon-box" style="background: #fce7f3; color: #db2777">
             <i class="fa-solid fa-gift"></i>
           </div>
           <span class="menu-text kh-text" data-i18n="btn_promo">Promo</span>
         </button>
+
         <button
           class="menu-item"
           id="m11"
@@ -672,6 +699,7 @@
           </div>
           <span class="menu-text kh-text" data-i18n="btn_egift">E-Gift</span>
         </button>
+
         <button
           class="menu-item adult-feature"
           id="m12"
@@ -684,6 +712,7 @@
             >New Account</span
           >
         </button>
+
         <button
           class="menu-item adult-feature"
           id="m13"
@@ -696,6 +725,7 @@
             >Manage Kids</span
           >
         </button>
+
         <button
           class="menu-item adult-feature"
           id="m14"
@@ -708,6 +738,7 @@
             >Auto Payout</span
           >
         </button>
+
         <!-- 💱 ប៊ូតុងទី ១៥៖ អត្រាប្តូរប្រាក់ & គណនាលុយ (Exchange Rates) -->
         <button
           class="menu-item"
@@ -757,6 +788,7 @@
               Claim Now
             </button>
           </div>
+
           <div class="promo-card blue">
             <i class="fa-solid fa-plane"></i>
             <div>
@@ -776,111 +808,132 @@
     </div>
 
     <!-- ==========================================
-         ៥. ផ្នែក SCRIPT (LOGIC & API)
+         ៥. ផ្នែក SCRIPT (LOGIC & API - 100% PURE _ID)
          ========================================== -->
     <script src="/js/auth.js" defer></script>
     <script src="/js/slip.js" defer></script>
 
     <script>
+      // =========================================================
+      // ៥.១. ការចាប់ផ្តើមអថេរគោល និងផ្ទៀងផ្ទាត់សិទ្ធិចូលប្រើប្រាស់តាម _id
+      // =========================================================
       window.lastCardState = "";
       window.lastNotifState = "";
 
-      let user = window.currentUser;
-      if (!user) window.location.href = "index.html";
-      // 🌟 ចាប់យក Balance តាមទម្រង់ថ្មី
-      let lastBalance = user.mainAccounts?.USD?.balance || 0;
+      let user =
+        window.currentUser ||
+        JSON.parse(sessionStorage.getItem("user") || "null");
+      if (!user || !user._id) {
+        window.location.href = "index.html";
+      }
+
+      // 🌟 ចាប់យកសមតុល្យ USD គោលសម្រាប់ផ្ទៀងផ្ទាត់ពេលមានលុយចូលថ្មី
+      let lastBalance = user?.mainAccounts?.USD?.balance || 0;
+
       document.addEventListener("DOMContentLoaded", () => {
-        // 🌟 ហៅមុខងារទាញយក Dark Mode មកផ្ទៀងផ្ទាត់ភ្លាមៗពេល Load ដល់
+        // ១. ហៅមុខងារទាញយក Dark Mode តាម _id ភ្លាមៗពេល Load ដល់
         applyThemeLocally();
 
+        // ២. ប្រសិនបើជាគណនីកុមារ (Junior) បិទមុខងារមនុស្សពេញវ័យ និងបើកផ្ទៃពណ៌ផ្កាឈូក
         if (user.role === "junior") {
           document.body.classList.add("junior-mode");
           const adultFeatures = document.querySelectorAll(".adult-feature");
           adultFeatures.forEach((el) => (el.style.display = "none"));
         }
 
+        // ៣. រៀបចំលំដាប់ម៉ឺនុយ (Sortable Menu) ដោយរក្សាទុកតាម _id របស់អ្នកប្រើប្រាស់
         const grid = document.getElementById("sortableMenu");
-        const userMenuKey = "menuOrder_" + user.username;
+        const userMenuKey = `menuOrder_${user._id}`;
         const savedOrder = localStorage.getItem(userMenuKey);
 
         if (savedOrder) {
-          const orderArray = JSON.parse(savedOrder);
-          orderArray.forEach((id) => {
-            const el = document.getElementById(id);
-            if (el) grid.appendChild(el);
+          try {
+            const orderArray = JSON.parse(savedOrder);
+            orderArray.forEach((id) => {
+              const el = document.getElementById(id);
+              if (el) grid.appendChild(el);
+            });
+          } catch (e) {}
+        }
+
+        if (typeof Sortable !== "undefined") {
+          new Sortable(grid, {
+            animation: 250,
+            delay: 200,
+            delayOnTouchOnly: true,
+            ghostClass: "sortable-ghost",
+            onEnd: function () {
+              const items = grid.querySelectorAll(".menu-item");
+              const newOrder = Array.from(items).map((item) => item.id);
+              localStorage.setItem(userMenuKey, JSON.stringify(newOrder));
+            },
           });
         }
 
-        new Sortable(grid, {
-          animation: 250,
-          delay: 200,
-          delayOnTouchOnly: true,
-          ghostClass: "sortable-ghost",
-          onEnd: function () {
-            const items = grid.querySelectorAll(".menu-item");
-            const newOrder = Array.from(items).map((item) => item.id);
-            localStorage.setItem(userMenuKey, JSON.stringify(newOrder));
-          },
-        });
+        const pendingSplitUrl = localStorage.getItem("pendingSplitRedirect");
+        if (pendingSplitUrl) {
+          localStorage.removeItem("pendingSplitRedirect");
+          window.location.href = pendingSplitUrl;
+        }
 
+        // ៤. បង្ហាញទិន្នន័យលើអេក្រង់ និងទាញទិន្នន័យថ្មីពី Server
         updateUI(user);
         loadDashboardData(false);
 
-        // =========================================================
-        // 🟢 កូដ Heartbeat ថ្មីនៅទីនេះ: ប្រាប់ Server ថាអ្នកកំពុង Online
-        // =========================================================
-        function startHeartbeat() {
-          // បាញ់ប្រាប់ Server ភ្លាមៗម្តងសិន ពេលចូលដល់ទំព័រនេះ
-          sendHeartbeat();
-
-          // បន្ទាប់មកបាញ់រៀងរាល់ ២ នាទីម្តង (120000 ms)
-          setInterval(sendHeartbeat, 120000);
-        }
-
-        async function sendHeartbeat() {
-          const token = localStorage.getItem("token");
-          if (user && user.username && token) {
-            try {
-              await fetch("/api/user/heartbeat", {
-                method: "POST",
-                headers: {
-                  "Content-Type": "application/json",
-                  Authorization: `Bearer ${token}`,
-                },
-                body: JSON.stringify({ username: user.username }),
-              });
-            } catch (error) {
-              console.log("Heartbeat Sync Failed", error);
-            }
-          }
-        }
-
-        // ហៅឱ្យកូដ Heartbeat ចាប់ផ្តើមធ្វើការ
+        // ៥. ចាប់ផ្តើមមុខងារ Heartbeat ប្រាប់ Server ថាគណនី _id នេះកំពុង Online
         startHeartbeat();
-        // =========================================================
       });
 
-      // 🌟 ២. បន្ថែមមុខងារ applyThemeLocally នេះនៅខាងក្រៅ
-      function applyThemeLocally() {
-        const userThemeKey = "theme_" + user.username;
-        const isDark = localStorage.getItem(userThemeKey) === "dark";
+      // =========================================================
+      // ៥.២. មុខងារគ្រប់គ្រងប្រព័ន្ធ Online Heartbeat & Dark Mode (Pure _id)
+      // =========================================================
+      function startHeartbeat() {
+        sendHeartbeat();
+        setInterval(sendHeartbeat, 120000); // រៀងរាល់ ២ នាទីម្តង
+      }
 
-        if (isDark) {
-          document.body.classList.add("dark-mode");
-        } else {
-          document.body.classList.remove("dark-mode");
+      async function sendHeartbeat() {
+        const token = localStorage.getItem("token");
+        if (user && user._id && token) {
+          try {
+            await fetch("/api/user/heartbeat", {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+                Authorization: `Bearer ${token}`,
+              },
+              body: JSON.stringify({ userId: user._id }), // 🆔 បាញ់តែ _id ប៉ុណ្ណោះ
+            });
+          } catch (error) {
+            console.log("Heartbeat Sync Failed", error);
+          }
         }
       }
 
-      // 🌟 ៣. ស្ដាប់ការផ្លាស់ប្តូរ LocalStorage ពី Tab ផ្សេង (ការពារករណីបើកច្រើន Tab)
+      function applyThemeLocally() {
+        if (!user || !user._id) return;
+        const themeById = localStorage.getItem(`theme_${user._id}`);
+        const themeLegacy = user.username
+          ? localStorage.getItem(`theme_${user.username}`)
+          : null;
+        const isDark = (themeById || themeLegacy) === "dark";
+
+        document.body.classList.toggle("dark-mode", isDark);
+      }
+
       window.addEventListener("storage", (event) => {
-        const userThemeKey = "theme_" + user.username;
-        if (event.key === userThemeKey) {
+        if (
+          user &&
+          (event.key === `theme_${user._id}` ||
+            event.key === `theme_${user.username}`)
+        ) {
           applyThemeLocally();
         }
       });
 
-      // --- ៥.៣. មុខងារវាយកូដប្រូម៉ូសិន (Claim Promo Code) ---
+      // =========================================================
+      // ៥.៣. មុខងារវាយកូដប្រូម៉ូសិន (Claim Promo Code - Pure _id)
+      // =========================================================
       async function claimPromoPopup() {
         const { value: code, isConfirmed } = await Swal.fire({
           title: `<span class="kh-text">${t("swal_promo_title")}</span>`,
@@ -924,15 +977,19 @@
           try {
             const res = await fetch("/api/reward/promo", {
               method: "POST",
-              headers: authHeaders,
+              headers: window.authHeaders,
               body: JSON.stringify({
-                username: user.username,
+                userId: user._id, // 🆔 បាញ់ _id របស់អ្នកប្រើប្រាស់
                 code: code.toUpperCase(),
               }),
             });
             const data = await res.json();
 
             if (data.success) {
+              // ធ្វើបច្ចុប្បន្នភាពសមតុល្យក្នុង mainAccounts.USD
+              if (user.mainAccounts && user.mainAccounts.USD) {
+                user.mainAccounts.USD.balance = data.newBalance;
+              }
               user.balance = data.newBalance;
               sessionStorage.setItem("user", JSON.stringify(user));
               updateUI(user);
@@ -1003,20 +1060,27 @@
         }
       }
 
-      // --- ៥.៤. ទាញយកទិន្នន័យពីម៉ាស៊ីនមេ (TURBO LOAD) ---
+      // =========================================================
+      // ៥.៤. ទាញយកទិន្នន័យពីម៉ាស៊ីនមេ (TURBO LOAD BY _ID)
+      // =========================================================
       async function loadDashboardData(isAuto = true) {
         try {
           const res = await fetch("/api/users", {
             headers: window.authHeaders,
           });
           const users = await res.json();
-          const serverUser = users.find((u) => u.username === user.username);
+
+          // 🆔 ផ្ទៀងផ្ទាត់រកគណនីតាម _id តែមួយគត់!
+          const serverUser = Array.isArray(users)
+            ? users.find((u) => String(u._id) === String(user._id))
+            : null;
 
           if (serverUser) {
             user = serverUser;
+            window.currentUser = serverUser;
             sessionStorage.setItem("user", JSON.stringify(serverUser));
 
-            // 🌟 ឆែកមើលសមតុល្យ USD តាមទម្រង់ថ្មី ដើម្បីលោត Alert
+            // 🌟 ឆែកមើលសមតុល្យ USD តាមទម្រង់ថ្មី ដើម្បីលោត Alert ពេលមានលុយចូល
             const currentUsdBalance =
               serverUser.mainAccounts?.USD?.balance || 0;
 
@@ -1041,9 +1105,10 @@
         }
       }
 
-      // --- ៥.៥. ធ្វើបច្ចុប្បន្នភាពចំណុចប្រទាក់កាត (UPDATE UI) ---
+      // =========================================================
+      // ៥.៥. ធ្វើបច្ចុប្បន្នភាពចំណុចប្រទាក់កាត (UPDATE CARDS UI)
+      // =========================================================
       function updateUI(currentUser) {
-        // ប្រមូលទិន្នន័យចាំបាច់ដើម្បីឆែកមើលថាមានការផ្លាស់ប្តូរឬអត់ (Smart Cache)
         const mainUSD =
           currentUser.mainAccounts && currentUser.mainAccounts.USD
             ? currentUser.mainAccounts.USD
@@ -1070,7 +1135,7 @@
         const sliderWrapper = document.querySelector(".card-slider-wrapper");
         sliderWrapper.innerHTML = "";
 
-        // 🌟 បង្ហាញកាតចម្បង USD តាមទម្រង់ថ្មី (លាក់បើសិន isHidden គឺ true)
+        // 🌟 ១. បង្ហាញកាតចម្បង USD (លាក់បើសិន isHidden គឺ true)
         if (mainUSD.accountNumber && !mainUSD.isHidden) {
           sliderWrapper.appendChild(
             createCardElement(
@@ -1083,7 +1148,7 @@
           );
         }
 
-        // 🌟 បង្ហាញកាតចម្បង KHR តាមទម្រង់ថ្មី (លាក់បើសិន isHidden គឺ true)
+        // 🌟 ២. បង្ហាញកាតចម្បង KHR (លាក់បើសិន isHidden គឺ true)
         if (mainKHR.accountNumber && !mainKHR.isHidden) {
           sliderWrapper.appendChild(
             createCardElement(
@@ -1096,10 +1161,10 @@
           );
         }
 
-        // 🌟 បង្ហាញកាតរង (Sub Accounts) ដែលមិនត្រូវបានលាក់ (isHidden: false)
+        // 🌟 ៣. បង្ហាញកាតរង (Sub Accounts) ដែលមិនត្រូវបានលាក់ (isHidden: false)
         if (currentUser.subAccounts && currentUser.subAccounts.length > 0) {
           currentUser.subAccounts.forEach((sub) => {
-            if (sub.isHidden) return; // បើ User លាក់ គឺមិនបង្ហាញកាតនេះទេ
+            if (sub.isHidden) return;
 
             const cardClass = sub.currency === "KHR" ? "khr-card" : "usd-card";
             sliderWrapper.appendChild(
@@ -1115,8 +1180,9 @@
         }
 
         const avatarBox = document.getElementById("avatarBox");
-        if (currentUser.profileImage && avatarBox)
+        if (currentUser.profileImage && avatarBox) {
           avatarBox.innerHTML = `<img src="${currentUser.profileImage}">`;
+        }
       }
 
       function createCardElement(
@@ -1133,23 +1199,41 @@
             : window.t("card_khr_balance");
         const displayBal =
           currency === "USD"
-            ? balance.toFixed(2)
-            : balance.toLocaleString("en-US");
+            ? Number(balance || 0).toFixed(2)
+            : Number(balance || 0).toLocaleString("en-US");
         const safeAccNum = accNum
-          ? accNum.replace(/(\d{3})(\d{3})(\d{3})/, "$1 $2 $3")
+          ? String(accNum).replace(/(\d{3})(\d{3})(\d{3})/, "$1 $2 $3")
           : "N/A";
+
         const card = document.createElement("div");
         card.className = `credit-card ${cardClass}`;
         card.onclick = () => (window.location.href = "accounts.html");
-        card.innerHTML = `<div class="card-top"><span class="card-chip"></span><img src="images/logo-nobg.png" class="card-logo-img" onerror="this.style.display = 'none'"></div><div class="card-body"><p class="card-label kh-text">${label}</p><h1 class="card-balance">${currency === "USD" ? "$" : ""}${displayBal}${currency === "KHR" ? " ៛" : ""}</h1></div><div class="card-footer"><p class="card-number">${safeAccNum}</p></div>`;
+        card.innerHTML = `
+          <div class="card-top">
+            <span class="card-chip"></span>
+            <img src="images/logo-nobg.png" class="card-logo-img" onerror="this.style.display = 'none'">
+          </div>
+          <div class="card-body">
+            <p class="card-label kh-text">${label}</p>
+            <h1 class="card-balance">${currency === "USD" ? "$" : ""}${displayBal}${currency === "KHR" ? " ៛" : ""}</h1>
+          </div>
+          <div class="card-footer">
+            <p class="card-number">${safeAccNum}</p>
+          </div>
+        `;
         return card;
       }
 
-      // --- ៥.៦. ការគ្រប់គ្រងសារជូនដំណឹង (UNIFIED INBOX DISPATCHER) ---
+      // =========================================================
+      // ៥.៦. ការគ្រប់គ្រងសារជូនដំណឹង (UNIFIED INBOX DISPATCHER - PURE _ID)
+      // =========================================================
       let currentUnreadCount = 0;
 
       function updateNotificationsUI(currentUser) {
-        const respondedMap = window.getRespondedMap();
+        const respondedMap =
+          typeof window.getRespondedMap === "function"
+            ? window.getRespondedMap()
+            : {};
 
         const unread = (currentUser.notifications || []).filter((n) => {
           if (n.isRead) return false;
@@ -1168,17 +1252,16 @@
             key = metaData.accountNumber || n._id || n.id;
           else key = n._id || n.id;
 
-          // 🌟 ការពារការលោតសារដែលយើងបាន Accept/Reject រួចនៅក្នុង Database (Priority)
           if (n.responseStatus && n.responseStatus !== "pending") return false;
 
-          // 🚀 ឆ្លាតវៃបំផុត: បើ U-MALL បាញ់សំណើដដែលមកវិញ (ដែលនៅ Unread) យើងត្រូវលុបប្រវត្តិ Reject ចាស់ចោល!
+          // 🆔 រក្សាទុកស្ថានភាពឆ្លើយតបតាម _id របស់អ្នកប្រើប្រាស់
           if (
             n.type === "card_payment_request" &&
             respondedMap[key] === "rejected"
           ) {
             delete respondedMap[key];
             localStorage.setItem(
-              `respondedNotifs_${currentUser.username}`,
+              `respondedNotifs_${currentUser._id}`,
               JSON.stringify(respondedMap),
             );
             return true;
@@ -1217,7 +1300,9 @@
         });
       }
 
-      // --- ៥.៧. មុខងារលាតម៉ឺនុយចុះឡើង (MENU TOGGLE) ---
+      // =========================================================
+      // ៥.៧. មុខងារលាតម៉ឺនុយចុះឡើង (MENU EXPANSION & TOUCH SWIPE)
+      // =========================================================
       function toggleMenuExpansion() {
         const grid = document.getElementById("sortableMenu");
         const btn = document.getElementById("menuToggleBtn");
@@ -1247,7 +1332,7 @@
         { passive: true },
       );
 
-      // 🔄 Load Data រាល់ ៤ វិនាទី
+      // 🔄 ទាញទិន្នន័យបច្ចុប្បន្នភាពដោយស្វ័យប្រវត្តិរៀងរាល់ ៤ វិនាទី
       setInterval(() => loadDashboardData(true), 4000);
     </script>
   </body>

@@ -1868,7 +1868,7 @@
 
     <script>
       // =========================================================
-      // 🧠 U-PAY JUNIOR PARENTAL CONTROL & MULTI-SCREEN ENGINE
+      // 🧠 U-PAY JUNIOR PARENTAL CONTROL & MULTI-SCREEN ENGINE (100% Pure _id)
       // =========================================================
       let childrenList = [];
       let activeChild = null;
@@ -1945,18 +1945,21 @@
         return String(num || "").replace(/(\d{3})(?=\d)/g, "$1 ");
       }
 
-      // 🔄 ទាញយកទិន្នន័យគណនីកូនៗទាំងអស់ពី Backend
-      async function loadJuniorDashboardData(preserveChildUsername = null) {
+      // 🔄 ទាញយកទិន្នន័យគណនីកូនៗទាំងអស់ពី Backend តាម _id របស់ប៉ាម៉ាក់
+      async function loadJuniorDashboardData(preserveChildKey = null) {
         try {
-          const res = await fetch("/api/account/junior/list", {
-            headers: window.authHeaders,
-          });
+          const res = await fetch(
+            `/api/account/junior/list?parentUserId=${encodeURIComponent(window.currentUser._id)}`,
+            {
+              headers: window.authHeaders,
+            },
+          );
           if (res.ok) {
             const data = await res.json();
             if (data.success) {
               parentMainAccounts = data.parentAccounts || {};
               childrenList = data.children || [];
-              renderKidsOverviewAndSelect(preserveChildUsername);
+              renderKidsOverviewAndSelect(preserveChildKey);
               return;
             }
           }
@@ -1973,13 +1976,13 @@
 
         const grouped = {};
         jrSubs.forEach((s) => {
-          const baseUser = String(s.accountId || s.accountNumber).replace(
-            /_khr$/i,
-            "",
-          );
-          if (!grouped[baseUser]) {
-            grouped[baseUser] = {
-              username: baseUser,
+          const baseKey = String(
+            s.linkedUserId || s.accountId || s.accountNumber,
+          ).replace(/_khr$/i, "");
+          if (!grouped[baseKey]) {
+            grouped[baseKey] = {
+              _id: baseKey,
+              username: baseKey,
               fullName: String(s.accountName || "").replace(
                 /\s*\(Junior.*\)/i,
                 "",
@@ -1994,12 +1997,12 @@
             };
           }
           if (s.currency === "KHR") {
-            grouped[baseUser].accounts.KHR = {
+            grouped[baseKey].accounts.KHR = {
               accountNumber: s.accountNumber,
               balance: Number(s.balance || 0),
             };
           } else {
-            grouped[baseUser].accounts.USD = {
+            grouped[baseKey].accounts.USD = {
               accountNumber: s.accountNumber,
               balance: Number(s.balance || 0),
             };
@@ -2007,10 +2010,10 @@
         });
 
         childrenList = Object.values(grouped);
-        renderKidsOverviewAndSelect(preserveChildUsername);
+        renderKidsOverviewAndSelect(preserveChildKey);
       }
 
-      function renderKidsOverviewAndSelect(preserveChildUsername = null) {
+      function renderKidsOverviewAndSelect(preserveChildKey = null) {
         let totalUSD = 0;
         let totalKHR = 0;
         childrenList.forEach((c) => {
@@ -2038,20 +2041,26 @@
         workspace.style.display = "block";
 
         const targetChild =
-          childrenList.find((c) => c.username === preserveChildUsername) ||
-          childrenList[0];
+          childrenList.find(
+            (c) =>
+              String(c._id) === String(preserveChildKey) ||
+              c.username === preserveChildKey,
+          ) || childrenList[0];
 
-        selectActiveChild(targetChild.username);
+        selectActiveChild(String(targetChild._id));
       }
 
-      window.selectActiveChild = function (username) {
-        activeChild = childrenList.find((c) => c.username === username);
+      // 🆔 ជ្រើសរើសកូនតាម _id ផ្ទាល់
+      window.selectActiveChild = function (childKey) {
+        activeChild = childrenList.find(
+          (c) => String(c._id) === String(childKey) || c.username === childKey,
+        );
         if (!activeChild) return;
 
         const carousel = document.getElementById("kidsCarouselContainer");
         carousel.innerHTML = childrenList
           .map((c) => {
-            const isSel = c.username === activeChild.username;
+            const isSel = String(c._id) === String(activeChild._id);
             const initial = (c.fullName || c.username).charAt(0).toUpperCase();
             const avatarInner = c.profileImage
               ? `<img src="${c.profileImage}" onerror="this.outerHTML='${initial}'" />`
@@ -2059,7 +2068,7 @@
             return `
               <div
                 class="jr-kid-pill ${isSel ? "active" : ""}"
-                onclick="selectActiveChild('${c.username}')"
+                onclick="selectActiveChild('${c._id}')"
               >
                 <div class="jr-kid-avatar">
                   ${avatarInner}
@@ -2221,7 +2230,7 @@
         renderChildTransactions();
       };
 
-      // 🖼️ ប្តូររូបថត Profile របស់កូនតាមក្រោយ (រក្សាទុកក្នុង profileImage ដោយមិនប៉ះពាល់រូបថត KYC selfieUrl ឡើយ!)
+      // 🖼️ ប្តូររូបថត Profile របស់កូនតាមក្រោយ (បាញ់តាម _id ១០០%)
       window.handleUpdateChildProfilePhoto = async function (event) {
         const file = event.target.files[0];
         if (!file || !activeChild) return;
@@ -2255,15 +2264,15 @@
                 method: "POST",
                 headers: window.authHeaders,
                 body: JSON.stringify({
-                  parentUsername: window.currentUser.username,
-                  childUsername: activeChild.username,
+                  parentUserId: window.currentUser._id, // 🆔 _id ប៉ាម៉ាក់
+                  childUserId: activeChild._id, // 🆔 _id កូន
                   newProfileImage: cData.secure_url,
                   pin: finalPin,
                 }),
               });
               const data = await res.json();
               if (data.success) {
-                await loadJuniorDashboardData(activeChild.username);
+                await loadJuniorDashboardData(activeChild._id);
                 Swal.fire({
                   toast: true,
                   position: "top-end",
@@ -2787,7 +2796,7 @@
                 method: "POST",
                 headers: window.authHeaders,
                 body: JSON.stringify({
-                  parentUsername: window.currentUser.username,
+                  parentUserId: window.currentUser._id, // 🆔 _id ប៉ាម៉ាក់
                   ...juniorOnboardingDraft,
                   pin: finalPin,
                 }),
@@ -2819,7 +2828,7 @@
       };
 
       // =========================================================
-      // 💸 មុខងារ ដាក់ប្រាក់ឱ្យកូន, ដកប្រាក់មកវិញ, កំណត់ Limit, ផ្អាកគណនី & ប្តូរ Password
+      // 💸 មុខងារ ដាក់ប្រាក់ឱ្យកូន, ដកប្រាក់មកវិញ, កំណត់ Limit, ផ្អាកគណនី & ប្តូរ Password (100% Pure _id)
       // =========================================================
       window.openParentTransferModal = async function (direction = "TOPUP") {
         if (!activeChild) return;
@@ -2907,8 +2916,8 @@
                 method: "POST",
                 headers: window.authHeaders,
                 body: JSON.stringify({
-                  parentUsername: window.currentUser.username,
-                  childUsername: activeChild.username,
+                  parentUserId: window.currentUser._id, // 🆔 _id ប៉ាម៉ាក់
+                  childUserId: activeChild._id, // 🆔 _id កូន
                   direction,
                   currency: formVals.currency,
                   amount: formVals.amount,
@@ -2922,7 +2931,7 @@
                 if (data.user) {
                   sessionStorage.setItem("user", JSON.stringify(data.user));
                 }
-                await loadJuniorDashboardData(activeChild.username);
+                await loadJuniorDashboardData(activeChild._id);
                 if (data.transaction && typeof openGlobalSlip === "function") {
                   openGlobalSlip(data.transaction);
                 } else {
@@ -2976,7 +2985,8 @@
               method: "POST",
               headers: window.authHeaders,
               body: JSON.stringify({
-                parentUsername: window.currentUser.username,
+                parentUserId: window.currentUser._id, // 🆔 _id ប៉ាម៉ាក់
+                childUserId: activeChild._id, // 🆔 _id កូន
                 childAccountNumber: activeChild.primaryAccountNumber,
                 dailyLimit: newLim,
                 pin: finalPin,
@@ -2987,7 +2997,7 @@
               if (data.user) {
                 sessionStorage.setItem("user", JSON.stringify(data.user));
               }
-              await loadJuniorDashboardData(activeChild.username);
+              await loadJuniorDashboardData(activeChild._id);
               Swal.fire({
                 toast: true,
                 position: "top-end",
@@ -3046,7 +3056,8 @@
                   method: "POST",
                   headers: window.authHeaders,
                   body: JSON.stringify({
-                    parentUsername: window.currentUser.username,
+                    parentUserId: window.currentUser._id, // 🆔 _id ប៉ាម៉ាក់
+                    childUserId: activeChild._id, // 🆔 _id កូន
                     childAccountNumber: activeChild.primaryAccountNumber,
                     isFrozen: willFreeze,
                     pin: finalPin,
@@ -3057,7 +3068,7 @@
                   if (data.user) {
                     sessionStorage.setItem("user", JSON.stringify(data.user));
                   }
-                  await loadJuniorDashboardData(activeChild.username);
+                  await loadJuniorDashboardData(activeChild._id);
                   Swal.fire({
                     toast: true,
                     position: "top-end",
@@ -3128,15 +3139,15 @@
               method: "POST",
               headers: window.authHeaders,
               body: JSON.stringify({
-                parentUsername: window.currentUser.username,
-                childUsername: activeChild.username,
+                parentUserId: window.currentUser._id, // 🆔 _id ប៉ាម៉ាក់
+                childUserId: activeChild._id, // 🆔 _id កូន
                 ...secVals,
                 pin: finalPin,
               }),
             });
             const data = await res.json();
             if (data.success) {
-              await loadJuniorDashboardData(activeChild.username);
+              await loadJuniorDashboardData(activeChild._id);
               Swal.fire("ជោគជ័យ!", data.message, "success");
             } else {
               Swal.fire("បរាជ័យ", data.message, "error");

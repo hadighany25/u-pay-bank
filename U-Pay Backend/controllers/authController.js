@@ -1,12 +1,11 @@
 // ============================================================================
 // ឯកសារ: controllers/authController.js
-// អត្ថន័យ: គ្រប់គ្រងការចុះឈ្មោះ, ចូលគណនី, ការកំណត់ទម្រង់គណនី និងគ្រប់គ្រងគណនី (User Auth & Profile)
+// អត្ថន័យ: គ្រប់គ្រងការចុះឈ្មោះ, ចូលគណនី, ការកំណត់ទម្រង់គណនី និងគ្រប់គ្រងគណនី (Strict _id Binding)
 // ============================================================================
 
 // ==========================================
 // 📦 ផ្នែកទី ១៖ ទាញយក Modules, Models និង Utils
 // ==========================================
-// 1.1 បណ្ណាល័យ (Libraries)
 const jwt = require("jsonwebtoken");
 const mongoose = require("mongoose");
 const bcrypt = require("bcryptjs");
@@ -14,7 +13,7 @@ const Tesseract = require("tesseract.js");
 const crypto = require("crypto");
 const { sendOTP, sendResetLink } = require("../utils/sendEmail");
 
-// 1.2 តារាងទិន្នន័យ (Database Models)
+// តារាងទិន្នន័យ (Database Models)
 const User = require("../models/User");
 const Transaction = require("../models/Transaction");
 const JointAccount = require("../models/JointAccount");
@@ -22,20 +21,17 @@ const Admin = require("../models/Admin");
 const Notification = require("../models/Notification");
 const Otp = require("../models/Otp");
 
-// 1.3 មុខងារជំនួយ (Services & Utils)
+// មុខងារជំនួយ (Services & Utils)
 const bot = require("../services/telegramBot");
 const { getFormattedDate } = require("../services/helpers");
 
-// អថេរសម្រាប់ផ្ទុក OTP បណ្តោះអាសន្នពេលភ្លេចលេខសម្ងាត់ (រក្សាទុកតាមកូដដើម)
+// អថេរសម្រាប់ផ្ទុក OTP បណ្តោះអាសន្នពេលភ្លេចលេខសម្ងាត់
 let tempForgotOtps = {};
 
 // ==========================================
 // 🛠️ ផ្នែកទី ២៖ មុខងារជំនួយទូទៅ (Helper Functions)
 // ==========================================
 
-/**
- * 📌 បង្កើតលេខគណនីអូតូដោយចៃដន្យ (ទម្រង់ x00x00xxx) និងឆែកកុំឱ្យស្ទួន
- */
 const generatePatternAccounts = async () => {
   let isUnique = false;
   let newAccUSD = "";
@@ -49,7 +45,6 @@ const generatePatternAccounts = async () => {
     newAccUSD = baseAcc.toString();
     newAccKHR = (baseAcc + 1).toString();
 
-    // ឆែកមើលក្រែងលោមានលេខស្ទួនក្នុង Database
     const exists = await User.findOne({
       $or: [
         { "mainAccounts.USD.accountNumber": newAccUSD },
@@ -62,15 +57,11 @@ const generatePatternAccounts = async () => {
   return { usd: newAccUSD, khr: newAccKHR };
 };
 
-/**
- * 📌 បង្កើត User ID ៨ ខ្ទង់ (សម្រាប់ធ្វើជា Referral Code ណែនាំមិត្តភ័ក្តិ)
- */
 const generateUserId = async () => {
   let isUnique = false;
   let newUserId = "";
 
   while (!isUnique) {
-    // បង្កើតលេខចៃដន្យ ៨ ខ្ទង់ (ចាប់ពី 10000000 ដល់ 99999999)
     newUserId = Math.floor(10000000 + Math.random() * 90000000).toString();
     const exists = await User.findOne({ userId: newUserId });
     if (!exists) isUnique = true;
@@ -82,13 +73,9 @@ const generateUserId = async () => {
 // 🚪 ផ្នែកទី ៣៖ ការចូល និងចាកចេញ (Login & Logout)
 // ==========================================
 
-/**
- * 📌 ចូលគណនី (Login) ជាមួយនឹងប្រព័ន្ធការពារវាយ Password ខុស
- */
 const login = async (req, res) => {
   const { identifier, password } = req.body;
   try {
-    // 🟢 ១. ស្វែងរកអតិថិជនតាមរយៈឈ្មោះ, ទូរស័ព្ទ, អ៊ីមែល ឬ ឈ្មោះពេញ (មិនទាន់ឆែក Password ទេ)
     let user = await User.findOne({
       $or: [
         { username: identifier },
@@ -98,7 +85,6 @@ const login = async (req, res) => {
       ],
     });
 
-    // បើរកឈ្មោះមិនឃើញទេ
     if (!user) {
       return res.json({
         success: false,
@@ -106,7 +92,6 @@ const login = async (req, res) => {
       });
     }
 
-    // 🟢 ២. ឆែកមើលថាគណនីនេះជាប់សោរ (Frozen) ស្រាប់ហើយឬនៅ
     if (user.isFrozen) {
       return res.json({
         success: false,
@@ -114,12 +99,9 @@ const login = async (req, res) => {
       });
     }
 
-    // 🟢 ៣. ផ្ទៀងផ្ទាត់លេខសម្ងាត់ (Password Verification)
     if (user.password !== password) {
-      // បើវាយខុស បូកចំនួនដង (Attempts) ថែម ១
       user.passwordAttempts = (user.passwordAttempts || 0) + 1;
 
-      // ឆែកមើលថាបើវាយខុសដល់ ៥ ដង យើងបិទគណនី (Auto-Freeze) តែម្តង
       if (user.passwordAttempts >= 5) {
         user.isFrozen = true;
         await user.save();
@@ -130,7 +112,6 @@ const login = async (req, res) => {
         });
       }
 
-      // បើមិនទាន់ដល់ ៥ ដង គ្រាន់តែ Save ទុក ហើយលោតសារព្រមាន
       await user.save();
       return res.json({
         success: false,
@@ -138,9 +119,6 @@ const login = async (req, res) => {
       });
     }
 
-    // ========================================================
-    // 🛡️ ៤. បើ Password ត្រូវ! យើងចាប់យក IP និង Device រួចឱ្យចូល
-    // ========================================================
     const clientIp =
       req.headers["x-forwarded-for"] ||
       req.connection.remoteAddress ||
@@ -160,14 +138,12 @@ const login = async (req, res) => {
 
     const currentLoginTime = new Date().toISOString();
 
-    // 🟢 បង្កើត Object ឧបករណ៍ថ្មី
     const newDeviceObj = {
       ip: cleanIp,
       device: deviceName,
       time: currentLoginTime,
     };
 
-    // 🟢 Update ស្ថានភាព និង រុញឧបករណ៍ថ្មីចូលក្នុង Array (រក្សាទុកត្រឹម ៤ ឧបករណ៍ចុងក្រោយ)
     user = await User.findOneAndUpdate(
       { _id: user._id },
       {
@@ -183,8 +159,8 @@ const login = async (req, res) => {
         $push: {
           connectedDevices: {
             $each: [newDeviceObj],
-            $position: 0, // ដាក់បញ្ចូលខាងដើមគេ (ថ្មីបំផុត)
-            $slice: 4, // កាត់រក្សាទុកត្រឹម ៤ គ្រឿងចុងក្រោយកុំឱ្យពេញ Database
+            $position: 0,
+            $slice: 4,
           },
         },
       },
@@ -192,14 +168,13 @@ const login = async (req, res) => {
     );
 
     const token = jwt.sign(
-      { id: user.id, username: user.username, role: user.role },
+      { id: user.id || user._id, username: user.username, role: user.role },
       process.env.JWT_SECRET,
       { expiresIn: "7d" },
     );
 
     const safeUser = user.toObject();
 
-    // ការធ្វើបច្ចុប្បន្នភាពគណនី Joint
     if (safeUser.subAccounts && safeUser.subAccounts.length > 0) {
       const jointAccIds = safeUser.subAccounts
         .filter(
@@ -240,14 +215,15 @@ const login = async (req, res) => {
   }
 };
 
-/**
- * 📌 ចាកចេញពីគណនី (Logout)
- */
 const logout = async (req, res) => {
-  const { username } = req.body;
+  const { username, userId } = req.body;
   try {
+    const query =
+      userId && mongoose.isValidObjectId(userId)
+        ? { _id: userId }
+        : { username };
     await User.findOneAndUpdate(
-      { username: username },
+      query,
       { $set: { isOnline: false }, $unset: { currentToken: "" } },
       { new: true },
     );
@@ -262,13 +238,6 @@ const logout = async (req, res) => {
 // 🔐 ផ្នែកទី ៤៖ ការចុះឈ្មោះ និង OTP (Registration)
 // ==========================================
 
-// ==========================================
-// 🔐 ផ្នែកទី ៤៖ ការចុះឈ្មោះ និង OTP (Registration)
-// ==========================================
-
-/**
- * 📌 ៤.១ សុំលេខកូដ OTP (Request OTP) មុនពេលបង្កើតគណនី
- */
 const requestRegisterOTP = async (req, res) => {
   const { username, phone, email } = req.body;
 
@@ -285,7 +254,7 @@ const requestRegisterOTP = async (req, res) => {
     }
 
     const otpCode = Math.floor(100000 + Math.random() * 900000).toString();
-    await Otp.deleteMany({ email: email }); // លុបកូដចាស់ចោលសិនបើមាន
+    await Otp.deleteMany({ email: email });
     await Otp.create({ email: email, otp: otpCode });
     const emailSent = await sendOTP(email, otpCode, "register");
 
@@ -307,9 +276,6 @@ const requestRegisterOTP = async (req, res) => {
   }
 };
 
-/**
- * 📌 ៤.២ ផ្ទៀងផ្ទាត់កូដ OTP ភ្លាមៗនៅ Step 1 (Verify OTP Only - ឱ្យភ្ញៀវបំពេញទម្រង់បន្តដោយគ្មានកំណត់ម៉ោង)
- */
 const verifyRegisterOTP = async (req, res) => {
   const { email, otp } = req.body;
   try {
@@ -332,7 +298,6 @@ const verifyRegisterOTP = async (req, res) => {
       });
     }
 
-    // លុបកូដ OTP ចោលក្រោយផ្ទៀងផ្ទាត់ត្រូវ ដើម្បីកុំឱ្យផុតកំណត់ពេលភ្ញៀវកំពុងបំពេញទម្រង់យូរ
     await Otp.deleteOne({ _id: validOtp._id });
 
     return res.json({
@@ -346,10 +311,6 @@ const verifyRegisterOTP = async (req, res) => {
   }
 };
 
-/**
- * 📌 ៤.៣ បង្កើតគណនីពិតប្រាកដ (Verify & Register + Global Duplicate ID Sync)
- * - មិនកំណត់ម៉ោងផុតកំណត់ OTP ពេលចុច Submit ចុងក្រោយទៀតទេ បើបាន Verify នៅ Step 1 រួច
- */
 const verifyAndRegister = async (req, res) => {
   const {
     username,
@@ -371,7 +332,6 @@ const verifyAndRegister = async (req, res) => {
   } = req.body;
 
   try {
-    // ៤.៣.១ ប្រសិនបើមិនទាន់បាន Verify នៅ Step 1 ទេ ទើបឆែកក្នុង Collection Otp
     if (!otpVerified) {
       const validOtp = await Otp.findOne({ email: email, otp: otp });
       if (validOtp) {
@@ -379,7 +339,6 @@ const verifyAndRegister = async (req, res) => {
       }
     }
 
-    // ៤.៣.២ ឆែកការពារក្រែងលោមានអ្នកបង្កើតគណនីស្ទួន Username, Phone, Email
     const existingUser = await User.findOne({
       $or: [{ username }, { phone }, { email }],
     });
@@ -389,7 +348,6 @@ const verifyAndRegister = async (req, res) => {
         .json({ success: false, message: "គណនីនេះត្រូវបានចុះឈ្មោះរួចហើយ!" });
     }
 
-    // ៤.៣.៣ ឆែកលេខអត្តសញ្ញាណប័ណ្ណស្ទួន និងតម្រូវឱ្យមានមូលហេតុ (Duplicate ID Check)
     const cleanIdNumber = String(idNumber || "").trim();
     let finalDuplicateReason = String(
       duplicateReason || duplicateIdReason || "",
@@ -408,7 +366,6 @@ const verifyAndRegister = async (req, res) => {
       }
     }
 
-    // ៤.៣.៤ បង្កើតលេខគណនីធនាគារ និងលេខសម្គាល់អ្នកប្រើប្រាស់ ៨ខ្ទង់
     const newAccs = await generatePatternAccounts();
     const newUserId = await generateUserId();
     const tsId = Date.now().toString();
@@ -418,7 +375,6 @@ const verifyAndRegister = async (req, res) => {
       initialKycStatus = "pending";
     }
 
-    // ៤.៣.៥ បង្កើតគណនីថ្មី
     const newUser = new User({
       id: tsId,
       userId: newUserId,
@@ -478,7 +434,6 @@ const verifyAndRegister = async (req, res) => {
 
     await newUser.save();
 
-    // 🔗 ៤.៣.៦ GLOBAL SYNC: កត់ត្រាមូលហេតុ (duplicateIdReason) ចូលគ្រប់គណនីទាំងអស់ដែលមានលេខអត្តសញ្ញាណប័ណ្ណដូចគ្នានេះ (ទាំងចាស់ ទាំងថ្មី)!
     if (
       cleanIdNumber &&
       cleanIdNumber !== "N/A" &&
@@ -497,9 +452,12 @@ const verifyAndRegister = async (req, res) => {
       newUser.duplicateIdReason = reasonToSync;
     }
 
-    // ៤.៣.៧ បង្កើត Token សម្រាប់ Login ដោយស្វ័យប្រវត្តិ
     const token = jwt.sign(
-      { id: newUser.id, username: newUser.username, role: newUser.role },
+      {
+        id: newUser.id || newUser._id,
+        username: newUser.username,
+        role: newUser.role,
+      },
       process.env.JWT_SECRET,
       { expiresIn: "7d" },
     );
@@ -526,9 +484,6 @@ const verifyAndRegister = async (req, res) => {
 // 🔑 ផ្នែកទី ៥៖ ការសង្គ្រោះគណនី (Forgot Password)
 // ==========================================
 
-/**
- * 📌 ផ្ទៀងផ្ទាត់ Email ដើម្បីសុំ OTP ពេលភ្លេចលេខសម្ងាត់
- */
 const verifyUserAccount = async (req, res) => {
   const { identifier } = req.body;
   try {
@@ -560,9 +515,6 @@ const verifyUserAccount = async (req, res) => {
   }
 };
 
-/**
- * 📌 ផ្ទៀងផ្ទាត់ OTP សង្គ្រោះគណនី
- */
 const verifyForgotOtp = async (req, res) => {
   const { email, otp } = req.body;
   try {
@@ -581,9 +533,6 @@ const verifyForgotOtp = async (req, res) => {
   }
 };
 
-/**
- * 📌 កំណត់លេខសម្ងាត់ថ្មី (Reset Password)
- */
 const resetPassword = async (req, res) => {
   const { email, otp, newPassword } = req.body;
   try {
@@ -601,7 +550,7 @@ const resetPassword = async (req, res) => {
       email: { $regex: new RegExp("^" + email.trim() + "$", "i") },
     });
     if (user) {
-      user.password = newPassword; // 🟢 រក្សាទុកជា Plain Text
+      user.password = newPassword;
       await user.save();
       await Otp.deleteOne({ _id: validOtp._id });
       res.json({
@@ -614,11 +563,8 @@ const resetPassword = async (req, res) => {
   }
 };
 
-/**
- * 📌 ផ្ញើ OTP សម្រាប់ពេលប្តូរ Password ឬ PIN ក្នុង Settings (Step 2)
- */
 const sendSecurityOtp = async (req, res) => {
-  const { email, purpose } = req.body; // purpose អាចជា "security_pass" ឬ "security_pin"
+  const { email, purpose } = req.body;
   try {
     const user = await User.findOne({ email: email });
     if (!user)
@@ -627,7 +573,6 @@ const sendSecurityOtp = async (req, res) => {
     const otpCode = Math.floor(100000 + Math.random() * 900000).toString();
     await Otp.create({ email: user.email, otp: otpCode });
 
-    // ផ្ញើ Email ដោយបញ្ជូន purpose ទៅជាមួយ
     const emailSent = await sendOTP(
       user.email,
       otpCode,
@@ -653,13 +598,18 @@ const sendSecurityOtp = async (req, res) => {
 // ⚙️ ផ្នែកទី ៦៖ ការកំណត់សុវត្ថិភាព និងប្រវត្តិរូប (Security & Profile Settings)
 // ==========================================
 
-/**
- * 📌 ឆែកលេខសម្ងាត់ចាស់ មុនអនុញ្ញាតឱ្យប្តូរ
- */
 const verifyCurrentPassword = async (req, res) => {
-  const { username, password } = req.body;
+  const { username, userId, password } = req.body;
   try {
-    const user = await User.findOne({ username });
+    const targetUserId =
+      userId || (req.user ? req.user._id || req.user.id : null);
+    const user =
+      targetUserId && mongoose.isValidObjectId(targetUserId)
+        ? await User.findById(targetUserId)
+        : await User.findOne({
+            username: username || (req.user ? req.user.username : ""),
+          });
+
     if (user && user.password === password) {
       res.json({ success: true });
     } else {
@@ -673,13 +623,18 @@ const verifyCurrentPassword = async (req, res) => {
   }
 };
 
-/**
- * 📌 ឆែកលេខ PIN ចាស់ មុនអនុញ្ញាតឱ្យប្តូរ
- */
 const verifyCurrentPin = async (req, res) => {
-  const { username, pin } = req.body;
+  const { username, userId, pin } = req.body;
   try {
-    const user = await User.findOne({ username });
+    const targetUserId =
+      userId || (req.user ? req.user._id || req.user.id : null);
+    const user =
+      targetUserId && mongoose.isValidObjectId(targetUserId)
+        ? await User.findById(targetUserId)
+        : await User.findOne({
+            username: username || (req.user ? req.user.username : ""),
+          });
+
     if (user && user.pin === pin) {
       res.json({ success: true });
     } else {
@@ -690,15 +645,20 @@ const verifyCurrentPin = async (req, res) => {
   }
 };
 
-/**
- * 📌 ប្តូរលេខសម្ងាត់ (Change Password)
- */
 const changePassword = async (req, res) => {
-  const { username, oldPassword, newPassword } = req.body;
+  const { username, userId, oldPassword, newPassword } = req.body;
   try {
-    const user = await User.findOne({ username });
+    const targetUserId =
+      userId || (req.user ? req.user._id || req.user.id : null);
+    const user =
+      targetUserId && mongoose.isValidObjectId(targetUserId)
+        ? await User.findById(targetUserId)
+        : await User.findOne({
+            username: username || (req.user ? req.user.username : ""),
+          });
+
     if (user && user.password === oldPassword) {
-      user.password = newPassword; // 🟢 រក្សាទុកជា Plain Text
+      user.password = newPassword;
       await user.save();
       res.json({ success: true });
     } else
@@ -708,13 +668,18 @@ const changePassword = async (req, res) => {
   }
 };
 
-/**
- * 📌 ប្តូរលេខ PIN (Change PIN)
- */
 const changePin = async (req, res) => {
-  const { username, oldPin, newPin } = req.body;
+  const { username, userId, oldPin, newPin } = req.body;
   try {
-    const user = await User.findOne({ username });
+    const targetUserId =
+      userId || (req.user ? req.user._id || req.user.id : null);
+    const user =
+      targetUserId && mongoose.isValidObjectId(targetUserId)
+        ? await User.findById(targetUserId)
+        : await User.findOne({
+            username: username || (req.user ? req.user.username : ""),
+          });
+
     if (user && user.pin === oldPin) {
       user.pin = newPin;
       user.pinAttempts = 0;
@@ -726,15 +691,15 @@ const changePin = async (req, res) => {
   }
 };
 
-/**
- * 📌 ប្តូររូបភាពប្រវត្តិរូប (Upload Image)
- */
 const uploadImage = async (req, res) => {
   const { id, imageUrl } = req.body;
   if (!imageUrl)
     return res.json({ success: false, message: "មិនមាន URL រូបភាពទេ!" });
   try {
-    const user = await User.findOne({ $or: [{ id: id }, { username: id }] });
+    const query = mongoose.isValidObjectId(id)
+      ? { _id: id }
+      : { $or: [{ id: id }, { username: id }] };
+    const user = await User.findOne(query);
     if (user) {
       user.profileImage = imageUrl;
       await user.save();
@@ -745,12 +710,10 @@ const uploadImage = async (req, res) => {
   }
 };
 
-/**
- * 📌 បញ្ជូនឯកសារ KYC ពេញលេញពីមុខងារ Settings របស់អតិថិជន (រូប ID + Selfie + ទិន្នន័យ OCR + Duplicate ID Sync)
- */
 const submitKyc = async (req, res) => {
   const {
     username,
+    userId,
     kycUrl,
     idCardUrl,
     selfieUrl,
@@ -772,7 +735,15 @@ const submitKyc = async (req, res) => {
   }
 
   try {
-    const user = await User.findOne({ username });
+    const targetUserId =
+      userId || (req.user ? req.user._id || req.user.id : null);
+    const user =
+      targetUserId && mongoose.isValidObjectId(targetUserId)
+        ? await User.findById(targetUserId)
+        : await User.findOne({
+            username: username || (req.user ? req.user.username : ""),
+          });
+
     if (!user) return res.json({ success: false, message: "រកមិនឃើញគណនីទេ!" });
 
     const cleanIdNumber = String(idNumber || user.idNumber || "").trim();
@@ -791,7 +762,6 @@ const submitKyc = async (req, res) => {
       });
     }
 
-    // 🔍 ឆែកមើលថាតើលេខអត្តសញ្ញាណប័ណ្ណនេះមានគណនីផ្សេងប្រើរួចហើយឬនៅ
     const otherUsersWithSameId = await User.find({
       idNumber: cleanIdNumber,
       _id: { $ne: user._id },
@@ -806,7 +776,6 @@ const submitKyc = async (req, res) => {
       });
     }
 
-    // ធ្វើបច្ចុប្បន្នភាពទិន្នន័យ KYC របស់អតិថិជន
     user.fullName = cleanFullName;
     user.idNumber = cleanIdNumber;
     user.dob = dob;
@@ -827,7 +796,6 @@ const submitKyc = async (req, res) => {
 
     await user.save();
 
-    // 🔗 GLOBAL SYNC: បើមានគណនីប្រើលេខ ID ដូចគ្នា ត្រូវកត់ត្រាមូលហេតុចូលគ្រប់គណនីទាំងអស់ (ទាំងចាស់ ទាំងថ្មី)!
     if (otherUsersWithSameId.length > 0 && finalDupReason) {
       await User.updateMany(
         { idNumber: cleanIdNumber },
@@ -850,9 +818,7 @@ const submitKyc = async (req, res) => {
   }
 };
 
-// ============================================================================
-// ⚙ MRZ HELPER FUNCTIONS & ICAO VALIDATION
-// ============================================================================
+// MRZ Helpers & Parsing
 const MRZ_LETTER_TO_DIGIT = {
   O: "0",
   Q: "0",
@@ -894,7 +860,6 @@ function normalizeNumeric(value = "") {
     .join("");
 }
 
-// 🟢 ជួសជុល Filler << ដែល OCR អានខុសជា L ឬ K
 function repairMrzFiller(value = "") {
   return normalizeMrzChars(value).replace(/[LK]{2,}/g, "<<");
 }
@@ -911,19 +876,17 @@ function repairIdPrefix(value = "") {
   return x;
 }
 
-// 🟢 កែសម្រួល cleanMrzName ឱ្យរក្សាទុកការដកឃ្លា (Space) រវាង නាមត្រកូល និងនាមខ្លួន
 function cleanMrzName(value = "") {
   if (!value) return null;
   const repaired = repairMrzFiller(value);
   const cleaned = repaired
-    .replace(/</g, " ") // ប្តូរសញ្ញា < ទៅជា Space វិញ ដើម្បីឱ្យមានដកឃ្លា
+    .replace(/</g, " ")
     .replace(/[^A-Z ]/g, "")
     .replace(/\s+/g, " ")
     .trim();
   return cleaned || null;
 }
 
-// 🧮 ICAO 7-3-1 Check Digit Algorithm
 function mrzCheckDigit(value = "") {
   const weights = [7, 3, 1];
   let sum = 0;
@@ -969,17 +932,12 @@ function parseMrzDate(value) {
   return `${fullYear}-${String(mm).padStart(2, "0")}-${String(dd).padStart(2, "0")}`;
 }
 
-// ============================================================================
-// 🛂 DOCUMENT SPECIFIC PARSERS
-// ============================================================================
-
 function parseKhmerIdMRZ(lines) {
   if (!lines || lines.length < 3) return null;
   const line1 = normalizeMrzChars(lines[0]);
   const line2 = normalizeMrzChars(lines[1]);
   const line3 = normalizeMrzChars(lines[2]);
 
-  // LINE 1: IDKHM + 9 digit ID
   const idMatch = line1.match(
     /^ID.?KHM([0-9OQDILZSGTBA]{9})([0-9OQDILZSGTBA])/i,
   );
@@ -995,7 +953,6 @@ function parseKhmerIdMRZ(lines) {
     }
   }
 
-  // LINE 2: YYMMDD + CHECK + GENDER
   let dob = null,
     gender = null,
     dobCheckValid = false;
@@ -1016,7 +973,6 @@ function parseKhmerIdMRZ(lines) {
     else if (genderRaw === "F") gender = "Female";
   }
 
-  // LINE 3: SURNAME<<GIVEN NAME
   let fullName = null;
   const repairedLine3 = repairMrzFiller(line3);
 
@@ -1116,10 +1072,6 @@ function parseKhmerPassportMRZ(lines) {
   };
 }
 
-// ============================================================================
-// 🏆 CANDIDATE VOTING & SCORING (ID Card & Passport)
-// ============================================================================
-
 function scoreIdCombination(line1, line2, line3) {
   let score = 0;
   const parsed = parseKhmerIdMRZ([line1, line2, line3]);
@@ -1199,9 +1151,6 @@ function findBestPassportMrzCombination(line1Candidates, line2Candidates) {
 function extractMrzLines(lines = []) {
   const normalized = [...new Set(lines.map(normalizeMrzChars).filter(Boolean))];
 
-  // ============================================================
-  // ID CARD CANDIDATES (TD1)
-  // ============================================================
   const idLine1Candidates = normalized
     .map(repairIdPrefix)
     .filter((x) => /^(?:ID|1D|I[O0]).{0,3}KHM/i.test(x));
@@ -1210,12 +1159,9 @@ function extractMrzLines(lines = []) {
     /^\d{6}\d[MF]/i.test(normalizeNumeric(x)),
   );
 
-  // 🟢 រឹតបន្តឹង Line 3៖ បដិសេធដាច់ខាតនូវ Line 1 និង Line 2 កុំឱ្យមកធ្វើជា Line 3
   const idLine3Candidates = normalized.filter((x) => {
     if (/^(?:ID|1D|I[O0])/i.test(x)) return false;
     if (/^\d{6}/.test(normalizeNumeric(x))) return false;
-
-    // បន្ទាប់ពីជួសជុល L ឬ K ត្រូវតែមាន << ទើបចាត់ទុកថាជាឈ្មោះ
     return repairMrzFiller(x).includes("<<");
   });
 
@@ -1232,9 +1178,6 @@ function extractMrzLines(lines = []) {
     if (best) return [best.line1, best.line2, best.line3];
   }
 
-  // ============================================================
-  // PASSPORT CANDIDATES (TD3)
-  // ============================================================
   const passportLine1Candidates = normalized.filter(
     (x) => /^P</i.test(x) || /^P.?KHM/i.test(x),
   );
@@ -1255,13 +1198,9 @@ function extractMrzLines(lines = []) {
     if (best) return [best.line1, best.line2];
   }
 
-  // 🔴 គ្មាន Generic Fallback ទេ!
   return [];
 }
 
-// ============================================================================
-// 🔄 MULTI-PASS OCR ENGINE
-// ============================================================================
 async function runMultipleOCR(imageUrl) {
   const configs = [
     { psm: 6, name: "PSM6" },
@@ -1282,7 +1221,6 @@ async function runMultipleOCR(imageUrl) {
             );
         },
         tessedit_pageseg_mode: String(config.psm),
-        // 🟢 អនុញ្ញាត K ដើម្បីឱ្យ repairMrzFiller អាចកែវាទៅជា << វិញបាន
         tessedit_char_whitelist: "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789<LKI",
       });
       results.push({ mode: config.name, text: text || "" });
@@ -1293,20 +1231,12 @@ async function runMultipleOCR(imageUrl) {
   return results;
 }
 
-// ============================================================================
-// 🚀 MAIN API CONTROLLER: scanIdCard
-// ============================================================================
 const scanIdCard = async (req, res) => {
   const { imageUrl } = req.body;
   if (!imageUrl)
     return res.status(400).json({ success: false, message: "មិនមានរូបភាពទេ!" });
 
   try {
-    console.log("====================================");
-    console.log("Starting Smart MRZ OCR (Strict Mode without Fallback)...");
-    console.log("====================================");
-
-    // 1. MULTI-PASS OCR
     const ocrResults = await runMultipleOCR(imageUrl);
     if (!ocrResults.length) {
       return res
@@ -1314,7 +1244,6 @@ const scanIdCard = async (req, res) => {
         .json({ success: false, message: "មិនអាចអាន OCR បានទេ!" });
     }
 
-    // 2. MERGE OCR TEXT
     const allOcrLines = [];
     for (const result of ocrResults) {
       const cleaned = cleanOcrText(result.text);
@@ -1322,7 +1251,6 @@ const scanIdCard = async (req, res) => {
     }
     const uniqueLines = [...new Set(allOcrLines)];
 
-    // 3. FIND MRZ
     const mrzLines = extractMrzLines(uniqueLines);
     if (!mrzLines || !mrzLines.length) {
       return res.status(400).json({
@@ -1333,7 +1261,6 @@ const scanIdCard = async (req, res) => {
       });
     }
 
-    // 4. DOCUMENT TYPE & PARSING
     const mrzJoined = mrzLines.join("");
     const isKhmerId = /^(?:ID|1D|I[O0])/i.test(mrzLines[0]);
     const isPassport = /^P/i.test(mrzLines[0]);
@@ -1355,7 +1282,6 @@ const scanIdCard = async (req, res) => {
       });
     }
 
-    // 5. SMART CONFIDENCE SCORING
     let confidence = 0;
 
     if (parsedResult.documentType === "KHMER_ID_CARD") {
@@ -1379,7 +1305,6 @@ const scanIdCard = async (req, res) => {
     else if (confidence >= 50) status = "MEDIUM";
     else status = "LOW";
 
-    // 6. FINAL VERIFICATION
     let mrzValid = false;
     if (parsedResult.documentType === "KHMER_ID_CARD") {
       mrzValid =
@@ -1432,18 +1357,19 @@ const scanIdCard = async (req, res) => {
 };
 
 // ==========================================
-// 🏦 ផ្នែកទី ៧៖ គ្រប់គ្រងគណនីជាក់លាក់ (Account Settings: Rename, Limit, Freeze, Hide)
+// 🏦 ផ្នែកទី ៧៖ គ្រប់គ្រងគណនីជាក់លាក់ (Account Settings)
 // ==========================================
 
-/**
- * 📌 ប្តូរឈ្មោះគណនី (អនុញ្ញាតតែ Sub-Accounts)
- */
 const renameAccount = async (req, res) => {
   const { accountNumber, newName } = req.body;
-  const username = req.user.username;
+  const userId = req.user._id || req.user.id;
 
   try {
-    const user = await User.findOne({ username });
+    const user =
+      userId && mongoose.isValidObjectId(userId)
+        ? await User.findById(userId)
+        : await User.findOne({ username: req.user.username });
+
     if (!user) return res.json({ success: false, message: "រកគណនីមិនឃើញទេ!" });
 
     let updated = false;
@@ -1474,15 +1400,16 @@ const renameAccount = async (req, res) => {
   }
 };
 
-/**
- * 📌 កំណត់កម្រិតចំណាយប្រចាំថ្ងៃ (Daily Limit)
- */
 const updateAccountLimit = async (req, res) => {
   const { accountNumber, dailyLimit } = req.body;
-  const username = req.user.username;
+  const userId = req.user._id || req.user.id;
 
   try {
-    const user = await User.findOne({ username });
+    const user =
+      userId && mongoose.isValidObjectId(userId)
+        ? await User.findById(userId)
+        : await User.findOne({ username: req.user.username });
+
     if (!user) return res.json({ success: false, message: "រកគណនីមិនឃើញទេ!" });
 
     let updated = false;
@@ -1541,15 +1468,16 @@ const updateAccountLimit = async (req, res) => {
   }
 };
 
-/**
- * 📌 ផ្អាក / បើកដំណើរការគណនី (Freeze / Unfreeze)
- */
 const toggleFreezeAccount = async (req, res) => {
   const { accountNumber } = req.body;
-  const username = req.user.username;
+  const userId = req.user._id || req.user.id;
 
   try {
-    const user = await User.findOne({ username });
+    const user =
+      userId && mongoose.isValidObjectId(userId)
+        ? await User.findById(userId)
+        : await User.findOne({ username: req.user.username });
+
     if (!user) return res.json({ success: false, message: "រកគណនីមិនឃើញទេ!" });
 
     let newStatus = false;
@@ -1622,15 +1550,16 @@ const toggleFreezeAccount = async (req, res) => {
   }
 };
 
-/**
- * 📌 លាក់ / បង្ហាញគណនី (Hide / Unhide)
- */
 const toggleHideAccount = async (req, res) => {
   const { accountNumber } = req.body;
-  const username = req.user.username;
+  const userId = req.user._id || req.user.id;
 
   try {
-    const user = await User.findOne({ username });
+    const user =
+      userId && mongoose.isValidObjectId(userId)
+        ? await User.findById(userId)
+        : await User.findOne({ username: req.user.username });
+
     if (!user) return res.json({ success: false, message: "រកគណនីមិនឃើញទេ!" });
 
     let updated = false;
@@ -1683,16 +1612,21 @@ const toggleHideAccount = async (req, res) => {
 // 📡 ផ្នែកទី ៨៖ ការទាញយកទិន្នន័យ (Data Retrieval & Status)
 // ==========================================
 
-/**
- * 📌 ឆែកមើល User នៅ Online ឫអត់ (Heartbeat)
- */
 const heartbeat = async (req, res) => {
-  const { username } = req.body;
+  const { username, userId } = req.body;
   try {
-    const user = await User.findOne({ username });
+    const targetUserId =
+      userId || (req.user ? req.user._id || req.user.id : null);
+    const user =
+      targetUserId && mongoose.isValidObjectId(targetUserId)
+        ? await User.findById(targetUserId)
+        : await User.findOne({
+            username: username || (req.user ? req.user.username : ""),
+          });
+
     if (user) {
       user.lastActive = new Date().toISOString();
-      user.isOnline = true; // 🟢 បន្ថែមបន្ទាត់នេះ! ដើម្បីឱ្យវា Active វិញ
+      user.isOnline = true;
       await user.save();
       res.json({ success: true });
     } else res.json({ success: false });
@@ -1701,9 +1635,6 @@ const heartbeat = async (req, res) => {
   }
 };
 
-/**
- * 📌 ទាញយកអ្នកប្រើប្រាស់ទាំងអស់ (សម្រាប់ Admin ឫ ប្រព័ន្ធ)
- */
 const getUsers = async (req, res) => {
   try {
     const users = await User.find({});
@@ -1731,10 +1662,12 @@ const getUsers = async (req, res) => {
         });
       }
       userObj.transactions = allTransactions.filter(
-        (t) => t.username === user.username,
+        (t) =>
+          String(t.userId) === String(user._id) || t.username === user.username,
       );
       userObj.notifications = allNotifications.filter(
-        (n) => n.username === user.username,
+        (n) =>
+          String(n.userId) === String(user._id) || n.username === user.username,
       );
       return userObj;
     });
@@ -1745,9 +1678,6 @@ const getUsers = async (req, res) => {
   }
 };
 
-/**
- * 📌 ផ្ទៀងផ្ទាត់ និងទាញយកឈ្មោះម្ចាស់គណនី (សម្រាប់ការផ្ទេរប្រាក់)
- */
 const verifyAccount = async (req, res) => {
   const { account_number } = req.params;
   try {
@@ -1769,13 +1699,9 @@ const verifyAccount = async (req, res) => {
   }
 };
 
-/**
- * 📌 ឆែកមើលថា Username មានអ្នកប្រើប្រាស់ហើយឬនៅ (Real-time check)
- */
 const checkUsername = async (req, res) => {
   try {
     const { username } = req.body;
-    // ឆែករកឈ្មោះដោយបំប្លែងជាអក្សរតូចទាំងអស់
     const user = await User.findOne({ username: username.toLowerCase() });
     if (user) return res.json({ available: false });
     return res.json({ available: true });
@@ -1784,9 +1710,6 @@ const checkUsername = async (req, res) => {
   }
 };
 
-/**
- * 📌 ឆែកមើលថា លេខអត្តសញ្ញាណប័ណ្ណ មានគណនីផ្សេងប្រើប្រាស់ហើយឬនៅ
- */
 const checkIdNumber = async (req, res) => {
   try {
     const cleanId = String(req.body.idNumber || "").trim();
@@ -1821,17 +1744,12 @@ const checkIdNumber = async (req, res) => {
   }
 };
 
-/**
- * 📌 ឆែកមើលលេខកូដអ្នកណែនាំ (Referral Code) ថាមានពិតឬអត់
- */
 const checkReferralCode = async (req, res) => {
   try {
     const { referralCode } = req.body;
-    // ស្វែងរកអ្នកប្រើប្រាស់ដែលមាន userId ស្មើនឹង referralCode
     const user = await User.findOne({ userId: referralCode });
 
     if (user) {
-      // បើមាន បោះឈ្មោះពេញរបស់គាត់ទៅឱ្យ Frontend បង្ហាញ
       return res.json({
         valid: true,
         referrerName: user.fullName || user.username,
@@ -1848,9 +1766,17 @@ const checkReferralCode = async (req, res) => {
 // ==========================================
 
 const generateTelegramCode = async (req, res) => {
-  const { username } = req.body;
+  const { username, userId } = req.body;
   try {
-    const user = await User.findOne({ username });
+    const targetUserId =
+      userId || (req.user ? req.user._id || req.user.id : null);
+    const user =
+      targetUserId && mongoose.isValidObjectId(targetUserId)
+        ? await User.findById(targetUserId)
+        : await User.findOne({
+            username: username || (req.user ? req.user.username : ""),
+          });
+
     if (user) {
       const randomCode = Math.floor(1000 + Math.random() * 9000).toString();
       user.linkCode = randomCode;
@@ -1863,9 +1789,17 @@ const generateTelegramCode = async (req, res) => {
 };
 
 const unlinkTelegram = async (req, res) => {
-  const { username } = req.body;
+  const { username, userId } = req.body;
   try {
-    const user = await User.findOne({ username });
+    const targetUserId =
+      userId || (req.user ? req.user._id || req.user.id : null);
+    const user =
+      targetUserId && mongoose.isValidObjectId(targetUserId)
+        ? await User.findById(targetUserId)
+        : await User.findOne({
+            username: username || (req.user ? req.user.username : ""),
+          });
+
     if (user) {
       const oldChatId = user.telegramChatId;
       const userFullName = user.fullName || user.username;
@@ -1891,9 +1825,6 @@ const unlinkTelegram = async (req, res) => {
 // 🛡️ ផ្នែកទី ១០៖ ការគ្រប់គ្រងដោយ Admin (Admin & System Operations)
 // ==========================================
 
-/**
- * 📌 ចូលគណនី Admin
- */
 const adminLogin = async (req, res) => {
   const { username, password } = req.body;
   try {
@@ -1962,9 +1893,6 @@ const adminLogin = async (req, res) => {
   }
 };
 
-/**
- * 📌 ចូលគណនី Admin ដោយប្រើកាត NFC
- */
 const adminNfcLogin = async (req, res) => {
   const { nfcUid } = req.body;
   try {
@@ -2008,9 +1936,6 @@ const adminNfcLogin = async (req, res) => {
   }
 };
 
-/**
- * 📌 ជម្លៀសប្រតិបត្តិការចាស់ៗចូលទៅ Schema ថ្មី (Data Migration)
- */
 const migrateTransactions = async (req, res) => {
   try {
     const users = await User.find({ "transactions.0": { $exists: true } });
@@ -2019,6 +1944,7 @@ const migrateTransactions = async (req, res) => {
       if (user.transactions && user.transactions.length > 0) {
         const trxsToInsert = user.transactions.map((t) => ({
           ...(t.toObject ? t.toObject() : t),
+          userId: user._id,
           username: user.username,
         }));
         await Transaction.insertMany(trxsToInsert);
@@ -2037,12 +1963,19 @@ const migrateTransactions = async (req, res) => {
   }
 };
 
-// 🟢 អនុគមន៍ទី១៖ សម្រាប់ Admin ចុចផ្ញើ Link (Request Reset)
 const requestCredentialReset = async (req, res) => {
-  const { username, resetType } = req.body; // resetType: "PIN" ឬ "Password"
+  const { username, userId, resetType } = req.body;
 
   try {
-    const user = await User.findOne({ username });
+    const targetUserId =
+      userId || (req.user ? req.user._id || req.user.id : null);
+    const user =
+      targetUserId && mongoose.isValidObjectId(targetUserId)
+        ? await User.findById(targetUserId)
+        : await User.findOne({
+            username: username || (req.user ? req.user.username : ""),
+          });
+
     if (!user) return res.json({ success: false, message: "រកគណនីមិនឃើញទេ!" });
 
     if (!user.email) {
@@ -2052,36 +1985,29 @@ const requestCredentialReset = async (req, res) => {
       });
     }
 
-    // 🛑 មុខងារថ្មី៖ ឆែកមើលក្រែងលោ Admin ទើបតែផ្ញើ Link មិនទាន់បាន ៥ នាទី
     if (user.resetTokenExpire && user.resetTokenExpire > Date.now()) {
-      // គណនាថាសល់ប៉ុន្មាននាទីទៀតទើបផ្ញើបាន
       const timeLeft = Math.ceil(
         (user.resetTokenExpire - Date.now()) / 1000 / 60,
       );
       return res.json({
         success: false,
-        message: `សូមរង់ចាំ ${timeLeft} នាទីទៀត ទើបអាចផ្ញើ Link សារជាថ្មីបាន! (ការពារការផ្ញើស្ទួន)`,
+        message: `សូមរង់ចាំ ${timeLeft} នាទីទៀត ទើបអាចផ្ញើ Link សារជាថ្មីได้! (ការពារการផ្ញើស្ទួន)`,
       });
     }
 
-    // បង្កើត Token សុវត្ថិភាព (Random 64 តួ)
     const rawToken = crypto.randomBytes(32).toString("hex");
-
-    // Hash Token មុន Save ចូល DB
     const hashedToken = crypto
       .createHash("sha256")
       .update(rawToken)
       .digest("hex");
 
     user.resetToken = hashedToken;
-    user.resetTokenExpire = Date.now() + 5 * 60 * 1000; // កំណត់ ៥ នាទី
+    user.resetTokenExpire = Date.now() + 5 * 60 * 1000;
     await user.save();
 
-    // បង្កើត URL សំរាប់ផ្ញើ
     const baseUrl = process.env.CLIENT_URL || "https://u-pay-bank.fly.dev";
     const resetUrl = `${baseUrl}/reset-credential?token=${rawToken}&type=${resetType}`;
 
-    // ផ្ញើ Email
     const emailSent = await sendResetLink(
       user.email,
       user.fullName || user.username,
@@ -2092,13 +2018,13 @@ const requestCredentialReset = async (req, res) => {
     if (!emailSent) {
       return res.json({
         success: false,
-        message: "មានបញ្ហាក្នុងការផ្ញើអ៊ីមែល!",
+        message: "មានបញ្ហាក្នុងการផ្ញើអ៊ីមែល!",
       });
     }
 
     res.json({
       success: true,
-      message: "បានផ្ញើ Link ទៅកាន់អ៊ីមែលរបស់អតិថិជនរួចរាល់!",
+      message: "ได้ផ្ញើ Link ទៅកាន់អ៊ីមែលរបស់អតិថិជនរួចរាល់!",
     });
   } catch (error) {
     console.error("Request Reset Error:", error);
@@ -2106,7 +2032,6 @@ const requestCredentialReset = async (req, res) => {
   }
 };
 
-// 🟢 អនុគមន៍ទី២៖ សម្រាប់ User បញ្ជាក់លេខថ្មី តាមរយៈ Link របស់គាត់
 const verifyAndSaveNewCredential = async (req, res) => {
   const { token, type, newValue } = req.body;
 
@@ -2121,36 +2046,32 @@ const verifyAndSaveNewCredential = async (req, res) => {
     if (!user) {
       return res.json({
         success: false,
-        message: "តំណភ្ជាប់នេះមិនត្រឹមត្រូវ ឬបានផុតកំណត់ហើយ (លើសពី ៥ នាទី)!",
+        message: "តំណភ្ជាប់นี้ไม่ถูกต้อง หรือได้หมดอายุแล้ว (เกินกว่า 5 นาที)!",
       });
     }
 
-    // Save លេខថ្មី
     if (type === "PIN") {
-      // 🛑 មុខងារថ្មី៖ ផ្ទៀងផ្ទាត់ PIN ត្រូវតែជាលេខសុទ្ធ និងមាន ៤ ខ្ទង់គត់
       if (!/^\d{4}$/.test(newValue)) {
         return res.json({
           success: false,
-          message: "លេខ PIN ត្រូវតែជាលេខសុទ្ធ និងមាន ៤ ខ្ទង់គត់!",
+          message: "លេខ PIN ត្រូវតែជាលេខសុទ្ធ และมี 4 หลักถ้วน!",
         });
       }
       user.pin = newValue;
       user.pinAttempts = 0;
     } else if (type === "Password") {
-      // រក្សាទុក Password សេរីតាមការចង់បានរបស់អ្នកសិន
       user.password = newValue;
     } else {
-      return res.json({ success: false, message: "ប្រភេទមិនត្រឹមត្រូវ!" });
+      return res.json({ success: false, message: "ប្រភេទไม่ถูกต้อง!" });
     }
 
-    // លុប Token ចោលភ្លាមៗ (Single-Use Only)
     user.resetToken = undefined;
     user.resetTokenExpire = undefined;
     await user.save();
 
     res.json({
       success: true,
-      message: `${type} របស់អ្នកត្រូវបានផ្លាស់ប្តូរដោយជោគជ័យ!`,
+      message: `${type} របស់ท่านได้รับการเปลี่ยนแปลงด้วยความสำเร็จ!`,
     });
   } catch (error) {
     console.error("Save Credential Error:", error);
@@ -2158,17 +2079,14 @@ const verifyAndSaveNewCredential = async (req, res) => {
   }
 };
 
-// 🟢 អនុគមន៍ថ្មី៖ សម្រាប់ឆែកមើលថា Token នេះនៅរស់ ឬផុតកំណត់ (ពេលបើកទំព័រភ្លាម)
 const verifyResetToken = async (req, res) => {
   try {
     const { token } = req.query;
     if (!token)
-      return res.json({ success: false, message: "មិនមាន Token សម្ងាត់ទេ!" });
+      return res.json({ success: false, message: "ไม่พบ Token ความลับ!" });
 
-    // Hash Token ដើម្បីយកទៅប្រៀបធៀបក្នុង Database
     const hashedToken = crypto.createHash("sha256").update(token).digest("hex");
 
-    // ស្វែងរកមើលថាតើមាន Token នេះអត់ ហើយវានៅមិនទាន់ផុតកំណត់ (ធំជាង Date.now)
     const user = await User.findOne({
       resetToken: hashedToken,
       resetTokenExpire: { $gt: Date.now() },
@@ -2177,27 +2095,36 @@ const verifyResetToken = async (req, res) => {
     if (!user) {
       return res.json({
         success: false,
-        message: "តំណភ្ជាប់នេះមិនត្រឹមត្រូវ ឬមានអាយុកាលលើសពី ៥ នាទីហើយ។",
+        message:
+          "តំណភ្ជាប់นี้ไม่ถูกต้อง หรือมีอายุการใช้งานเกินกว่า 5 นาทีแล้ว",
       });
     }
 
-    // បើនៅរស់ បោះ success: true ឱ្យ Frontend បើកទម្រង់ឱ្យវាយ
     res.json({ success: true });
   } catch (error) {
     console.error("Verify Reset Token Error:", error);
     res
       .status(500)
-      .json({ success: false, message: "មានបញ្ហាបណ្តាញ (Server Error)" });
+      .json({
+        success: false,
+        message: "เกิดข้อผิดพลาดทางระบบ (Server Error)",
+      });
   }
 };
 
-/**
- * 📌 [User] បង្កើត Support Ticket ថ្មីពីក្នុង Settings
- */
 const createTicket = async (req, res) => {
-  const { username, subject, priority, description, message } = req.body;
+  const { username, userId, subject, priority, description, message } =
+    req.body;
   try {
-    const user = await User.findOne({ username });
+    const targetUserId =
+      userId || (req.user ? req.user._id || req.user.id : null);
+    const user =
+      targetUserId && mongoose.isValidObjectId(targetUserId)
+        ? await User.findById(targetUserId)
+        : await User.findOne({
+            username: username || (req.user ? req.user.username : ""),
+          });
+
     if (!user)
       return res.json({ success: false, message: "រកមិនឃើញគណនីអតិថិជនទេ!" });
 
@@ -2218,16 +2145,14 @@ const createTicket = async (req, res) => {
       createdAt: new Date(),
     };
 
-    user.tickets.unshift(newTicket); // ដាក់ទុករשលើគេបង្អស់
+    user.tickets.unshift(newTicket);
     user.markModified("tickets");
     await user.save();
 
-    // ផ្ញើ Notification ជូនដំណឹងទៅ Admin ឬប្រព័ន្ធ
     await Notification.create({
       userId: user._id,
-      username: user.username,
       title: "New Support Ticket 🎫",
-      message: `សំណើរថ្មី: "${subject}" ត្រូវបានដាក់ស្នើដោយជោកជ័យ`,
+      message: `សំណើរថ្មី: "${subject}" ត្រូវបានដាក់ស្នើដោយជោគជ័យ`,
       date: newTicket.date,
       type: "ticket_created",
       isRead: false,
@@ -2244,26 +2169,17 @@ const createTicket = async (req, res) => {
   }
 };
 
-// ==========================================
-// 📤 ផ្នែកទី ១១៖ បញ្ចេញមុខងារ (Exports)
-// ==========================================
-
 module.exports = {
-  // Auth & Registration
   requestRegisterOTP,
   verifyRegisterOTP,
   verifyAndRegister,
   login,
   logout,
-
-  // Forgot Password
   verifyUserAccount,
   verifyUser: verifyUserAccount,
   verifyForgotOtp,
   resetPassword,
   sendSecurityOtp,
-
-  // Security & Profile
   verifyCurrentPassword,
   verifyCurrentPin,
   changePassword,
@@ -2271,29 +2187,19 @@ module.exports = {
   uploadImage,
   submitKyc,
   scanIdCard,
-
-  // Account Management
   renameAccount,
   updateAccountLimit,
   toggleFreezeAccount,
   toggleHideAccount,
-
-  // Data & Status
   heartbeat,
   getUsers,
   verifyAccount,
   checkUsername,
   checkIdNumber,
   checkReferralCode,
-
-  // Support Ticket
   createTicket,
-
-  // Telegram
   generateTelegramCode,
   unlinkTelegram,
-
-  // Admin
   adminLogin,
   adminNfcLogin,
   migrateTransactions,
@@ -2301,3 +2207,27 @@ module.exports = {
   verifyAndSaveNewCredential,
   verifyResetToken,
 };
+
+setInterval(async () => {
+  try {
+    if (mongoose.connection.readyState !== 1) return;
+    const now = Date.now();
+    const dueMessages = await Chat.find({
+      isScheduled: true,
+      scheduledFor: { $lte: now, $ne: null },
+    });
+
+    for (const msg of dueMessages) {
+      msg.isScheduled = undefined;
+      msg.scheduledFor = undefined;
+      msg.timestamp = now;
+      msg.time = new Date(now).toLocaleTimeString("en-US", {
+        timeZone: "Asia/Phnom_Penh",
+        hour: "numeric",
+        minute: "2-digit",
+        hour12: true,
+      });
+      await msg.save();
+    }
+  } catch (err) {}
+}, 2000);

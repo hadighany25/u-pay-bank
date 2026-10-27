@@ -1,490 +1,2458 @@
+<!-- ============================================================================
+     ឯកសារ: public/split.html
+     អត្ថន័យ: ប្រព័ន្ធ «រួមគ្នាទូទាត់ (Smart Split Bill)» (100% Pure _id, Built-in QR Scanner & Direct Pay)
+     ============================================================================ -->
 <!doctype html>
-<html lang="en">
+<html lang="km">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
+    />
     <link rel="icon" type="image/png" href="images/favicon.png" />
-    <title>Split Bill - U-Pay</title>
+    <title>រួមគ្នាទូទាត់ - U-Pay</title>
+
+    <!-- ==========================================
+         📦 ១. ផ្នែកភ្ជាប់ FONTS & ICONS
+         ========================================== -->
+    <link
+      href="https://fonts.googleapis.com/css2?family=Kantumruy+Pro:wght@300;400;500;600;700&family=Inter:wght@400;600;700;800;900&family=JetBrains+Mono:wght@500;700;800&display=swap"
+      rel="stylesheet"
+    />
     <link
       rel="stylesheet"
       href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
     />
-    <link
-      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Kantumruy+Pro:wght@400;500;600;700&display=swap"
-      rel="stylesheet"
-    />
+
+    <!-- ==========================================
+         📦 ២. ផ្នែកភ្ជាប់ SCRIPTS, QR SCANNER & CORE MODULES
+         ========================================== -->
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+    <script src="https://unpkg.com/html5-qrcode"></script>
+    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
     <script src="js/lang.js"></script>
-    <script src="js/toast.js"></script>
+    <script src="js/u-pay-core.js"></script>
+    <script src="js/pin.js"></script>
+    <script src="js/slip.js"></script>
+
+    <!-- ==========================================
+         🎨 ៣. ផ្នែករចនាបថ CSS (KANTUMRUY PRO & AUTO DARK/LIGHT MODE)
+         ========================================== -->
     <style>
+      :root {
+        --primary: #004d40;
+        --primary-dark: #00352c;
+        --secondary: #0d9488;
+        --emerald: #10b981;
+        --amber: #f59e0b;
+        --blue: #0284c7;
+        --danger: #ef4444;
+        --bg-main: #f1f5f9;
+        --bg-card: #ffffff;
+        --bg-subtle: #f8fafc;
+        --text-main: #0f172a;
+        --text-muted: #64748b;
+        --border-color: #e2e8f0;
+      }
+
+      body.dark-mode {
+        --bg-main: #020617;
+        --bg-card: #0f172a;
+        --bg-subtle: #1e293b;
+        --text-main: #f8fafc;
+        --text-muted: #94a3b8;
+        --border-color: #1e293b;
+      }
+
+      /* បង្ខំឱ្យប្រើពុម្ពអក្សរ Kantumruy Pro គ្រប់កន្លែងទាំងអស់ ១០០% */
+      *,
+      button,
+      input,
+      select,
+      textarea,
+      .swal2-popup,
+      .swal2-title,
+      .swal2-html-container,
+      .swal2-confirm,
+      .swal2-cancel {
+        box-sizing: border-box;
+        -webkit-tap-highlight-color: transparent;
+        font-family: "Kantumruy Pro", "Inter", sans-serif !important;
+      }
+      .fa-solid,
+      .fa-regular,
+      .fa-brands,
+      .fa,
+      .fas {
+        font-family: "Font Awesome 6 Free" !important;
+      }
+      .fa-brands {
+        font-family: "Font Awesome 6 Brands" !important;
+      }
+      .mono-num {
+        font-family: "JetBrains Mono", "Kantumruy Pro", monospace !important;
+      }
+
       body {
-        background-color: #f2f4f6;
         margin: 0;
-        font-family: "Inter", "Kantumruy Pro", sans-serif;
+        background-color: #0b1120;
         display: flex;
         justify-content: center;
-        min-height: 100vh;
-        transition: 0.3s;
+        min-height: 100dvh;
+        color: var(--text-main);
+        opacity: 0;
+        transition: opacity 0.25s ease;
       }
+      body.loaded {
+        opacity: 1;
+      }
+
       .app-container {
         width: 100%;
-        max-width: 450px;
-        background: #f8fafc;
-        min-height: 100vh;
+        max-width: 480px;
+        min-height: 100dvh;
+        background: var(--bg-main);
+        position: relative;
         display: flex;
         flex-direction: column;
-        box-shadow: 0 0 20px rgba(0, 0, 0, 0.05);
-        transition: 0.3s;
-        padding-bottom: 90px;
+        overflow-x: hidden;
+        box-shadow: 0 0 35px rgba(0, 0, 0, 0.25);
+        padding-bottom: 35px;
       }
-      .nav-header {
-        padding: 20px;
-        background: #004d40;
-        color: white;
+
+      /* ក្បាលទំព័រស្អាត (គ្មានប៊ូតុង Theme/Lang ទើសភ្នែក) */
+      .sp-topbar {
+        background: linear-gradient(
+          135deg,
+          #00382e 0%,
+          #004d40 60%,
+          #0d9488 100%
+        );
+        color: #ffffff;
+        padding: 16px 18px;
         display: flex;
         align-items: center;
-        gap: 15px;
-        font-size: 1.1rem;
+        justify-content: space-between;
+        position: sticky;
+        top: 0;
+        z-index: 30;
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.12);
       }
-      .nav-header a {
-        color: white;
-        text-decoration: none;
-      }
-      .content-body {
-        padding: 20px;
-        flex: 1;
-        display: flex;
-        flex-direction: column;
-      }
-
-      .split-card {
-        background: white;
-        border-radius: 20px;
-        padding: 25px 20px;
-        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.05);
-        margin-bottom: 20px;
-      }
-
-      .input-group {
-        margin-bottom: 25px;
-        text-align: center;
-      }
-      .input-group label {
-        display: block;
-        font-size: 0.9rem;
-        color: #64748b;
-        font-weight: 600;
-        margin-bottom: 15px;
-        text-transform: uppercase;
-        letter-spacing: 1px;
-      }
-
-      .amount-input-box {
-        display: flex;
+      .sp-back-btn {
+        width: 38px;
+        height: 38px;
+        border-radius: 50%;
+        border: none;
+        background: rgba(255, 255, 255, 0.15);
+        color: #ffffff;
+        display: inline-flex;
         align-items: center;
         justify-content: center;
-        font-size: 3rem;
-        font-weight: 800;
-        color: #004d40;
+        font-size: 1rem;
+        cursor: pointer;
+        transition: transform 0.15s;
       }
-      .amount-input-box input {
-        width: 150px;
+      .sp-back-btn:active {
+        transform: scale(0.9);
+      }
+
+      /* ផ្ទាំង Hero & របារប្តូរផ្ទាំងទាំង ៣ */
+      .sp-hero {
+        background: linear-gradient(
+          135deg,
+          #00382e 0%,
+          #004d40 55%,
+          #0f766e 100%
+        );
+        padding: 4px 14px 20px;
+        color: #ffffff;
+        border-radius: 0 0 28px 28px;
+        box-shadow: 0 10px 25px rgba(0, 77, 64, 0.18);
+      }
+      .sp-main-tabs {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 5px;
+        background: rgba(0, 0, 0, 0.24);
+        padding: 5px;
+        border-radius: 16px;
+        border: 1px solid rgba(255, 255, 255, 0.14);
+      }
+      .sp-main-tab {
         border: none;
         background: transparent;
-        font-size: 3rem;
-        font-weight: 800;
-        color: #1e293b;
-        text-align: center;
-        outline: none;
-      }
-      .amount-input-box input::placeholder {
-        color: #cbd5e1;
-      }
-
-      .counter-box {
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        gap: 20px;
-      }
-      .counter-btn {
-        width: 50px;
-        height: 50px;
-        border-radius: 50%;
-        background: #f1f5f9;
-        color: #004d40;
-        border: none;
-        font-size: 1.5rem;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        cursor: pointer;
-        transition: 0.2s;
-        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
-      }
-      .counter-btn:active {
-        transform: scale(0.9);
-        background: #e2e8f0;
-      }
-      .people-count {
-        font-size: 2.5rem;
-        font-weight: 800;
-        color: #1e293b;
-        width: 60px;
-        text-align: center;
-      }
-
-      .result-box {
-        text-align: center;
-        padding: 20px;
-        background: #e0f2f1;
-        border-radius: 16px;
-        border: 1px dashed #004d40;
-        margin-bottom: 20px;
-        transition: 0.3s;
-      }
-      .result-box p {
-        margin: 0 0 5px;
-        color: #004d40;
-        font-weight: 600;
-        font-size: 0.9rem;
-      }
-      .result-amount {
-        font-size: 2.5rem;
-        font-weight: 800;
-        color: #004d40;
-        margin: 0;
-      }
-
-      .btn-generate {
-        width: 100%;
-        background: #004d40;
-        color: white;
-        border: none;
-        padding: 16px;
-        border-radius: 14px;
-        font-size: 1.1rem;
+        color: rgba(255, 255, 255, 0.8);
+        padding: 10px 4px;
+        border-radius: 12px;
+        font-size: 0.78rem;
         font-weight: 700;
         cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 5px;
         transition: 0.2s;
-        box-shadow: 0 8px 20px rgba(0, 77, 64, 0.2);
+        white-space: nowrap;
       }
-      .btn-generate:active {
-        transform: scale(0.98);
+      .sp-main-tab.active {
+        background: #ffffff;
+        color: #004d40;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
       }
 
-      /* QR CODE DISPLAY */
-      .qr-result-area {
+      .sp-view {
         display: none;
         flex-direction: column;
-        align-items: center;
-        margin-top: 10px;
-        animation: fadeIn 0.5s ease;
+        padding: 14px 16px 0;
+        animation: spFadeUp 0.22s ease-out;
       }
-      @keyframes fadeIn {
+      .sp-view.active {
+        display: flex;
+      }
+      @keyframes spFadeUp {
         from {
           opacity: 0;
-          transform: translateY(20px);
+          transform: translateY(8px);
         }
         to {
           opacity: 1;
           transform: translateY(0);
         }
       }
-      .qr-wrapper {
-        background: white;
-        padding: 20px;
-        border-radius: 20px;
-        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
-        margin-bottom: 15px;
+
+      /* កាត និងប្រអប់បញ្ចូលទិន្នន័យ */
+      .sp-card {
+        background: var(--bg-card);
+        border: 1px solid var(--border-color);
+        border-radius: 22px;
+        padding: 18px;
+        margin-bottom: 14px;
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.03);
       }
-      .qr-wrapper img {
-        width: 200px;
-        height: 200px;
+      .sp-label {
+        display: block;
+        font-size: 0.8rem;
+        font-weight: 700;
+        color: var(--text-muted);
+        margin-bottom: 6px;
       }
-      .qr-note {
-        text-align: center;
-        color: #64748b;
-        font-size: 0.85rem;
-        margin-bottom: 20px;
+      .sp-input {
+        width: 100%;
+        padding: 12px 14px;
+        border-radius: 14px;
+        border: 1.5px solid var(--border-color);
+        background: var(--bg-subtle);
+        color: var(--text-main);
+        font-size: 0.92rem;
+        font-weight: 600;
+        outline: none;
+        transition: border-color 0.2s;
+      }
+      .sp-input:focus {
+        border-color: var(--secondary);
       }
 
-      /* BOTTOM NAV */
-      .bottom-nav {
-        position: fixed;
-        bottom: 0;
-        left: 50%;
-        transform: translateX(-50%);
-        width: 100%;
-        max-width: 450px;
+      /* ប៊ូតុងជ្រើសរើសប្រភេទការចំណាយរហ័ស */
+      .sp-cat-chips {
         display: flex;
-        background: white;
-        padding: 12px 0 15px 0;
-        justify-content: space-around;
-        box-shadow: 0 -5px 20px rgba(0, 0, 0, 0.05);
-        z-index: 9999;
-        border-radius: 20px 20px 0 0;
+        gap: 8px;
+        overflow-x: auto;
+        padding-bottom: 6px;
+        margin-bottom: 12px;
       }
-      .nav-item {
-        text-align: center;
-        color: #94a3b8;
-        font-size: 0.75rem;
-        text-decoration: none;
+      .sp-cat-chips::-webkit-scrollbar {
+        display: none;
+      }
+      .sp-cat-chip {
+        border: 1px solid var(--border-color);
+        background: var(--bg-subtle);
+        color: var(--text-main);
+        padding: 7px 13px;
+        border-radius: 20px;
+        font-size: 0.78rem;
+        font-weight: 700;
         cursor: pointer;
-        flex: 1;
+        white-space: nowrap;
         transition: 0.2s;
       }
-      .nav-item i {
-        font-size: 1.4rem;
-        display: block;
-        margin-bottom: 5px;
-      }
-      .nav-item.active {
-        color: #004d40;
-        font-weight: 700;
-        transform: translateY(-5px);
+      .sp-cat-chip.active {
+        background: rgba(13, 148, 136, 0.14);
+        border-color: var(--secondary);
+        color: var(--secondary);
       }
 
-      /* DARK MODE */
-      body.dark-mode {
+      /* ប្រអប់វាយចំនួនទឹកប្រាក់សរុប */
+      .sp-amount-box {
+        background: var(--bg-subtle);
+        border: 2px solid var(--border-color);
+        border-radius: 18px;
+        padding: 10px 14px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+        margin-bottom: 12px;
+        transition: border-color 0.2s;
+      }
+      .sp-amount-box:focus-within {
+        border-color: var(--emerald);
+      }
+      .sp-amount-input {
+        border: none;
+        background: transparent;
+        color: var(--text-main);
+        font-size: 1.95rem;
+        font-weight: 900;
+        width: 100%;
+        outline: none;
+      }
+      input[type="number"]::-webkit-inner-spin-button,
+      input[type="number"]::-webkit-outer-spin-button {
+        -webkit-appearance: none;
+        margin: 0;
+      }
+
+      .sp-curr-toggle {
+        display: flex;
+        background: var(--bg-card);
+        border: 1px solid var(--border-color);
+        border-radius: 12px;
+        padding: 3px;
+        flex-shrink: 0;
+      }
+      .sp-curr-btn {
+        border: none;
+        background: transparent;
+        color: var(--text-muted);
+        padding: 7px 12px;
+        border-radius: 9px;
+        font-size: 0.8rem;
+        font-weight: 800;
+        cursor: pointer;
+      }
+      .sp-curr-btn.active {
+        background: var(--primary);
+        color: #ffffff;
+      }
+
+      /* 🔢 ប្រអប់កំណត់ចំនួនមនុស្សរហ័ស (មិនបាច់ Add ឈ្មោះក៏បង្កើតបាន!) */
+      .sp-headcount-bar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        background: var(--bg-subtle);
+        border: 1.5px solid var(--border-color);
+        border-radius: 16px;
+        padding: 10px 14px;
+        margin-bottom: 14px;
+      }
+      .sp-step-btn {
+        width: 36px;
+        height: 36px;
+        border-radius: 10px;
+        border: none;
+        background: var(--primary);
+        color: #ffffff;
+        font-size: 1rem;
+        font-weight: 900;
+        cursor: pointer;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+      }
+      .sp-step-btn:active {
+        transform: scale(0.92);
+      }
+
+      .sp-mode-tabs {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 8px;
+        margin-bottom: 14px;
+      }
+      .sp-mode-btn {
+        border: 1.5px solid var(--border-color);
+        background: var(--bg-subtle);
+        color: var(--text-muted);
+        padding: 10px;
+        border-radius: 14px;
+        font-size: 0.82rem;
+        font-weight: 700;
+        cursor: pointer;
+        text-align: center;
+        transition: 0.2s;
+      }
+      .sp-mode-btn.active {
+        border-color: var(--emerald);
+        background: rgba(16, 185, 129, 0.1);
+        color: var(--emerald);
+      }
+
+      /* បញ្ជីសមាជិកចូលរួម */
+      .sp-member-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+        padding: 10px 12px;
+        background: var(--bg-subtle);
+        border: 1px solid var(--border-color);
+        border-radius: 16px;
+        margin-bottom: 8px;
+      }
+      .sp-member-avatar {
+        width: 38px;
+        height: 38px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, #004d40, #0d9488);
+        color: #ffffff;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 800;
+        font-size: 0.88rem;
+        flex-shrink: 0;
+        overflow: hidden;
+      }
+      .sp-member-avatar img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+      }
+
+      .sp-btn-primary {
+        width: 100%;
+        background: linear-gradient(135deg, #004d40, #0d9488);
+        color: #ffffff;
+        border: none;
+        padding: 15px;
+        border-radius: 16px;
+        font-size: 0.98rem;
+        font-weight: 800;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        box-shadow: 0 8px 20px rgba(13, 148, 136, 0.28);
+        transition: transform 0.15s;
+      }
+      .sp-btn-primary:active {
+        transform: scale(0.98);
+      }
+
+      /* ផ្ទាំង Modal ចែករំលែក QR & Deep Link ឬបង់ប្រាក់ផ្ទាល់ */
+      .sp-modal-backdrop {
+        position: fixed;
+        inset: 0;
+        background: rgba(2, 6, 23, 0.78);
+        backdrop-filter: blur(6px);
+        z-index: 9000;
+        display: none;
+        align-items: flex-end;
+        justify-content: center;
+      }
+      .sp-modal-backdrop.show {
+        display: flex;
+      }
+      .sp-modal-sheet {
+        width: 100%;
+        max-width: 480px;
+        max-height: 92dvh;
+        overflow-y: auto;
+        background: var(--bg-card);
+        color: var(--text-main);
+        border-radius: 28px 28px 0 0;
+        padding: 22px 20px max(24px, env(safe-area-inset-bottom));
+        animation: spSheetUp 0.32s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+      }
+      @keyframes spSheetUp {
+        from {
+          transform: translateY(100%);
+        }
+        to {
+          transform: translateY(0);
+        }
+      }
+
+      .sp-qr-capture-card {
+        background: linear-gradient(
+          145deg,
+          #00382e 0%,
+          #004d40 60%,
+          #0f766e 100%
+        );
+        color: #ffffff;
+        border-radius: 24px;
+        padding: 20px;
+        text-align: center;
+        position: relative;
+        overflow: hidden;
+        box-shadow: 0 15px 35px rgba(0, 77, 64, 0.28);
+      }
+      .sp-qr-frame {
+        background: #ffffff;
+        width: 195px;
+        height: 195px;
+        margin: 12px auto;
+        padding: 12px;
+        border-radius: 20px;
+        box-shadow: 0 8px 20px rgba(0, 0, 0, 0.2);
+      }
+      .sp-qr-frame img {
+        width: 100%;
+        height: 100%;
+        object-fit: contain;
+        display: block;
+      }
+
+      .sp-share-grid {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 8px;
+        margin-top: 14px;
+      }
+      .sp-share-btn {
+        border: 1px solid var(--border-color);
+        background: var(--bg-subtle);
+        color: var(--text-main);
+        padding: 10px 6px;
+        border-radius: 14px;
+        font-size: 0.74rem;
+        font-weight: 700;
+        cursor: pointer;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 5px;
+        transition: 0.15s;
+      }
+      .sp-share-btn:active {
+        transform: scale(0.95);
+      }
+      .sp-share-btn i {
+        font-size: 1.25rem;
+      }
+
+      #splitQrReader {
+        width: 100%;
+        border-radius: 18px;
+        overflow: hidden;
         background: #000;
       }
-      body.dark-mode .app-container {
-        background: #121212;
-      }
-      body.dark-mode .split-card {
-        background: #1e1e1e;
-        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
-      }
-      body.dark-mode .amount-input-box input {
-        color: white;
-      }
-      body.dark-mode .people-count {
-        color: white;
-      }
-      body.dark-mode .counter-btn {
-        background: #2d3748;
-        color: #10b981;
-      }
-      body.dark-mode .result-box {
-        background: #0f2922;
-        border-color: #10b981;
-      }
-      body.dark-mode .result-box p,
-      body.dark-mode .result-amount {
-        color: #10b981;
-      }
-      body.dark-mode .qr-wrapper {
-        background: #1e1e1e;
-        border: 2px solid #333;
-      }
-      body.dark-mode .bottom-nav {
-        background: #1e1e1e;
-        border-top: 1px solid #333;
-        box-shadow: none;
+      .premium-swal {
+        border-radius: 22px !important;
       }
     </style>
   </head>
+
   <body>
     <div class="app-container">
-      <div class="nav-header">
-        <a href="dashboard.html"><i class="fa-solid fa-arrow-left"></i></a>
-        <span data-lang="title_split">Split Bill</span>
+      <!-- =========================================================
+           ១. ក្បាលទំព័រ (HEADER - គ្មានប៊ូតុង Theme/Lang ទើសភ្នែក)
+           ========================================================= -->
+      <div class="sp-topbar">
+        <button
+          type="button"
+          class="sp-back-btn"
+          onclick="window.location.href = 'dashboard.html'"
+        >
+          <i class="fa-solid fa-arrow-left"></i>
+        </button>
+        <div style="text-align: center; flex: 1">
+          <h2
+            style="margin: 0; font-size: 1.05rem; font-weight: 800"
+            data-i18n="split_page_title"
+          >
+            រួមគ្នាទូទាត់
+          </h2>
+          <span
+            style="font-size: 0.7rem; opacity: 0.86"
+            data-i18n="split_page_subtitle"
+          >
+            ចែកវិក្កយបត្រ ស្កេនបង់ប្រាក់ ឬចែករំលែក QR/Link ក្នុង Chat
+          </span>
+        </div>
+        <div style="width: 38px"></div>
       </div>
 
-      <div class="content-body">
-        <div class="split-card">
-          <div class="input-group">
-            <label data-lang="total_amount">Total Amount</label>
-            <div class="amount-input-box">
-              <span>$</span>
-              <input
-                type="number"
-                id="totalAmount"
-                placeholder="0.00"
-                oninput="calculateSplit()"
-              />
+      <!-- =========================================================
+           ២. ផ្ទាំងប្តូរទាំង ៣៖ បង្កើតថ្មី | តាមដានវិក្កយបត្រ | ស្កេន/បង់ប្រាក់
+           ========================================================= -->
+      <div class="sp-hero">
+        <div class="sp-main-tabs">
+          <button
+            type="button"
+            class="sp-main-tab active"
+            id="tabBtnCreate"
+            onclick="switchMainSplitTab('create')"
+          >
+            <i class="fa-solid fa-plus-circle"></i>
+            <span data-i18n="split_tab_create">បង្កើតថ្មី</span>
+          </button>
+
+          <button
+            type="button"
+            class="sp-main-tab"
+            id="tabBtnHistory"
+            onclick="switchMainSplitTab('history')"
+          >
+            <i class="fa-solid fa-list-check"></i>
+            <span data-i18n="split_tab_history">វិក្កយបត្រ</span>
+            <span
+              id="activeBillsCountBadge"
+              class="mono-num"
+              style="
+                background: #f59e0b;
+                color: #fff;
+                padding: 1px 6px;
+                border-radius: 10px;
+                font-size: 0.68rem;
+              "
+              >0</span
+            >
+          </button>
+
+          <button
+            type="button"
+            class="sp-main-tab"
+            id="tabBtnScan"
+            onclick="switchMainSplitTab('scan')"
+          >
+            <i class="fa-solid fa-qrcode"></i>
+            <span data-i18n="split_tab_scan_pay">ស្កេន/បង់ប្រាក់</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- =========================================================
+           ៣. ផ្ទាំងទី ១៖ បង្កើតវិក្កយបត្ររួមគ្នា (CREATE SPLIT BILL)
+           ========================================================= -->
+      <div id="view-create" class="sp-view active">
+        <div class="sp-card">
+          <label class="sp-label" data-i18n="split_bill_title_label">
+            ១. ចំណងជើងការចំណាយ (Bill Title)
+          </label>
+
+          <div class="sp-cat-chips">
+            <button
+              type="button"
+              class="sp-cat-chip active"
+              onclick="selectQuickBillTitle('🍔 ញ៉ាំអាហារជុំគ្នា', this)"
+            >
+              🍔 <span data-i18n="split_cat_food">ញ៉ាំអាហារជុំគ្នា</span>
+            </button>
+            <button
+              type="button"
+              class="sp-cat-chip"
+              onclick="selectQuickBillTitle('☕ កាហ្វេ & ភេសជ្ជៈ', this)"
+            >
+              ☕ <span data-i18n="split_cat_coffee">កាហ្វេ & ភេសជ្ជៈ</span>
+            </button>
+            <button
+              type="button"
+              class="sp-cat-chip"
+              onclick="selectQuickBillTitle('🏖️ ដើរលេងកម្សាន្ត', this)"
+            >
+              🏖️ <span data-i18n="split_cat_trip">ដើរលេងកម្សាន្ត</span>
+            </button>
+            <button
+              type="button"
+              class="sp-cat-chip"
+              onclick="selectQuickBillTitle('🏠 បង់ថ្លៃផ្ទះ/ទឹកភ្លើង', this)"
+            >
+              🏠 <span data-i18n="split_cat_rent">ថ្លៃផ្ទះ/ទឹកភ្លើង</span>
+            </button>
+            <button
+              type="button"
+              class="sp-cat-chip"
+              onclick="selectQuickBillTitle('🎂 កម្មវិធីជប់លៀង', this)"
+            >
+              🎂 <span data-i18n="split_cat_party">កម្មវិធីជប់លៀង</span>
+            </button>
+          </div>
+
+          <input
+            type="text"
+            id="splitTitleInput"
+            class="sp-input"
+            value="🍔 ញ៉ាំអាហារជុំគ្នា"
+            data-i18n-placeholder="split_title_ph"
+            placeholder="ឧ. ញ៉ាំស៊ុបជុំគ្នា ឬ ដើរលេងកំពត..."
+            style="margin-bottom: 14px"
+          />
+
+          <label class="sp-label" data-i18n="split_total_amount_label">
+            ២. ចំនួនទឹកប្រាក់សរុបត្រូវចែកគ្នា (Total Bill Amount)
+          </label>
+          <div class="sp-amount-box">
+            <span
+              id="splitCurrSym"
+              class="mono-num"
+              style="font-size: 1.8rem; font-weight: 900; color: var(--emerald)"
+              >$</span
+            >
+            <input
+              type="number"
+              id="splitTotalInput"
+              class="sp-amount-input mono-num"
+              placeholder="0.00"
+              min="0"
+              step="any"
+              oninput="
+                if (this.value < 0) this.value = Math.abs(this.value);
+                recalculateSplitAmounts();
+              "
+            />
+            <div class="sp-curr-toggle">
+              <button
+                type="button"
+                class="sp-curr-btn active mono-num"
+                id="btnSplitUSD"
+                onclick="setSplitCurrency('USD')"
+              >
+                USD
+              </button>
+              <button
+                type="button"
+                class="sp-curr-btn mono-num"
+                id="btnSplitKHR"
+                onclick="setSplitCurrency('KHR')"
+              >
+                KHR
+              </button>
             </div>
           </div>
 
-          <div class="input-group" style="margin-top: 40px">
-            <label data-lang="num_people">Number of People</label>
-            <div class="counter-box">
-              <button class="counter-btn" onclick="updatePeople(-1)">
+          <label class="sp-label" data-i18n="split_receive_acc_label">
+            គណនីទទួលប្រាក់របស់អ្នក (Receive Into Account)
+          </label>
+          <select id="splitReceiveAccSelect" class="sp-input"></select>
+        </div>
+
+        <!-- ផ្នែកទី ២៖ កំណត់ចំនួនមនុស្សរហ័ស (មិនបាច់ Add ក៏បាន) ឬ Add មិត្តភក្តិបាញ់សារ -->
+        <div class="sp-card">
+          <div
+            style="
+              display: flex;
+              justify-content: space-between;
+              align-items: center;
+              margin-bottom: 10px;
+            "
+          >
+            <label
+              class="sp-label"
+              style="margin: 0"
+              data-i18n="split_method_label"
+            >
+              ៣. ចំនួនមនុស្ស & របៀបចែកទឹកប្រាក់
+            </label>
+            <span
+              id="splitPerPersonBadge"
+              class="mono-num"
+              style="
+                font-size: 0.78rem;
+                font-weight: 800;
+                color: var(--emerald);
+                background: rgba(16, 185, 129, 0.12);
+                padding: 3px 10px;
+                border-radius: 12px;
+              "
+            >
+              ម្នាក់ៗ៖ $0.00
+            </span>
+          </div>
+
+          <!-- 🔢 របារកំណត់ចំនួនមនុស្សរហ័ស (មិនបាច់ Add មិត្តភក្តិក៏បង្កើត QR បានភ្លាម!) -->
+          <div class="sp-headcount-bar">
+            <div>
+              <div
+                style="font-size: 0.86rem; font-weight: 800"
+                data-i18n="split_headcount_title"
+              >
+                ចែកគ្នាចំនួនប៉ុន្មាននាក់?
+              </div>
+              <div
+                style="font-size: 0.72rem; color: var(--text-muted)"
+                data-i18n="split_headcount_sub"
+              >
+                មិនបាច់ Add ឈ្មោះក៏បាន (ពេលមិត្តភក្តិស្កេនបង់
+                វានឹងលោតឈ្មោះចូលស្វ័យប្រវត្តិ)
+              </div>
+            </div>
+            <div style="display: flex; align-items: center; gap: 10px">
+              <button
+                type="button"
+                class="sp-step-btn"
+                onclick="adjustQuickHeadcount(-1)"
+              >
                 <i class="fa-solid fa-minus"></i>
               </button>
-              <div class="people-count" id="peopleCount">2</div>
-              <button class="counter-btn" onclick="updatePeople(1)">
+              <span
+                id="headcountNumDisplay"
+                class="mono-num"
+                style="
+                  font-size: 1.25rem;
+                  font-weight: 900;
+                  min-width: 24px;
+                  text-align: center;
+                "
+                >2</span
+              >
+              <button
+                type="button"
+                class="sp-step-btn"
+                onclick="adjustQuickHeadcount(1)"
+              >
                 <i class="fa-solid fa-plus"></i>
               </button>
             </div>
           </div>
 
-          <div class="result-box">
-            <p data-lang="each_pays">Each person pays</p>
-            <div class="result-amount">$<span id="splitAmount">0.00</span></div>
+          <div class="sp-mode-tabs">
+            <button
+              type="button"
+              class="sp-mode-btn active"
+              id="modeBtnEqual"
+              onclick="setSplitCalculationMode('equal')"
+            >
+              <i class="fa-solid fa-scale-balanced"></i>
+              <span data-i18n="split_mode_equal">ចែកស្មើគ្នា (Equal)</span>
+            </button>
+            <button
+              type="button"
+              class="sp-mode-btn"
+              id="modeBtnCustom"
+              onclick="setSplitCalculationMode('custom')"
+            >
+              <i class="fa-solid fa-sliders"></i>
+              <span data-i18n="split_mode_custom">កំណត់ម្នាក់ៗ (Custom)</span>
+            </button>
+          </div>
+
+          <!-- ប្រអប់ Add មិត្តភក្តិក្នុង U-Pay ដើម្បីបាញ់សារទៅប្រាប់គាត់ -->
+          <label class="sp-label" data-i18n="split_add_member_label">
+            បន្ថែមគណនីមិត្តភក្តិដើម្បីបាញ់សារជូនដំណឹង (មិនបង្ខំ)
+          </label>
+          <div style="display: flex; gap: 8px; margin-bottom: 12px">
+            <input
+              type="text"
+              id="memberSearchInput"
+              class="sp-input"
+              data-i18n-placeholder="split_search_member_ph"
+              placeholder="វាយ @username, លេខគណនី ឬឈ្មោះមិត្តភក្តិ..."
+              onkeydown="if (event.key === 'Enter') addParticipantFromInput();"
+            />
+            <button
+              type="button"
+              onclick="addParticipantFromInput()"
+              style="
+                border: none;
+                background: var(--primary);
+                color: #ffffff;
+                padding: 0 16px;
+                border-radius: 14px;
+                font-weight: 800;
+                cursor: pointer;
+                flex-shrink: 0;
+              "
+            >
+              <i class="fa-solid fa-user-plus"></i>
+              <span data-i18n="split_btn_add">បន្ថែម</span>
+            </button>
+          </div>
+
+          <div id="participantsListContainer"></div>
+
+          <div
+            id="customSplitStatusStrip"
+            style="
+              display: none;
+              padding: 10px 12px;
+              border-radius: 12px;
+              font-size: 0.78rem;
+              font-weight: 700;
+              margin-top: 8px;
+              justify-content: space-between;
+            "
+          ></div>
+        </div>
+
+        <button
+          type="button"
+          class="sp-btn-primary"
+          onclick="createAndOpenShareSplitModal()"
+        >
+          <i class="fa-solid fa-qrcode"></i>
+          <span data-i18n="split_btn_generate"
+            >បង្កើតវិក្កយបត្រ & ចែករំលែក QR / Link</span
+          >
+        </button>
+      </div>
+
+      <!-- =========================================================
+           ៤. ផ្ទាំងទី ២៖ តាមដានវិក្កយបត្រ និងវិក្កយបត្រដែលគេអញ្ជើញខ្ញុំ
+           ========================================================= -->
+      <div id="view-history" class="sp-view">
+        <div id="savedSplitsContainer"></div>
+      </div>
+
+      <!-- =========================================================
+           ៥. ផ្ទាំងទី ៣៖ ម៉ាស៊ីនស្កេន QR និងបង់ប្រាក់រួមគ្នាផ្ទាល់ក្នុង SPLIT.HTML
+           ========================================================= -->
+      <div id="view-scan" class="sp-view">
+        <div class="sp-card" style="text-align: center">
+          <h4 style="margin: 0 0 6px; font-size: 1rem; font-weight: 800">
+            <i class="fa-solid fa-camera" style="color: var(--emerald)"></i>
+            <span data-i18n="split_scan_title"
+              >ស្កេន QR ឬវាយលេខកូដវិក្កយបត្រដើម្បីទូទាត់</span
+            >
+          </h4>
+          <p
+            style="
+              margin: 0 0 14px;
+              font-size: 0.78rem;
+              color: var(--text-muted);
+            "
+            data-i18n="split_scan_desc"
+          >
+            ស្កេនប័ណ្ណ QR រួមគ្នាទូទាត់របស់មិត្តភក្តិ ឬជ្រើសរើសរូបភាព QR
+            ពីក្នុងទូរស័ព្ទ
+          </p>
+
+          <div id="splitQrReader" style="margin-bottom: 12px"></div>
+
+          <div style="display: flex; gap: 8px; margin-bottom: 14px">
+            <button
+              type="button"
+              onclick="document.getElementById('splitQrFileInput').click()"
+              style="
+                flex: 1;
+                border: 1.5px dashed var(--secondary);
+                background: rgba(13, 148, 136, 0.08);
+                color: var(--secondary);
+                padding: 11px;
+                border-radius: 14px;
+                font-weight: 800;
+                font-size: 0.82rem;
+                cursor: pointer;
+              "
+            >
+              <i class="fa-solid fa-image"></i> ជ្រើសរើសរូប QR ពីទូរស័ព្ទ
+            </button>
+            <input
+              type="file"
+              id="splitQrFileInput"
+              accept="image/*"
+              style="display: none"
+              onchange="scanSplitQrFromImageFile(event)"
+            />
+          </div>
+
+          <div
+            style="
+              border-top: 1px dashed var(--border-color);
+              padding-top: 14px;
+              text-align: left;
+            "
+          >
+            <label class="sp-label">
+              ឬវាយលេខកូដវិក្កយបត្រ (Bill ID ឧ. SPL-123456)៖
+            </label>
+            <div style="display: flex; gap: 8px">
+              <input
+                type="text"
+                id="manualBillIdInput"
+                class="sp-input mono-num"
+                placeholder="ឧ. SPL-..."
+                oninput="this.value = this.value.toUpperCase()"
+              />
+              <button
+                type="button"
+                onclick="lookupAndOpenSplitPayByCode()"
+                style="
+                  border: none;
+                  background: var(--primary);
+                  color: #fff;
+                  padding: 0 18px;
+                  border-radius: 14px;
+                  font-weight: 800;
+                  cursor: pointer;
+                "
+              >
+                បើកបង់ប្រាក់
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- =========================================================
+           ៦. ផ្ទាំង MODAL បង្ហាញប័ណ្ណ QR & DEEP LINK សម្រាប់ SHARE ចូល CHAT
+           ========================================================= -->
+      <div class="sp-modal-backdrop" id="shareSplitModal">
+        <div class="sp-modal-sheet">
+          <div
+            style="
+              display: flex;
+              justify-content: space-between;
+              align-items: center;
+              margin-bottom: 14px;
+            "
+          >
+            <h3
+              style="margin: 0; font-size: 1.05rem; font-weight: 800"
+              data-i18n="split_share_modal_title"
+            >
+              ចែករំលែកវិក្កយបត្រទៅកាន់មិត្តភក្តិ
+            </h3>
+            <button
+              type="button"
+              onclick="closeShareSplitModal()"
+              style="
+                width: 34px;
+                height: 34px;
+                border-radius: 50%;
+                border: 1px solid var(--border-color);
+                background: var(--bg-subtle);
+                color: var(--text-main);
+                cursor: pointer;
+              "
+            >
+              <i class="fa-solid fa-xmark"></i>
+            </button>
+          </div>
+
+          <div class="sp-qr-capture-card" id="splitCaptureCardArea">
+            <div
+              style="
+                display: inline-block;
+                background: rgba(255, 255, 255, 0.16);
+                padding: 4px 12px;
+                border-radius: 20px;
+                font-size: 0.72rem;
+                font-weight: 800;
+              "
+            >
+              🧾 U-PAY រួមគ្នាទូទាត់ (SPLIT BILL)
+            </div>
+
+            <h3
+              id="cardBillTitle"
+              style="margin: 8px 0 2px; font-size: 1.2rem; font-weight: 900"
+            >
+              ...
+            </h3>
+            <div
+              id="cardBillHost"
+              style="font-size: 0.76rem; opacity: 0.85; margin-bottom: 8px"
+            >
+              ...
+            </div>
+
+            <div class="sp-qr-frame">
+              <img id="cardSplitQrImg" src="" alt="Split QR" />
+            </div>
+
+            <div
+              style="font-size: 0.75rem; opacity: 0.85"
+              data-i18n="split_each_pay_label"
+            >
+              ទឹកប្រាក់ត្រូវបង់ម្នាក់ៗ (Per Person)
+            </div>
+            <div
+              id="cardPerPersonAmt"
+              class="mono-num"
+              style="
+                font-size: 1.9rem;
+                font-weight: 900;
+                color: #6ee7b7;
+                margin: 2px 0 6px;
+              "
+            >
+              $0.00
+            </div>
+
+            <div
+              id="cardTotalAndMembers"
+              class="mono-num"
+              style="
+                font-size: 0.75rem;
+                background: rgba(0, 0, 0, 0.22);
+                padding: 6px 12px;
+                border-radius: 12px;
+                display: inline-block;
+              "
+            >
+              សរុប៖ $0.00 • 0 នាក់
+            </div>
+          </div>
+
+          <div class="sp-share-grid">
+            <button
+              type="button"
+              class="sp-share-btn"
+              onclick="copySplitPaymentLink()"
+            >
+              <i class="fa-solid fa-link" style="color: #0ea5e9"></i>
+              <span data-i18n="split_btn_copy_link">ចម្លង Link</span>
+            </button>
+
+            <button
+              type="button"
+              class="sp-share-btn"
+              onclick="shareSplitToInAppChat()"
+            >
+              <i class="fa-solid fa-comments" style="color: #10b981"></i>
+              <span data-i18n="split_btn_upay_chat">U-Pay Chat</span>
+            </button>
+
+            <button
+              type="button"
+              class="sp-share-btn"
+              onclick="shareSplitViaNativeOrTelegram()"
+            >
+              <i class="fa-brands fa-telegram" style="color: #0284c7"></i>
+              <span data-i18n="split_btn_share_app">Telegram/Chat</span>
+            </button>
+
+            <button
+              type="button"
+              class="sp-share-btn"
+              onclick="downloadSplitQrCardImage()"
+            >
+              <i class="fa-solid fa-download" style="color: #f59e0b"></i>
+              <span data-i18n="split_btn_save_img">រក្សាទុករូប</span>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- =========================================================
+           ៧. ផ្ទាំង MODAL បង់ប្រាក់រួមគ្នាផ្ទាល់នៅក្នុង SPLIT.HTML (BUILT-IN PAYOUT)
+           ========================================================= -->
+      <div class="sp-modal-backdrop" id="directPaySplitModal">
+        <div class="sp-modal-sheet">
+          <div
+            style="
+              display: flex;
+              justify-content: space-between;
+              align-items: center;
+              margin-bottom: 14px;
+            "
+          >
+            <h3 style="margin: 0; font-size: 1.05rem; font-weight: 800">
+              💳 ទូទាត់ចំណែកវិក្កយបត្ររួមគ្នា
+            </h3>
+            <button
+              type="button"
+              onclick="closeDirectPaySplitModal()"
+              style="
+                width: 34px;
+                height: 34px;
+                border-radius: 50%;
+                border: 1px solid var(--border-color);
+                background: var(--bg-subtle);
+                color: var(--text-main);
+                cursor: pointer;
+              "
+            >
+              <i class="fa-solid fa-xmark"></i>
+            </button>
+          </div>
+
+          <div
+            style="
+              background: linear-gradient(135deg, #00382e, #004d40);
+              color: #fff;
+              border-radius: 20px;
+              padding: 18px;
+              text-align: center;
+              margin-bottom: 14px;
+            "
+          >
+            <div
+              id="payModalBillTitle"
+              style="font-size: 0.92rem; font-weight: 800; opacity: 0.92"
+            >
+              ...
+            </div>
+            <div
+              id="payModalAmountText"
+              class="mono-num"
+              style="
+                font-size: 2.2rem;
+                font-weight: 900;
+                color: #6ee7b7;
+                margin: 6px 0;
+              "
+            >
+              $0.00
+            </div>
+            <div
+              id="payModalHostInfo"
+              style="font-size: 0.78rem; opacity: 0.85"
+            >
+              ជូនទៅកាន់៖ ...
+            </div>
+          </div>
+
+          <div style="margin-bottom: 16px">
+            <label class="sp-label"
+              >ជ្រើសរើសគណនីរបស់អ្នកដើម្បីកាត់ប្រាក់៖</label
+            >
+            <select id="payModalFromAccSelect" class="sp-input"></select>
           </div>
 
           <button
-            class="btn-generate"
-            onclick="generateQR()"
-            data-lang="btn_gen_qr"
+            type="button"
+            class="sp-btn-primary"
+            onclick="confirmAndExecuteDirectSplitPayment()"
           >
-            Generate Payment QR
+            <i class="fa-solid fa-shield-halved"></i>
+            <span>ផ្ទៀងផ្ទាត់ PIN & បង់ប្រាក់ឥឡូវនេះ</span>
           </button>
         </div>
-
-        <div class="qr-result-area" id="qrResultArea">
-          <div class="qr-wrapper">
-            <img id="qrImage" src="" alt="QR Code" />
-          </div>
-          <p class="qr-note" data-lang="qr_note">
-            Ask your friends to scan this QR code to pay you back instantly.
-          </p>
-        </div>
-      </div>
-
-      <div class="bottom-nav">
-        <a href="dashboard.html" class="nav-item active"
-          ><i class="fa-solid fa-house"></i>
-          <span data-lang="nav_home">Home</span></a
-        >
-        <a href="scan.html" class="nav-item"
-          ><i class="fa-solid fa-qrcode"></i>
-          <span data-lang="nav_scan">Scan</span></a
-        >
-        <a href="history.html" class="nav-item"
-          ><i class="fa-solid fa-clock-rotate-left"></i>
-          <span data-lang="nav_history">History</span></a
-        >
-        <a href="settings.html" class="nav-item"
-          ><i class="fa-solid fa-gear"></i>
-          <span data-lang="nav_settings">Settings</span></a
-        >
       </div>
     </div>
 
+    <!-- ==========================================
+         ៨. ផ្នែក JAVASCRIPT (100% PURE _ID, SCANNER & DEEP LINK)
+         ========================================== -->
     <script>
-      let user = JSON.parse(sessionStorage.getItem("user"));
-      if (!user) window.location.href = "index.html";
-
-      if (localStorage.getItem("darkMode") === "true")
-        document.body.classList.add("dark-mode");
-
-      const translations = {
+      // =========================================================
+      // ៨.១. វចនានុក្រមបកប្រែភាសា («រួមគ្នាទូទាត់»)
+      // =========================================================
+      const SPLIT_TRANSLATIONS = {
         en: {
-          title_split: "Split Bill",
-          total_amount: "Total Bill Amount",
-          num_people: "Number of People",
-          each_pays: "Each person pays",
-          btn_gen_qr: "Generate Payment QR",
-          qr_note:
-            "Ask your friends to scan this QR code to pay you back instantly.",
-          nav_home: "Home",
-          nav_scan: "Scan",
-          nav_history: "History",
-          nav_settings: "Settings",
+          btn_split: "Split Bill",
+          split_page_title: "Split Bill Together",
+          split_page_subtitle:
+            "Split expenses, scan QR to pay, or share in chat",
+          split_tab_create: "Create Split",
+          split_tab_history: "My Bills",
+          split_tab_scan_pay: "Scan / Pay",
+          split_bill_title_label: "1. Expense Title",
+          split_cat_food: "Dining Out",
+          split_cat_coffee: "Coffee & Drinks",
+          split_cat_trip: "Group Trip",
+          split_cat_rent: "Rent & Utilities",
+          split_cat_party: "Party",
+          split_title_ph: "e.g. Hotpot Dinner or Kampot Trip...",
+          split_total_amount_label: "2. Total Bill Amount",
+          split_receive_acc_label: "Receive Payment Into Account",
+          split_method_label: "3. Headcount & Split Method",
+          split_headcount_title: "How many people?",
+          split_headcount_sub:
+            "No need to add names (names fill automatically when friends scan & pay)",
+          split_mode_equal: "Equal Split",
+          split_mode_custom: "Custom Split",
+          split_add_member_label:
+            "Or Add U-Pay Friends to Send Notification (Optional)",
+          split_search_member_ph: "Type @username, Account No, or Name...",
+          split_btn_add: "Add",
+          split_btn_generate: "Create Bill & Share QR / Link",
+          split_share_modal_title: "Share Split Bill to Friends",
+          split_each_pay_label: "Amount Per Person",
+          split_btn_copy_link: "Copy Link",
+          split_btn_upay_chat: "U-Pay Chat",
+          split_btn_share_app: "Telegram/Share",
+          split_btn_save_img: "Save QR Card",
+          split_scan_title: "Scan Split QR or Enter Bill ID to Pay",
+          split_scan_desc:
+            "Scan your friend's Split Bill QR code or upload from gallery",
         },
         kh: {
-          title_split: "ចែកលុយគ្នា",
-          total_amount: "ទឹកប្រាក់សរុប",
-          num_people: "ចំនួនមនុស្ស",
-          each_pays: "ម្នាក់ៗត្រូវចេញ",
-          btn_gen_qr: "បង្កើត QR សម្រាប់ទូទាត់",
-          qr_note:
-            "ឱ្យមិត្តភក្តិរបស់អ្នកស្កេន QR នេះដើម្បីវេរលុយសងអ្នកវិញភ្លាមៗ។",
-          nav_home: "ទំព័រដើម",
-          nav_scan: "ស្កេន",
-          nav_history: "ប្រវត្តិ",
-          nav_settings: "ការកំណត់",
+          btn_split: "រួមគ្នាទូទាត់",
+          split_page_title: "រួមគ្នាទូទាត់",
+          split_page_subtitle:
+            "ចែកវិក្កយបត្រ ស្កេនបង់ប្រាក់ ឬចែករំលែក QR/Link ក្នុង Chat",
+          split_tab_create: "បង្កើតថ្មី",
+          split_tab_history: "វិក្កយបត្រ",
+          split_tab_scan_pay: "ស្កេន/បង់ប្រាក់",
+          split_bill_title_label: "១. ចំណងជើងការចំណាយ (Bill Title)",
+          split_cat_food: "ញ៉ាំអាហារជុំគ្នា",
+          split_cat_coffee: "កាហ្វេ & ភេសជ្ជៈ",
+          split_cat_trip: "ដើរលេងកម្សាន្ត",
+          split_cat_rent: "ថ្លៃផ្ទះ/ទឹកភ្លើង",
+          split_cat_party: "កម្មវិធីជប់លៀង",
+          split_title_ph: "ឧ. ញ៉ាំស៊ុបជុំគ្នា ឬ ដើរលេងកំពត...",
+          split_total_amount_label: "២. ចំនួនទឹកប្រាក់សរុបត្រូវចែកគ្នា",
+          split_receive_acc_label: "គណនីទទួលប្រាក់របស់អ្នក",
+          split_method_label: "៣. ចំនួនមនុស្ស & របៀបចែកទឹកប្រាក់",
+          split_headcount_title: "ចែកគ្នាចំនួនប៉ុន្មាននាក់?",
+          split_headcount_sub:
+            "មិនបាច់ Add ឈ្មោះក៏បាន (ពេលមិត្តភក្តិស្កេនបង់ វានឹងលោតឈ្មោះចូលស្វ័យប្រវត្តិ)",
+          split_mode_equal: "ចែកស្មើគ្នា (Equal)",
+          split_mode_custom: "កំណត់ម្នាក់ៗ (Custom)",
+          split_add_member_label:
+            "បន្ថែមគណនីមិត្តភក្តិដើម្បីបាញ់សារជូនដំណឹង (មិនបង្ខំ)",
+          split_search_member_ph: "វាយ @username, លេខគណនី ឬឈ្មោះមិត្តភក្តិ...",
+          split_btn_add: "បន្ថែម",
+          split_btn_generate: "បង្កើតវិក្កយបត្រ & ចែករំលែក QR / Link",
+          split_share_modal_title: "ចែករំលែកវិក្កយបត្រទៅកាន់មិត្តភក្តិ",
+          split_each_pay_label: "ទឹកប្រាក់ត្រូវបង់ម្នាក់ៗ (Per Person)",
+          split_btn_copy_link: "ចម្លង Link",
+          split_btn_upay_chat: "U-Pay Chat",
+          split_btn_share_app: "Telegram/Chat",
+          split_btn_save_img: "រក្សាទុករូប",
+          split_scan_title: "ស្កេន QR ឬវាយលេខកូដវិក្កយបត្រដើម្បីទូទាត់",
+          split_scan_desc:
+            "ស្កេនប័ណ្ណ QR រួមគ្នាទូទាត់របស់មិត្តភក្តិ ឬជ្រើសរើសរូបភាព QR ពីក្នុងទូរស័ព្ទ",
         },
       };
 
-      let currentLang = localStorage.getItem("lang") || "en";
-      function applyLang() {
-        document.querySelectorAll("[data-lang]").forEach((el) => {
-          const key = el.getAttribute("data-lang");
-          if (translations[currentLang] && translations[currentLang][key]) {
-            el.innerText = translations[currentLang][key];
-          }
+      if (typeof window.translations === "object") {
+        window.translations.en = {
+          ...(window.translations.en || {}),
+          ...SPLIT_TRANSLATIONS.en,
+        };
+        window.translations.kh = {
+          ...(window.translations.kh || {}),
+          ...SPLIT_TRANSLATIONS.kh,
+        };
+      }
+
+      function tr(key) {
+        const lang = localStorage.getItem("lang") || "kh";
+        return (
+          SPLIT_TRANSLATIONS[lang]?.[key] || SPLIT_TRANSLATIONS.kh[key] || key
+        );
+      }
+
+      // =========================================================
+      // ៨.២. ប្រព័ន្ធចងចាំ DEEP LINK មុនពេល LOGIN (ដូច U-Mall)
+      // បើមិត្តភក្តិចុច Link ពីក្នុង Chat ហើយមិនទាន់ Login វានឹងចងចាំ Link នេះទុក!
+      // =========================================================
+      let user =
+        window.currentUser ||
+        JSON.parse(sessionStorage.getItem("user") || "null");
+
+      if (!user || !user._id) {
+        if (
+          window.location.search.includes("pay=1") ||
+          window.location.search.includes("billId=")
+        ) {
+          localStorage.setItem("pendingSplitRedirect", window.location.href);
+        }
+        window.location.href = "index.html";
+      }
+
+      let splitState = {
+        currency: "USD",
+        mode: "equal",
+        headcount: 2,
+        participants: [],
+        activeShareBill: null,
+        pendingPayBill: null,
+        allMyBills: [],
+        qrScannerInstance: null,
+      };
+
+      document.addEventListener("DOMContentLoaded", async () => {
+        applyThemeAndLangFromSettings();
+        populateReceiveAccounts();
+        initDefaultParticipantsWithHeadcount(2);
+        await loadMySplitBillsFromServer();
+        await checkIncomingDeepLinkPayment();
+        initRealTimeSocket();
+        document.body.classList.add("loaded");
+      });
+
+      function initRealTimeSocket() {
+        try {
+          const socket = io({ transports: ["websocket", "polling"] });
+          socket.emit("joinRoom", String(user._id));
+          socket.on("splitBillUpdated", () => {
+            loadMySplitBillsFromServer();
+          });
+          socket.on("splitBillInvited", () => {
+            loadMySplitBillsFromServer();
+          });
+        } catch (e) {}
+      }
+
+      function applyThemeAndLangFromSettings() {
+        const themeById = localStorage.getItem(`theme_${user._id}`);
+        const themeLegacy = user.username
+          ? localStorage.getItem(`theme_${user.username}`)
+          : null;
+        const isDark = (themeById || themeLegacy) === "dark";
+        document.body.classList.toggle("dark-mode", isDark);
+
+        if (typeof applyLanguage === "function") applyLanguage();
+        document.querySelectorAll("[data-i18n]").forEach((el) => {
+          const k = el.getAttribute("data-i18n");
+          if (SPLIT_TRANSLATIONS.kh[k]) el.innerText = tr(k);
         });
-        document.body.style.fontFamily =
-          currentLang === "kh"
-            ? "'Kantumruy Pro', sans-serif"
-            : "'Inter', 'Kantumruy Pro', sans-serif";
-      }
-      applyLang();
-
-      // --- ការគណនាចែកលុយ ---
-      let people = 2;
-      let finalAmountPerPerson = 0;
-
-      function updatePeople(change) {
-        people += change;
-        if (people < 2) people = 2; // យ៉ាងហោចណាស់មាន ២នាក់
-        if (people > 50) people = 50; // កំណត់ត្រឹម ៥០នាក់អតិបរមា
-        document.getElementById("peopleCount").innerText = people;
-        calculateSplit();
+        document.querySelectorAll("[data-i18n-placeholder]").forEach((el) => {
+          const k = el.getAttribute("data-i18n-placeholder");
+          if (SPLIT_TRANSLATIONS.kh[k]) el.placeholder = tr(k);
+        });
       }
 
-      function calculateSplit() {
-        const totalInput = document.getElementById("totalAmount").value;
-        const total = parseFloat(totalInput);
+      window.addEventListener("storage", (event) => {
+        if (
+          event.key === `theme_${user._id}` ||
+          event.key === `theme_${user.username}` ||
+          event.key === "lang"
+        ) {
+          applyThemeAndLangFromSettings();
+        }
+      });
 
-        if (isNaN(total) || total <= 0) {
-          document.getElementById("splitAmount").innerText = "0.00";
-          finalAmountPerPerson = 0;
-          document.getElementById("qrResultArea").style.display = "none";
+      function switchMainSplitTab(tab) {
+        ["create", "history", "scan"].forEach((t) => {
+          document
+            .getElementById(`tabBtn${t.charAt(0).toUpperCase() + t.slice(1)}`)
+            ?.classList.toggle("active", t === tab);
+          document
+            .getElementById(`view-${t}`)
+            ?.classList.toggle("active", t === tab);
+        });
+
+        if (tab === "history") loadMySplitBillsFromServer();
+        if (tab === "scan") startSplitCameraScanner();
+        else stopSplitCameraScanner();
+      }
+
+      function selectQuickBillTitle(titleText, btnEl) {
+        document
+          .querySelectorAll(".sp-cat-chip")
+          .forEach((b) => b.classList.remove("active"));
+        if (btnEl) btnEl.classList.add("active");
+        document.getElementById("splitTitleInput").value = titleText;
+      }
+
+      // =========================================================
+      // ៨.៣. គណនីទទួលប្រាក់ និងការកំណត់ចំនួនមនុស្សរហ័ស (មិនបាច់ Add ក៏បង្កើតបាន)
+      // =========================================================
+      function populateReceiveAccounts() {
+        const sel = document.getElementById("splitReceiveAccSelect");
+        sel.innerHTML = "";
+
+        const mainUsd =
+          user.mainAccounts?.USD?.accountNumber || user.accountNumber;
+        const mainKhr =
+          user.mainAccounts?.KHR?.accountNumber || user.accountNumberKHR;
+
+        if (mainUsd) {
+          const opt = document.createElement("option");
+          opt.value = mainUsd;
+          opt.dataset.currency = "USD";
+          opt.textContent = `Main Account (USD) - #${mainUsd}`;
+          sel.appendChild(opt);
+        }
+        if (mainKhr) {
+          const opt = document.createElement("option");
+          opt.value = mainKhr;
+          opt.dataset.currency = "KHR";
+          opt.textContent = `Main Account (KHR) - #${mainKhr}`;
+          sel.appendChild(opt);
+        }
+
+        (user.subAccounts || []).forEach((sub) => {
+          if (sub.isHidden || sub.accountType === "junior") return;
+          const opt = document.createElement("option");
+          opt.value = sub.accountNumber;
+          opt.dataset.currency = sub.currency;
+          opt.textContent = `${sub.accountName} (${sub.currency}) - #${sub.accountNumber}`;
+          sel.appendChild(opt);
+        });
+
+        sel.onchange = () => {
+          const chosenOpt = sel.options[sel.selectedIndex];
+          if (chosenOpt?.dataset?.currency) {
+            setSplitCurrency(chosenOpt.dataset.currency, false);
+          }
+        };
+      }
+
+      function setSplitCurrency(cur, syncAccountDropdown = true) {
+        if (splitState.currency !== cur) {
+          document.getElementById("splitTotalInput").value = "";
+        }
+        splitState.currency = cur === "KHR" ? "KHR" : "USD";
+
+        document
+          .getElementById("btnSplitUSD")
+          .classList.toggle("active", splitState.currency === "USD");
+        document
+          .getElementById("btnSplitKHR")
+          .classList.toggle("active", splitState.currency === "KHR");
+        document.getElementById("splitCurrSym").innerText =
+          splitState.currency === "USD" ? "$" : "៛";
+
+        if (syncAccountDropdown) {
+          const sel = document.getElementById("splitReceiveAccSelect");
+          for (let i = 0; i < sel.options.length; i++) {
+            if (sel.options[i].dataset.currency === splitState.currency) {
+              sel.selectedIndex = i;
+              break;
+            }
+          }
+        }
+        recalculateSplitAmounts();
+      }
+
+      function setSplitCalculationMode(mode) {
+        splitState.mode = mode === "custom" ? "custom" : "equal";
+        document
+          .getElementById("modeBtnEqual")
+          .classList.toggle("active", splitState.mode === "equal");
+        document
+          .getElementById("modeBtnCustom")
+          .classList.toggle("active", splitState.mode === "custom");
+        recalculateSplitAmounts();
+      }
+
+      function initDefaultParticipantsWithHeadcount(count = 2) {
+        splitState.headcount = Math.max(2, count);
+        document.getElementById("headcountNumDisplay").innerText =
+          splitState.headcount;
+
+        splitState.participants = [
+          {
+            userId: user._id,
+            username: user.username,
+            fullName: `${user.fullName || user.username} (អ្នក/Host)`,
+            profileImage: user.profileImage || "",
+            isHost: true,
+            included: true,
+            amount: 0,
+            status: "Paid",
+          },
+        ];
+
+        for (let i = 2; i <= splitState.headcount; i++) {
+          splitState.participants.push({
+            userId: null,
+            username: "",
+            fullName: `សមាជិកទី ${i} (រង់ចាំស្កេន/បង់)`,
+            profileImage: "",
+            isHost: false,
+            included: true,
+            amount: 0,
+            status: "Pending",
+          });
+        }
+
+        recalculateSplitAmounts();
+      }
+
+      // ប៊ូតុង + / - កំណត់ចំនួនមនុស្សរហ័សដោយមិនបាច់ Add មិត្តភក្តិក៏បាន
+      window.adjustQuickHeadcount = function (delta) {
+        const newCount = Math.max(
+          2,
+          Math.min(30, splitState.participants.length + delta),
+        );
+        if (newCount > splitState.participants.length) {
+          for (let i = splitState.participants.length + 1; i <= newCount; i++) {
+            splitState.participants.push({
+              userId: null,
+              username: "",
+              fullName: `សមាជិកទី ${i} (រង់ចាំស្កេន/បង់)`,
+              profileImage: "",
+              isHost: false,
+              included: true,
+              amount: 0,
+              status: "Pending",
+            });
+          }
+        } else if (newCount < splitState.participants.length) {
+          splitState.participants.pop();
+        }
+        splitState.headcount = splitState.participants.length;
+        document.getElementById("headcountNumDisplay").innerText =
+          splitState.headcount;
+        recalculateSplitAmounts();
+      };
+
+      // ស្វែងរក និង Add គណនីមិត្តភក្តិក្នុង U-Pay (បើមានកៅអីទទេ វាជំនួសចូលកៅអីទទេនោះភ្លាម)
+      async function addParticipantFromInput() {
+        const inputEl = document.getElementById("memberSearchInput");
+        const rawVal = inputEl.value.trim();
+        if (!rawVal) return;
+
+        let newMemberObj = null;
+
+        try {
+          const cleanQuery = rawVal.replace(/^@/, "");
+          const res = await fetch(
+            `/api/account/joint/search/${encodeURIComponent(cleanQuery)}`,
+            { headers: window.authHeaders },
+          );
+          if (res.ok) {
+            const data = await res.json();
+            if (data.success && data.user) {
+              const found = data.user;
+              if (
+                splitState.participants.some(
+                  (p) => p.userId && String(p.userId) === String(found._id),
+                )
+              ) {
+                return Swal.fire({
+                  toast: true,
+                  position: "top",
+                  icon: "info",
+                  title: "មិត្តភក្តិនេះមានក្នុងបញ្ជីរួចហើយ!",
+                  showConfirmButton: false,
+                  timer: 1800,
+                });
+              }
+              newMemberObj = {
+                userId: found._id,
+                username: found.username,
+                fullName: found.fullName || found.username,
+                profileImage: found.profileImage || "",
+                isHost: false,
+                included: true,
+                amount: 0,
+                status: "Pending",
+              };
+            }
+          }
+        } catch (e) {}
+
+        if (!newMemberObj) {
+          newMemberObj = {
+            userId: null,
+            username: "",
+            fullName: rawVal,
+            profileImage: "",
+            isHost: false,
+            included: true,
+            amount: 0,
+            status: "Pending",
+          };
+        }
+
+        // ប្រសិនបើមានកៅអីទទេ ("សមាជិកទី X (រង់ចាំស្កេន/បង់)") ដាក់បញ្ចូលក្នុងកៅអីទទេនោះមុន!
+        const emptySlotIdx = splitState.participants.findIndex(
+          (p) =>
+            !p.isHost && !p.userId && p.fullName.includes("រង់ចាំស្កេន/បង់"),
+        );
+
+        if (emptySlotIdx !== -1) {
+          splitState.participants[emptySlotIdx] = newMemberObj;
+        } else {
+          splitState.participants.push(newMemberObj);
+        }
+
+        splitState.headcount = splitState.participants.length;
+        document.getElementById("headcountNumDisplay").innerText =
+          splitState.headcount;
+        inputEl.value = "";
+        recalculateSplitAmounts();
+      }
+
+      function removeParticipant(idx) {
+        if (splitState.participants[idx]?.isHost) return;
+        splitState.participants.splice(idx, 1);
+        if (splitState.participants.length < 2) {
+          splitState.participants.push({
+            userId: null,
+            username: "",
+            fullName: "សមាជិកទី 2 (រង់ចាំស្កេន/បង់)",
+            profileImage: "",
+            isHost: false,
+            included: true,
+            amount: 0,
+            status: "Pending",
+          });
+        }
+        splitState.headcount = splitState.participants.length;
+        document.getElementById("headcountNumDisplay").innerText =
+          splitState.headcount;
+        recalculateSplitAmounts();
+      }
+
+      function toggleHostInclusion(checkboxEl) {
+        if (splitState.participants[0]) {
+          splitState.participants[0].included = checkboxEl.checked;
+          recalculateSplitAmounts();
+        }
+      }
+
+      function onCustomMemberAmountInput(idx, val) {
+        const num = Math.max(0, parseFloat(val) || 0);
+        if (splitState.participants[idx]) {
+          splitState.participants[idx].amount = num;
+        }
+        updateCustomSplitValidationStrip();
+      }
+
+      function recalculateSplitAmounts() {
+        const total =
+          parseFloat(document.getElementById("splitTotalInput").value) || 0;
+        const activeMembers = splitState.participants.filter((p) => p.included);
+        const count = activeMembers.length;
+
+        if (splitState.mode === "equal") {
+          const share =
+            count > 0
+              ? splitState.currency === "KHR"
+                ? Math.ceil(total / count / 100) * 100
+                : Number((total / count).toFixed(2))
+              : 0;
+
+          splitState.participants.forEach((p) => {
+            p.amount = p.included ? share : 0;
+          });
+
+          const sym = splitState.currency === "KHR" ? "៛" : "$";
+          const fmtShare =
+            splitState.currency === "KHR"
+              ? share.toLocaleString("en-US")
+              : share.toFixed(2);
+          document.getElementById("splitPerPersonBadge").innerText =
+            `ម្នាក់ៗ (${count} នាក់)៖ ${sym}${fmtShare}`;
+        }
+
+        renderParticipantsList();
+        updateCustomSplitValidationStrip();
+      }
+
+      function updateCustomSplitValidationStrip() {
+        const strip = document.getElementById("customSplitStatusStrip");
+        if (splitState.mode !== "custom") {
+          strip.style.display = "none";
           return;
         }
 
-        finalAmountPerPerson = total / people;
-        document.getElementById("splitAmount").innerText =
-          finalAmountPerPerson.toFixed(2);
+        const total =
+          parseFloat(document.getElementById("splitTotalInput").value) || 0;
+        const sumCustom = splitState.participants.reduce(
+          (acc, p) => acc + (p.included ? Number(p.amount || 0) : 0),
+          0,
+        );
+        const diff = total - sumCustom;
+        const sym = splitState.currency === "KHR" ? "៛" : "$";
 
-        // លាក់ QR បើសិនជាមានការកែប្រែលុយ (តម្រូវអោយចុច Generate ម្ដងទៀត)
-        document.getElementById("qrResultArea").style.display = "none";
+        strip.style.display = "flex";
+        if (Math.abs(diff) < 0.01) {
+          strip.style.background = "rgba(16, 185, 129, 0.12)";
+          strip.style.color = "#10b981";
+          strip.innerHTML = `<span>✅ សមតុល្យត្រឹមត្រូវ ១០០%</span><span class="mono-num">${sym}${sumCustom.toLocaleString()}</span>`;
+        } else if (diff > 0) {
+          strip.style.background = "rgba(245, 158, 11, 0.14)";
+          strip.style.color = "#d97706";
+          strip.innerHTML = `<span>⚠️ នៅខ្វះទឹកប្រាក់មិនទាន់បែងចែក៖</span><span class="mono-num">${sym}${diff.toLocaleString()}</span>`;
+        } else {
+          strip.style.background = "rgba(239, 68, 68, 0.14)";
+          strip.style.color = "#ef4444";
+          strip.innerHTML = `<span>❌ បែងចែកលើសទឹកប្រាក់សរុប៖</span><span class="mono-num">+${sym}${Math.abs(diff).toLocaleString()}</span>`;
+        }
       }
 
-      // --- បង្កើត QR Code សម្រាប់អោយគេស្កេនវេរលុយចូល ---
-      function generateQR() {
-        if (finalAmountPerPerson <= 0) {
+      function renderParticipantsList() {
+        const box = document.getElementById("participantsListContainer");
+        const sym = splitState.currency === "KHR" ? "៛" : "$";
+
+        box.innerHTML = splitState.participants
+          .map((p, idx) => {
+            const initChar = p.isHost
+              ? (user.fullName || "H").charAt(0).toUpperCase()
+              : p.userId
+                ? (p.fullName || "U").charAt(0).toUpperCase()
+                : `#${idx + 1}`;
+            const avatarHtml = p.profileImage
+              ? `<img src="${p.profileImage}" onerror="this.outerHTML='${initChar}'" />`
+              : initChar;
+
+            const amtFormatted =
+              splitState.currency === "KHR"
+                ? Math.round(p.amount).toLocaleString("en-US")
+                : Number(p.amount).toFixed(2);
+
+            const rightSideHtml =
+              splitState.mode === "custom" && p.included
+                ? `<input type="number" class="sp-input mono-num" value="${p.amount || ""}" placeholder="0" oninput="onCustomMemberAmountInput(${idx}, this.value)" style="width:105px; padding:7px 10px; text-align:right; font-weight:800" />`
+                : `<span class="mono-num" style="font-weight:900; font-size:0.95rem; color:${p.included ? "var(--emerald)" : "var(--text-muted)"}">${sym}${amtFormatted}</span>`;
+
+            return `
+              <div class="sp-member-row">
+                <div style="display:flex; align-items:center; gap:10px; min-width:0; flex:1">
+                  <div class="sp-member-avatar">${avatarHtml}</div>
+                  <div style="min-width:0; flex:1">
+                    <div style="font-size:0.86rem; font-weight:800; white-space:nowrap; overflow:hidden; text-overflow:ellipsis">
+                      ${p.fullName}
+                    </div>
+                    <div style="font-size:0.71rem; color:var(--text-muted)">
+                      ${
+                        p.isHost
+                          ? `<label style="cursor:pointer; display:inline-flex; align-items:center; gap:4px"><input type="checkbox" ${p.included ? "checked" : ""} onchange="toggleHostInclusion(this)" style="accent-color:#10b981" /> រាប់បញ្ចូលចំណែកខ្ញុំ</label>`
+                          : p.userId
+                            ? `🔔 នឹងបាញ់សារទៅ @${p.username}`
+                            : "📲 ស្កេន QR ឬចុច Link ដើម្បីបង់"
+                      }
+                    </div>
+                  </div>
+                </div>
+                <div style="display:flex; align-items:center; gap:8px">
+                  ${rightSideHtml}
+                  ${
+                    !p.isHost
+                      ? `<button type="button" onclick="removeParticipant(${idx})" style="border:none; background:rgba(239,68,68,0.12); color:#ef4444; width:30px; height:30px; border-radius:8px; cursor:pointer"><i class="fa-solid fa-trash-can"></i></button>`
+                      : ""
+                  }
+                </div>
+              </div>
+            `;
+          })
+          .join("");
+      }
+
+      // =========================================================
+      // ៨.៤. បង្កើតវិក្កយបត្រទៅកាន់ BACKEND DATABASE & បង្ហាញ QR / LINK
+      // =========================================================
+      async function createAndOpenShareSplitModal() {
+        const title =
+          document.getElementById("splitTitleInput").value.trim() ||
+          "រួមគ្នាទូទាត់";
+        const totalAmt =
+          parseFloat(document.getElementById("splitTotalInput").value) || 0;
+        const recvAcc = document.getElementById("splitReceiveAccSelect").value;
+
+        if (totalAmt <= 0) {
+          return Swal.fire({
+            icon: "warning",
+            title: "ខ្វះចំនួនទឹកប្រាក់",
+            text: "សូមបញ្ចូលចំនួនទឹកប្រាក់សរុបដែលត្រូវចែកគ្នាជាមុនសិន!",
+            confirmButtonColor: "#004d40",
+            customClass: { popup: "premium-swal" },
+          });
+        }
+
+        const guestMembers = splitState.participants.filter((p) => !p.isHost);
+        const defaultPerPerson =
+          guestMembers.length > 0 ? guestMembers[0].amount : totalAmt;
+
+        Swal.fire({
+          title: "កំពុងបង្កើតវិក្កយបត្ររួមគ្នា...",
+          allowOutsideClick: false,
+          didOpen: () => Swal.showLoading(),
+          customClass: { popup: "premium-swal" },
+        });
+
+        try {
+          const res = await fetch("/api/split/create", {
+            method: "POST",
+            headers: window.authHeaders,
+            body: JSON.stringify({
+              hostUserId: user._id, // 🆔 Pure _id
+              title,
+              hostAccount: recvAcc,
+              currency: splitState.currency,
+              splitMode: splitState.mode,
+              totalAmount: totalAmt,
+              perPersonAmount: defaultPerPerson,
+              totalHeadcount: splitState.participants.length,
+              participants: splitState.participants,
+            }),
+          });
+          const data = await res.json();
+          Swal.close();
+
+          if (data.success && data.bill) {
+            await loadMySplitBillsFromServer();
+            openShareModalForBill(data.bill);
+            return;
+          }
+        } catch (e) {
+          Swal.close();
+        }
+      }
+
+      function openShareModalForBill(bill) {
+        splitState.activeShareBill = bill;
+        const sym = bill.currency === "KHR" ? "៛" : "$";
+        const fmtEach =
+          bill.currency === "KHR"
+            ? Math.round(bill.perPersonAmount).toLocaleString("en-US")
+            : Number(bill.perPersonAmount).toFixed(2);
+        const fmtTotal =
+          bill.currency === "KHR"
+            ? Math.round(bill.totalAmount).toLocaleString("en-US")
+            : Number(bill.totalAmount).toFixed(2);
+
+        const hName = bill.hostFullName || bill.hostName || user.fullName;
+        document.getElementById("cardBillTitle").innerText = bill.title;
+        document.getElementById("cardBillHost").innerText =
+          `ទទួលដោយ៖ ${hName} (#${bill.hostAccount}) • ${bill.billId}`;
+        document.getElementById("cardPerPersonAmt").innerText =
+          `${sym}${fmtEach}`;
+        document.getElementById("cardTotalAndMembers").innerText =
+          `សរុប៖ ${sym}${fmtTotal} • សមាជិក ${bill.participants.length} នាក់`;
+
+        // QR Code ផ្ទុកទម្រង់ Account:Amount:SPLIT_billId (ស្កេនតាម split.html ក៏បាន ស្កេនតាម scan.html ទូទៅក៏ដើរ!)
+        const qrPayload = `${bill.hostAccount}:${bill.perPersonAmount}:${bill.billId}`;
+        document.getElementById("cardSplitQrImg").src =
+          `https://quickchart.io/qr?text=${encodeURIComponent(qrPayload)}&dark=004d40&size=400&margin=1`;
+
+        document.getElementById("shareSplitModal").classList.add("show");
+      }
+
+      function closeShareSplitModal() {
+        document.getElementById("shareSplitModal").classList.remove("show");
+      }
+
+      window.copySplitPaymentLink = function () {
+        if (!splitState.activeShareBill) return;
+        const b = splitState.activeShareBill;
+        const sym = b.currency === "KHR" ? "៛" : "$";
+        const link = buildDeepLinkForBill(b);
+        const shareText = `🧾 [U-PAY រួមគ្នាទូទាត់ - ${b.billId}]\n📌 ចំណាយលើ៖ ${b.title}\n💰 ចំណែកត្រូវបង់ម្នាក់ៗ៖ ${sym}${b.perPersonAmount.toLocaleString()}\n👤 ទទួលដោយ៖ ${b.hostFullName || b.hostName} (#${b.hostAccount})\n👉 ចុចទីនេះដើម្បីទូទាត់ភ្លាមៗ៖ ${link}`;
+
+        navigator.clipboard.writeText(shareText);
+        Swal.fire({
+          toast: true,
+          position: "top",
+          icon: "success",
+          title: "បានចម្លងតំណភ្ជាប់ (Link) រួចរាល់!",
+          showConfirmButton: false,
+          timer: 2000,
+          customClass: { popup: "premium-swal" },
+        });
+      };
+
+      window.shareSplitToInAppChat = function () {
+        if (!splitState.activeShareBill) return;
+        const b = splitState.activeShareBill;
+        const link = buildDeepLinkForBill(b);
+        sessionStorage.setItem(
+          "pendingChatShareText",
+          `🧾 រួមគ្នាទូទាត់ (${b.billId})៖ ${b.title} | ម្នាក់ៗ៖ ${b.currency === "KHR" ? "៛" : "$"}${b.perPersonAmount} 👉 ${link}`,
+        );
+        window.location.href = "chat.html";
+      };
+
+      window.shareSplitViaNativeOrTelegram = async function () {
+        if (!splitState.activeShareBill) return;
+        const b = splitState.activeShareBill;
+        const sym = b.currency === "KHR" ? "៛" : "$";
+        const link = buildDeepLinkForBill(b);
+        const text = `🧾 រួមគ្នាទូទាត់ U-PAY (${b.billId})៖ ${b.title}\n💰 ម្នាក់ៗត្រូវបង់៖ ${sym}${b.perPersonAmount}`;
+
+        if (navigator.share) {
+          try {
+            await navigator.share({
+              title: "U-Pay Split Bill",
+              text,
+              url: link,
+            });
+            return;
+          } catch (e) {}
+        }
+        window.open(
+          `https://t.me/share/url?url=${encodeURIComponent(link)}&text=${encodeURIComponent(text)}`,
+          "_blank",
+        );
+      };
+
+      window.downloadSplitQrCardImage = function () {
+        const cardEl = document.getElementById("splitCaptureCardArea");
+        html2canvas(cardEl, { backgroundColor: null, scale: 3 }).then(
+          (canvas) => {
+            const a = document.createElement("a");
+            a.download = `U-Pay-Split-${splitState.activeShareBill?.billId || "QR"}.png`;
+            a.href = canvas.toDataURL("image/png");
+            a.click();
+          },
+        );
+      };
+
+      // =========================================================
+      // ៨.៥. ម៉ាស៊ីនស្កេន QR និងប្រព័ន្ធទូទាត់ប្រាក់ផ្ទាល់ក្នុង SPLIT.HTML
+      // =========================================================
+      function startSplitCameraScanner() {
+        stopSplitCameraScanner();
+        if (typeof Html5Qrcode === "undefined") return;
+
+        try {
+          splitState.qrScannerInstance = new Html5Qrcode("splitQrReader");
+          splitState.qrScannerInstance
+            .start(
+              { facingMode: "environment" },
+              { fps: 10, qrbox: { width: 220, height: 220 } },
+              (decodedText) => {
+                stopSplitCameraScanner();
+                handleDecodedSplitQrString(decodedText);
+              },
+              () => {},
+            )
+            .catch(() => {});
+        } catch (e) {}
+      }
+
+      function stopSplitCameraScanner() {
+        if (splitState.qrScannerInstance) {
+          try {
+            splitState.qrScannerInstance
+              .stop()
+              .then(() => splitState.qrScannerInstance.clear())
+              .catch(() => {});
+          } catch (e) {}
+          splitState.qrScannerInstance = null;
+        }
+      }
+
+      window.scanSplitQrFromImageFile = async function (event) {
+        const file = event.target.files[0];
+        if (!file || typeof Html5Qrcode === "undefined") return;
+
+        try {
+          const tempScanner = new Html5Qrcode("splitQrReader");
+          const decodedText = await tempScanner.scanFile(file, true);
+          handleDecodedSplitQrString(decodedText);
+        } catch (e) {
           Swal.fire(
-            "Warning",
-            currentLang === "kh"
-              ? "សូមវាយបញ្ចូលចំនួនទឹកប្រាក់!"
-              : "Please enter a valid amount!",
+            "អាន QR មិនឃើញ",
+            "រូបភាពនេះមិនមែនជា QR ត្រឹមត្រូវទេ!",
+            "error",
+          );
+        }
+      };
+
+      async function handleDecodedSplitQrString(rawText) {
+        const text = String(rawText || "").trim();
+
+        // ករណីទី ១៖ QR ជា Link មាន billId=...
+        if (text.includes("billId=")) {
+          const urlObj = new URL(text, window.location.origin);
+          const bId = urlObj.searchParams.get("billId");
+          if (bId) return openDirectPayModalByBillId(bId);
+        }
+
+        // ករណីទី ២៖ QR ជាទម្រង់ Account:Amount:SPL-xxxxxx
+        const parts = text.split(":");
+        const splPart = parts.find((x) => x.startsWith("SPL-"));
+        if (splPart) {
+          return openDirectPayModalByBillId(splPart);
+        }
+
+        // ករណីទី ៣៖ វាយតែ SPL-xxxxxx
+        if (text.startsWith("SPL-")) {
+          return openDirectPayModalByBillId(text);
+        }
+
+        Swal.fire(
+          "QR មិនត្រឹមត្រូវ",
+          "សូមស្កេនប័ណ្ណ QR រួមគ្នាទូទាត់ (Split Bill) របស់ U-PAY!",
+          "warning",
+        );
+      }
+
+      window.lookupAndOpenSplitPayByCode = function () {
+        const code = document.getElementById("manualBillIdInput").value.trim();
+        if (!code) return;
+        openDirectPayModalByBillId(code);
+      };
+
+      // 🔗 បង្កើត Link ខ្លីស្អាតដូចស្តង់ដារ U-Mall (មានតែ id=SPL-xxxxxx មួយគត់!)
+      // ឧទាហរណ៍៖ https://u-pay-bank.fly.dev/split.html?id=SPL-83121384
+      function buildDeepLinkForBill(bill) {
+        return `${window.location.origin}/split.html?id=${encodeURIComponent(bill.billId)}`;
+      }
+
+      // 📲 ពេលមិត្តភក្តិចុចលើ Link ខ្លីនោះ (ឬ Login រួចរត់មកដល់ split.html?id=SPL-xxx) វានឹងបើកផ្ទាំងបង់ប្រាក់ភ្លាមៗ!
+      async function checkIncomingDeepLinkPayment() {
+        const params = new URLSearchParams(window.location.search);
+        const billId = params.get("id") || params.get("billId");
+        if (billId) {
+          await openDirectPayModalByBillId(billId);
+        }
+      }
+
+      window.openDirectPayModalByBillId = async function (billId) {
+        Swal.fire({
+          title: "កំពុងទាញព័ត៌មានវិក្កយបត្រ...",
+          didOpen: () => Swal.showLoading(),
+          customClass: { popup: "premium-swal" },
+        });
+
+        try {
+          const res = await fetch(
+            `/api/split/detail/${encodeURIComponent(billId)}`,
+            { headers: window.authHeaders },
+          );
+          const data = await res.json();
+          Swal.close();
+
+          if (!data.success || !data.bill) {
+            return Swal.fire(
+              "រកមិនឃើញ",
+              data.message || "រកមិនឃើញវិក្កយបត្រនេះទេ!",
+              "error",
+            );
+          }
+
+          const bill = data.bill;
+          splitState.pendingPayBill = bill;
+
+          // រកមើលចំណែករបស់អ្នកបង់
+          const mySlot = bill.participants.find(
+            (p) =>
+              p.userId &&
+              String(p.userId) === String(user._id) &&
+              p.status !== "Paid",
+          );
+          const payAmt = mySlot ? mySlot.amount : bill.perPersonAmount;
+          const sym = bill.currency === "KHR" ? "៛" : "$";
+          const fmtAmt =
+            bill.currency === "KHR"
+              ? Math.round(payAmt).toLocaleString("en-US")
+              : Number(payAmt).toFixed(2);
+
+          document.getElementById("payModalBillTitle").innerText =
+            `${bill.title} (#${bill.billId})`;
+          document.getElementById("payModalAmountText").innerText =
+            `${sym}${fmtAmt}`;
+          document.getElementById("payModalHostInfo").innerText =
+            `ទទួលដោយ៖ ${bill.hostFullName} (#${bill.hostAccount})`;
+
+          // បង្ហាញបញ្ជីគណនីរបស់អ្នកបង់ដែលមានរូបិយប័ណ្ណត្រូវគ្នាជាមួយវិក្កយបត្រ
+          const accSel = document.getElementById("payModalFromAccSelect");
+          accSel.innerHTML = "";
+
+          const cur = bill.currency;
+          if (user.mainAccounts?.[cur]?.accountNumber) {
+            const mAcc = user.mainAccounts[cur];
+            accSel.innerHTML += `<option value="${mAcc.accountNumber}">Main Account (${cur}) - #${mAcc.accountNumber} (សមតុល្យ: ${sym}${Number(mAcc.balance || 0).toLocaleString()})</option>`;
+          }
+          (user.subAccounts || []).forEach((s) => {
+            if (!s.isHidden && s.currency === cur) {
+              accSel.innerHTML += `<option value="${s.accountNumber}">${s.accountName} (${cur}) - #${s.accountNumber} (សមតុល្យ: ${sym}${Number(s.balance || 0).toLocaleString()})</option>`;
+            }
+          });
+
+          document.getElementById("directPaySplitModal").classList.add("show");
+        } catch (e) {
+          Swal.fire("Error", "មិនអាចភ្ជាប់ទៅកាន់ Server បានទេ", "error");
+        }
+      };
+
+      function closeDirectPaySplitModal() {
+        document.getElementById("directPaySplitModal").classList.remove("show");
+      }
+
+      window.confirmAndExecuteDirectSplitPayment = function () {
+        const bill = splitState.pendingPayBill;
+        if (!bill) return;
+
+        const fromAcc = document.getElementById("payModalFromAccSelect").value;
+        if (!fromAcc) {
+          return Swal.fire(
+            "គ្មានគណនី",
+            `អ្នកមិនមានគណនី ${bill.currency} សម្រាប់ទូទាត់ទេ!`,
             "warning",
           );
+        }
+
+        const sym = bill.currency === "KHR" ? "៛" : "$";
+        requestPinVerification(
+          "បញ្ជាក់លេខកូដសម្ងាត់ PIN",
+          `ទូទាត់ចំណែកវិក្កយបត្រ ${sym}${bill.perPersonAmount.toLocaleString()} ជូន ${bill.hostFullName}`,
+          async function (pinCode) {
+            const finalPin =
+              pinCode || document.getElementById("hiddenGlobalPin")?.value;
+
+            Swal.fire({
+              title: "កំពុងទូទាត់ចំណែកវិក្កយបត្រ...",
+              allowOutsideClick: false,
+              didOpen: () => Swal.showLoading(),
+              customClass: { popup: "premium-swal" },
+            });
+
+            try {
+              const res = await fetch("/api/split/pay", {
+                method: "POST",
+                headers: window.authHeaders,
+                body: JSON.stringify({
+                  payerUserId: user._id, // 🆔 Pure _id
+                  billId: bill.billId,
+                  fromAccountNumber: fromAcc,
+                  pin: finalPin,
+                }),
+              });
+              const data = await res.json();
+              Swal.close();
+
+              if (data.success) {
+                closeDirectPaySplitModal();
+                new Audio(
+                  "https://notificationsounds.com/storage/sounds/file-sounds-1148-juntos.mp3",
+                )
+                  .play()
+                  .catch(() => {});
+
+                if (typeof confetti === "function") {
+                  confetti({
+                    particleCount: 75,
+                    spread: 65,
+                    origin: { y: 0.65 },
+                  });
+                }
+
+                if (data.user) {
+                  user = data.user;
+                  window.currentUser = data.user;
+                  sessionStorage.setItem("user", JSON.stringify(data.user));
+                }
+
+                // លុប Query parameter ចេញពី URL កុំឱ្យ Refresh លោតសួរម្ដងទៀត
+                history.replaceState(null, "", window.location.pathname);
+
+                await loadMySplitBillsFromServer();
+                switchMainSplitTab("history");
+
+                if (data.transaction && typeof openGlobalSlip === "function") {
+                  openGlobalSlip(data.transaction, user._id);
+                } else {
+                  Swal.fire("ជោគជ័យ! 🎉", data.message, "success");
+                }
+              } else {
+                Swal.fire("បរាជ័យ", data.message, "error");
+              }
+            } catch (e) {
+              Swal.fire("Error", "បញ្ហាតភ្ជាប់ទៅកាន់ Server", "error");
+            }
+          },
+        );
+      };
+
+      // =========================================================
+      // ៨.៦. ផ្ទាំងតាមដានវិក្កយបត្រទាំងអស់ (LIVE SPLIT TRACKER - PURE _ID)
+      // =========================================================
+      async function loadMySplitBillsFromServer() {
+        try {
+          const res = await fetch(
+            `/api/split/my-bills?userId=${encodeURIComponent(user._id)}`,
+            { headers: window.authHeaders },
+          );
+          const data = await res.json();
+          if (data.success && Array.isArray(data.bills)) {
+            splitState.allMyBills = data.bills;
+          }
+        } catch (e) {}
+        renderSavedSplitBills();
+      }
+
+      function renderSavedSplitBills() {
+        const list = splitState.allMyBills || [];
+        document.getElementById("activeBillsCountBadge").innerText =
+          list.length;
+
+        const box = document.getElementById("savedSplitsContainer");
+        if (list.length === 0) {
+          box.innerHTML = `
+            <div class="sp-card" style="text-align:center; padding:40px 20px; color:var(--text-muted)">
+              <i class="fa-solid fa-receipt" style="font-size:2.6rem; opacity:0.4; margin-bottom:10px"></i>
+              <h4 style="margin:0 0 6px; font-size:0.95rem; color:var(--text-main)">មិនទាន់មានវិក្កយបត្ររួមគ្នាទូទាត់នៅឡើយទេ</h4>
+              <p style="margin:0; font-size:0.8rem">រាល់វិក្កយបត្រដែលអ្នកបង្កើត ឬមិត្តភក្តិអញ្ជើញអ្នក នឹងបង្ហាញនៅទីនេះដោយស្វ័យប្រវត្តិ។</p>
+            </div>
+          `;
           return;
         }
 
-        // បង្កើត URL សម្រាប់ទំព័រវេរលុយ
-        const baseUrl = window.location.origin;
-        const targetUrl = `${baseUrl}/transfer.html?acc=${user.accountNumber}&amount=${finalAmountPerPerson.toFixed(2)}&source=qr`;
+        box.innerHTML = list
+          .map((b) => {
+            const isMyHostBill = String(b.hostUserId) === String(user._id);
+            const sym = b.currency === "KHR" ? "៛" : "$";
+            const paidCount = (b.participants || []).filter(
+              (p) => p.status === "Paid",
+            ).length;
+            const totalCount = (b.participants || []).length;
 
-        // 🔥 ដកពណ៌បៃតងចេញ ប្រើពណ៌ខ្មៅស្តង់ដារ និងថែម margin ឱ្យងាយស្រួលស្កេន ១០០%
-        const qrApi = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(targetUrl)}&margin=15`;
+            // ពិនិត្យថាតើខ្ញុំជាសមាជិកដែលមិនទាន់បង់ក្នុងវិក្កយបត្រនេះឬអត់
+            const myUnpaidSlot = !isMyHostBill
+              ? (b.participants || []).find(
+                  (p) =>
+                    p.userId &&
+                    String(p.userId) === String(user._id) &&
+                    p.status !== "Paid",
+                )
+              : null;
 
-        document.getElementById("qrImage").src = qrApi;
-        document.getElementById("qrResultArea").style.display = "flex";
+            const membersHtml = (b.participants || [])
+              .map((p) => {
+                const isPaid = p.status === "Paid";
+                return `
+                  <div style="display:flex; justify-content:space-between; align-items:center; padding:8px 0; border-top:1px dashed var(--border-color); font-size:0.82rem; gap:6px">
+                    <div style="min-width:0; flex:1">
+                      <b>${p.fullName}</b>
+                      <span class="mono-num" style="color:var(--text-muted); margin-left:6px">${sym}${Number(p.amount).toLocaleString()}</span>
+                    </div>
+                    <div style="display:flex; align-items:center; gap:5px; flex-shrink:0">
+                      <span style="padding:2px 8px; border-radius:8px; font-size:0.7rem; font-weight:800; background:${isPaid ? "rgba(16,185,129,0.14)" : "rgba(245,158,11,0.15)"}; color:${isPaid ? "#10b981" : "#d97706"}">
+                        ${isPaid ? "🟢 បង់រួច" : "🟠 រង់ចាំ"}
+                      </span>
+                      ${
+                        isMyHostBill && !isPaid && p.userId
+                          ? `<button type="button" onclick="remindSplitMember('${b.billId}', ${p.slotNumber})" style="border:none; background:rgba(14,165,233,0.14); color:#0284c7; padding:4px 8px; border-radius:6px; font-size:0.68rem; font-weight:800; cursor:pointer" title="ផ្ញើសាររំលឹក"><i class="fa-solid fa-bell"></i> តឿន</button>`
+                          : ""
+                      }
+                      ${
+                        isMyHostBill && !isPaid
+                          ? `<button type="button" onclick="markMemberAsPaidOnServer('${b.billId}', ${p.slotNumber})" style="border:none; background:var(--primary); color:#fff; padding:4px 8px; border-radius:6px; font-size:0.68rem; font-weight:700; cursor:pointer">បង់រួច</button>`
+                          : ""
+                      }
+                    </div>
+                  </div>
+                `;
+              })
+              .join("");
 
-        // 🔥 លោតសារព្រមាន ប្រសិនបើបងកំពុងតេស្តលើ localhost
-        if (baseUrl.includes("localhost") || baseUrl.includes("127.0.0.1")) {
-          document.querySelector(".qr-note").innerHTML =
-            `<span style="color:#ef4444; font-size: 0.85rem; font-weight: bold;">
-              Shere this QR code with your friends to let them pay you back instantly! 
-            </span>`;
-        }
+            return `
+              <div class="sp-card">
+                <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:10px">
+                  <div>
+                    <div style="display:flex; align-items:center; gap:6px">
+                      <h4 style="margin:0; font-size:1rem; font-weight:900">${b.title}</h4>
+                      <span style="font-size:0.66rem; padding:2px 7px; border-radius:8px; font-weight:800; background:${isMyHostBill ? "rgba(13,148,136,0.14)" : "rgba(245,158,11,0.16)"}; color:${isMyHostBill ? "#0d9488" : "#d97706"}">
+                        ${isMyHostBill ? "👑 ម្ចាស់វិក្កយបត្រ" : "📩 សំណើរួមគ្នាទូទាត់"}
+                      </span>
+                    </div>
+                    <div class="mono-num" style="font-size:0.72rem; color:var(--text-muted); margin-top:2px">
+                      #${b.billId} • ម្ចាស់៖ ${b.hostFullName}
+                    </div>
+                  </div>
+                  <div style="text-align:right">
+                    <div class="mono-num" style="font-size:1.1rem; font-weight:900; color:var(--emerald)">${sym}${Number(b.totalAmount).toLocaleString()}</div>
+                    <div style="font-size:0.7rem; color:var(--text-muted); font-weight:700">បង់រួច ${paidCount}/${totalCount} នាក់</div>
+                  </div>
+                </div>
 
-        // ស្រូតទំព័រចុះក្រោមអោយឃើញ QR ពេញ
-        setTimeout(() => {
-          window.scrollTo({
-            top: document.body.scrollHeight,
-            behavior: "smooth",
-          });
-        }, 100);
+                ${membersHtml}
+
+                <div style="display:flex; gap:8px; margin-top:12px">
+                  ${
+                    myUnpaidSlot
+                      ? `<button type="button" onclick="openDirectPayModalByBillId('${b.billId}')" style="flex:1; border:none; background:linear-gradient(135deg,#004d40,#10b981); color:#fff; padding:11px; border-radius:12px; font-weight:800; font-size:0.84rem; cursor:pointer"><i class="fa-solid fa-bolt"></i> បង់ចំណែករបស់ខ្ញុំ (${sym}${Number(myUnpaidSlot.amount).toLocaleString()})</button>`
+                      : `<button type="button" onclick="openShareModalByBillId('${b.billId}')" style="flex:1; border:1px solid var(--secondary); background:rgba(13,148,136,0.1); color:var(--secondary); padding:9px; border-radius:12px; font-weight:800; font-size:0.8rem; cursor:pointer"><i class="fa-solid fa-qrcode"></i> បង្ហាញ QR / Link</button>`
+                  }
+                  ${
+                    isMyHostBill
+                      ? `<button type="button" onclick="promptAddMoreMemberToBill('${b.billId}')" style="border:1px solid var(--border-color); background:var(--bg-subtle); color:var(--text-main); padding:0 12px; border-radius:12px; font-weight:800; font-size:0.78rem; cursor:pointer" title="បន្ថែមមិត្តភក្តិ"><i class="fa-solid fa-user-plus"></i></button>
+                         <button type="button" onclick="deleteSplitBillOnServer('${b.billId}')" style="border:none; background:rgba(239,68,68,0.12); color:#ef4444; padding:0 13px; border-radius:12px; cursor:pointer" title="លុបវិក្កយបត្រ"><i class="fa-solid fa-trash"></i></button>`
+                      : ""
+                  }
+                </div>
+              </div>
+            `;
+          })
+          .join("");
       }
+
+      window.openShareModalByBillId = function (billId) {
+        const bill = (splitState.allMyBills || []).find(
+          (x) => x.billId === billId,
+        );
+        if (bill) openShareModalForBill(bill);
+      };
+
+      window.markMemberAsPaidOnServer = async function (billId, slotNumber) {
+        try {
+          const res = await fetch("/api/split/mark-paid", {
+            method: "POST",
+            headers: window.authHeaders,
+            body: JSON.stringify({
+              hostUserId: user._id,
+              billId,
+              slotNumber,
+            }),
+          });
+          const data = await res.json();
+          if (data.success) await loadMySplitBillsFromServer();
+        } catch (e) {}
+      };
+
+      window.remindSplitMember = async function (billId, slotNumber) {
+        try {
+          const res = await fetch("/api/split/remind", {
+            method: "POST",
+            headers: window.authHeaders,
+            body: JSON.stringify({
+              hostUserId: user._id,
+              billId,
+              slotNumber,
+            }),
+          });
+          const data = await res.json();
+          Swal.fire({
+            toast: true,
+            position: "top",
+            icon: data.success ? "success" : "info",
+            title: data.message,
+            showConfirmButton: false,
+            timer: 2000,
+          });
+        } catch (e) {}
+      };
+
+      window.promptAddMoreMemberToBill = async function (billId) {
+        const { value: q } = await Swal.fire({
+          title: "បន្ថែមសមាជិកចូលក្នុងវិក្កយបត្រនេះ",
+          input: "text",
+          inputPlaceholder: "វាយ @username, លេខគណនី ឬឈ្មោះមិត្តភក្តិ...",
+          showCancelButton: true,
+          confirmButtonColor: "#004d40",
+          confirmButtonText: "បន្ថែម",
+          cancelButtonText: "បោះបង់",
+          customClass: { popup: "premium-swal" },
+        });
+        if (!q) return;
+
+        try {
+          const res = await fetch("/api/split/add-member", {
+            method: "POST",
+            headers: window.authHeaders,
+            body: JSON.stringify({
+              hostUserId: user._id,
+              billId,
+              memberQuery: q,
+            }),
+          });
+          const data = await res.json();
+          if (data.success) {
+            await loadMySplitBillsFromServer();
+            Swal.fire({
+              toast: true,
+              position: "top",
+              icon: "success",
+              title: data.message,
+              showConfirmButton: false,
+              timer: 1800,
+            });
+          }
+        } catch (e) {}
+      };
+
+      window.deleteSplitBillOnServer = function (billId) {
+        Swal.fire({
+          title: "លុបវិក្កយបត្រនេះចោល?",
+          icon: "warning",
+          showCancelButton: true,
+          confirmButtonColor: "#ef4444",
+          confirmButtonText: "លុបចោល",
+          cancelButtonText: "បោះបង់",
+          customClass: { popup: "premium-swal" },
+        }).then(async (r) => {
+          if (r.isConfirmed) {
+            await fetch(
+              `/api/split/${encodeURIComponent(billId)}?userId=${encodeURIComponent(user._id)}`,
+              {
+                method: "DELETE",
+                headers: window.authHeaders,
+              },
+            );
+            await loadMySplitBillsFromServer();
+          }
+        });
+      };
     </script>
   </body>
 </html>

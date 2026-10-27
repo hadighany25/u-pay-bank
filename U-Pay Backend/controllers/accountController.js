@@ -1,9 +1,10 @@
 // ============================================================================
-// ឯកសារ: accountController.js
-// អត្ថន័យ: គ្រប់គ្រងមុខងារទាំងអស់ទាក់ទងនឹងគណនី (Premium, Joint និង Junior Accounts)
+// ឯកសារ: controllers/accountController.js
+// អត្ថន័យ: គ្រប់គ្រងមុខងារទាំងអស់ទាក់ទងនឹងគណនី (100% Pure _id Binding Only)
 // ============================================================================
 
 // 📦 ការនាំចូលម៉ូដែល និងសេវាកម្មចាំបាច់ (Dependencies)
+const mongoose = require("mongoose");
 const User = require("../models/User");
 const Transaction = require("../models/Transaction");
 const JointAccount = require("../models/JointAccount");
@@ -68,11 +69,7 @@ function calculatePremiumPrice(numStr) {
 }
 
 // ============================================================================
-// ផ្នែកទី ២៖ 🧒 គ្រប់គ្រងគណនីកុមារ (Junior Accounts Management)
-// ============================================================================
-
-// ============================================================================
-// ផ្នែកទី ២៖ 🧒 គ្រប់គ្រងគណនីកុមារ (Junior Accounts Management - 100% Fixed)
+// ផ្នែកទី ២៖ 🧒 គ្រប់គ្រងគណនីកុមារ (Junior Accounts Management - 100% Pure _id)
 // ============================================================================
 
 /**
@@ -81,7 +78,7 @@ function calculatePremiumPrice(numStr) {
 exports.createJuniorAccount = async (req, res) => {
   try {
     const {
-      parentUsername,
+      parentUserId,
       childName,
       childDob,
       childGender,
@@ -99,7 +96,9 @@ exports.createJuniorAccount = async (req, res) => {
       currencyOption,
     } = req.body;
 
-    const parent = await User.findOne({ username: parentUsername });
+    // 🆔 ចាប់យកប៉ាម៉ាក់តាម _id តែមួយគត់
+    const targetParentId = parentUserId || req.user?._id || req.user?.id;
+    const parent = await User.findById(targetParentId);
     if (!parent) {
       return res
         .status(404)
@@ -144,6 +143,7 @@ exports.createJuniorAccount = async (req, res) => {
     const cleanChildUser = String(childUsername || "")
       .trim()
       .toLowerCase();
+    // ឆែកកុំឱ្យបង្កើត Username ជាន់គ្នាពេលចុះឈ្មោះកូនថ្មី
     const existingUser = await User.findOne({ username: cleanChildUser });
     if (existingUser) {
       return res
@@ -180,7 +180,7 @@ exports.createJuniorAccount = async (req, res) => {
       hour12: true,
     });
 
-    // 🔒 បង្កើតគណនីកុមារ៖ បំបែក selfieUrl (រូបថត KYC ដើម) និង profileImage (រូបថត Profile ដែលអាចដូរតាមក្រោយបាន) ដាច់ពីគ្នា!
+    // 🔒 បង្កើតគណនីកុមារ៖ ចងភ្ជាប់តាម parentId (_id) ដាច់ខាត
     const newJunior = new User({
       id: tsId,
       userId: Math.floor(10000000 + Math.random() * 90000000).toString(),
@@ -196,12 +196,14 @@ exports.createJuniorAccount = async (req, res) => {
       phone: parent.phone || "",
       email: parent.email || "",
       role: "junior",
+      parentId: parent._id, // 🔗 សោរគោលភ្ជាប់ទៅ _id របស់ប៉ាម៉ាក់
+      parentUserId: parent.userId || null,
       parentUsername: parent.username,
 
-      // 🖼️ ១. រូបថត Profile សម្រាប់បង្ហាញក្នុងកម្មវិធី (ពេលបង្កើតភ្លាមយករូប KYC ដាក់សិន ហើយអាចដូរតាមក្រោយបានដោយសេរី)
+      // 🖼️ ១. រូបថត Profile សម្រាប់បង្ហាញក្នុងកម្មវិធី
       profileImage: kycFaceImg,
 
-      // 🪪 ២. រូបថត KYC និងសំបុត្រកំណើត (រក្សាទុកដាច់ដោយឡែកក្នុង Database សម្រាប់ Admin ពិនិត្យជានិច្ច)
+      // 🪪 ២. រូបថត KYC និងសំបុត្រកំណើត
       kycStatus: "pending",
       kycDocument: birthCertUrl,
       kycImage: birthCertUrl,
@@ -253,7 +255,9 @@ exports.createJuniorAccount = async (req, res) => {
     // កាត់លុយថ្លៃសេវាពីប៉ាម៉ាក់ចូលគណនីប្រមូលកម្រៃសេវារបស់ធនាគារកណ្តាល (888000999)
     let feeTrxRecord = null;
     if (actualPrice > 0) {
-      let superAdmin = await User.findOne({ username: "superadmin" });
+      let superAdmin = await User.findOne({
+        "subAccounts.accountNumber": "888000999",
+      });
 
       if (parent.mainAccounts?.USD) {
         parent.mainAccounts.USD.balance -= actualPrice;
@@ -262,15 +266,19 @@ exports.createJuniorAccount = async (req, res) => {
         parent.balance -= actualPrice;
       }
 
+      let superAdminFeeAccId = "888000999";
       if (superAdmin) {
         let targetFeeSub = superAdmin.subAccounts?.find(
           (sub) => sub.accountNumber === "888000999",
         );
         if (targetFeeSub) {
           targetFeeSub.balance += actualPrice;
+          superAdminFeeAccId = targetFeeSub.accountId || "888000999";
           superAdmin.markModified("subAccounts");
         } else if (superAdmin.mainAccounts?.USD) {
           superAdmin.mainAccounts.USD.balance += actualPrice;
+          superAdminFeeAccId =
+            superAdmin.mainAccounts.USD.accountId || "MAIN_USD";
           superAdmin.markModified("mainAccounts");
         }
         await superAdmin.save();
@@ -281,6 +289,7 @@ exports.createJuniorAccount = async (req, res) => {
 
       feeTrxRecord = {
         userId: parent._id,
+        accountId: parent.mainAccounts?.USD?.accountId || "MAIN_USD",
         username: parent.username,
         refId: sharedRefId,
         hash: sharedHash,
@@ -302,6 +311,7 @@ exports.createJuniorAccount = async (req, res) => {
         feeTrxRecord,
         {
           userId: superAdmin?._id,
+          accountId: superAdminFeeAccId,
           username: superAdmin ? superAdmin.username : "superadmin",
           refId: sharedRefId,
           hash: sharedHash,
@@ -323,7 +333,9 @@ exports.createJuniorAccount = async (req, res) => {
 
     parent.subAccounts = parent.subAccounts || [];
     parent.subAccounts.push({
-      accountId: newJunior.username,
+      accountId: String(newJunior._id), // 🔗 ប្រើ _id របស់កូនសុទ្ធសាធ
+      linkedUserId: newJunior._id,
+      linkedUserCustomId: newJunior.userId,
       accountNumber: primaryNumber,
       accountName: childName + " (Junior)",
       accountType: "junior",
@@ -335,7 +347,9 @@ exports.createJuniorAccount = async (req, res) => {
 
     if (currencyOption === "BOTH" && secondaryNumber) {
       parent.subAccounts.push({
-        accountId: newJunior.username + "_khr",
+        accountId: String(newJunior._id) + "_khr", // 🔗 ប្រើ _id របស់កូនសុទ្ធសាធ
+        linkedUserId: newJunior._id,
+        linkedUserCustomId: newJunior.userId,
         accountNumber: secondaryNumber,
         accountName: childName + " (Junior KHR)",
         accountType: "junior",
@@ -366,13 +380,15 @@ exports.createJuniorAccount = async (req, res) => {
 };
 
 /**
- * 🔹 ២. មុខងារ ផ្អាក ឬ បើកសោរគណនីកូន (Toggle Freeze)
+ * 🔹 ២. មុខងារ ផ្អាក ឬ បើកសោរគណនីកូន (Toggle Freeze - 100% Pure _id)
  */
 exports.toggleFreeze = async (req, res) => {
   try {
-    const { parentUsername, childAccountNumber, pin, isFrozen } = req.body;
+    const { parentUserId, childUserId, childAccountNumber, pin, isFrozen } =
+      req.body;
 
-    const parent = await User.findOne({ username: parentUsername });
+    const targetParentId = parentUserId || req.user?._id || req.user?.id;
+    const parent = await User.findById(targetParentId);
     if (!parent)
       return res
         .status(404)
@@ -382,14 +398,17 @@ exports.toggleFreeze = async (req, res) => {
         .status(400)
         .json({ success: false, message: "លេខសម្ងាត់ PIN មិនត្រឹមត្រូវទេ!" });
 
-    const child = await User.findOne({
-      $or: [
-        { "mainAccounts.USD.accountNumber": childAccountNumber },
-        { "mainAccounts.KHR.accountNumber": childAccountNumber },
-        { accountNumber: childAccountNumber },
-      ],
-      role: "junior",
-    });
+    const child = childUserId
+      ? await User.findOne({ _id: childUserId, role: "junior" })
+      : await User.findOne({
+          parentId: parent._id,
+          role: "junior",
+          $or: [
+            { "mainAccounts.USD.accountNumber": childAccountNumber },
+            { "mainAccounts.KHR.accountNumber": childAccountNumber },
+          ],
+        });
+
     if (!child)
       return res
         .status(404)
@@ -416,15 +435,17 @@ exports.toggleFreeze = async (req, res) => {
     child.markModified("mainAccounts");
     await child.save();
 
-    const subAccIndex = parent.subAccounts.findIndex(
-      (acc) => acc.accountNumber === childAccountNumber,
-    );
-    if (subAccIndex !== -1) {
-      parent.subAccounts[subAccIndex].isLocked = isFrozen;
-      parent.subAccounts[subAccIndex].isFrozen = isFrozen;
-      parent.markModified("subAccounts");
-      await parent.save();
-    }
+    parent.subAccounts.forEach((acc) => {
+      if (
+        (acc.linkedUserId && String(acc.linkedUserId) === String(child._id)) ||
+        acc.accountNumber === childAccountNumber
+      ) {
+        acc.isLocked = isFrozen;
+        acc.isFrozen = isFrozen;
+      }
+    });
+    parent.markModified("subAccounts");
+    await parent.save();
 
     res.json({
       success: true,
@@ -440,13 +461,15 @@ exports.toggleFreeze = async (req, res) => {
 };
 
 /**
- * 🔹 ៣. មុខងារ កំណត់រនាំងចំណាយប្រចាំថ្ងៃ (Update Daily Limit)
+ * 🔹 ៣. មុខងារ កំណត់រនាំងចំណាយប្រចាំថ្ងៃ (Update Daily Limit - 100% Pure _id)
  */
 exports.updateDailyLimit = async (req, res) => {
   try {
-    const { parentUsername, childAccountNumber, pin, dailyLimit } = req.body;
+    const { parentUserId, childUserId, childAccountNumber, pin, dailyLimit } =
+      req.body;
 
-    const parent = await User.findOne({ username: parentUsername });
+    const targetParentId = parentUserId || req.user?._id || req.user?.id;
+    const parent = await User.findById(targetParentId);
     if (!parent)
       return res
         .status(404)
@@ -456,14 +479,17 @@ exports.updateDailyLimit = async (req, res) => {
         .status(400)
         .json({ success: false, message: "លេខសម្ងាត់ PIN មិនត្រឹមត្រូវទេ!" });
 
-    const child = await User.findOne({
-      $or: [
-        { "mainAccounts.USD.accountNumber": childAccountNumber },
-        { "mainAccounts.KHR.accountNumber": childAccountNumber },
-        { accountNumber: childAccountNumber },
-      ],
-      role: "junior",
-    });
+    const child = childUserId
+      ? await User.findOne({ _id: childUserId, role: "junior" })
+      : await User.findOne({
+          parentId: parent._id,
+          role: "junior",
+          $or: [
+            { "mainAccounts.USD.accountNumber": childAccountNumber },
+            { "mainAccounts.KHR.accountNumber": childAccountNumber },
+          ],
+        });
+
     if (!child)
       return res
         .status(404)
@@ -476,14 +502,16 @@ exports.updateDailyLimit = async (req, res) => {
     }
     await child.save();
 
-    const subAccIndex = parent.subAccounts.findIndex(
-      (acc) => acc.accountNumber === childAccountNumber,
-    );
-    if (subAccIndex !== -1) {
-      parent.subAccounts[subAccIndex].dailyLimit = Number(dailyLimit);
-      parent.markModified("subAccounts");
-      await parent.save();
-    }
+    parent.subAccounts.forEach((acc) => {
+      if (
+        (acc.linkedUserId && String(acc.linkedUserId) === String(child._id)) ||
+        acc.accountNumber === childAccountNumber
+      ) {
+        acc.dailyLimit = Number(dailyLimit);
+      }
+    });
+    parent.markModified("subAccounts");
+    await parent.save();
 
     res.json({
       success: true,
@@ -499,13 +527,13 @@ exports.updateDailyLimit = async (req, res) => {
 };
 
 /**
- * 🔹 ៤. មុខងារ ដាក់ប្រាក់ឱ្យកូន (Top-Up) ឬ ដកប្រាក់ពីកូនមកវិញ (Recall) ដោយប៉ាម៉ាក់
+ * 🔹 ៤. មុខងារ ដាក់ប្រាក់ឱ្យកូន (Top-Up) ឬ ដកប្រាក់ពីកូនមកវិញ (Recall) ដោយប៉ាម៉ាក់ (100% Pure _id)
  */
 exports.transferJuniorFunds = async (req, res) => {
   try {
     const {
-      parentUsername,
-      childUsername,
+      parentUserId,
+      childUserId,
       direction,
       currency,
       amount,
@@ -521,7 +549,8 @@ exports.transferJuniorFunds = async (req, res) => {
       });
     }
 
-    const parent = await User.findOne({ username: parentUsername });
+    const targetParentId = parentUserId || req.user?._id || req.user?.id;
+    const parent = await User.findById(targetParentId);
     if (!parent) {
       return res.json({ success: false, message: "រកមិនឃើញគណនីប៉ាម៉ាក់ទេ!" });
     }
@@ -532,10 +561,7 @@ exports.transferJuniorFunds = async (req, res) => {
       });
     }
 
-    const child = await User.findOne({
-      username: childUsername,
-      role: "junior",
-    });
+    const child = await User.findOne({ _id: childUserId, role: "junior" });
     if (!child) {
       return res.json({ success: false, message: "រកមិនឃើញគណនីកូននេះទេ!" });
     }
@@ -620,6 +646,7 @@ exports.transferJuniorFunds = async (req, res) => {
 
     const parentTrxDoc = {
       userId: parent._id,
+      accountId: parentAcc.accountId || `MAIN_${cur}`,
       username: parent.username,
       refId,
       hash,
@@ -643,6 +670,7 @@ exports.transferJuniorFunds = async (req, res) => {
     const childTrxDoc = {
       ...parentTrxDoc,
       userId: child._id,
+      accountId: childAcc.accountId || `MAIN_${cur}`,
       username: child.username,
       type: isTopUp ? "Received from Parent" : "Recalled by Parent",
       amount: isTopUp ? cleanAmt : -cleanAmt,
@@ -681,26 +709,32 @@ exports.transferJuniorFunds = async (req, res) => {
 };
 
 /**
- * 🔹 ៥. មុខងារទាញយកទិន្នន័យគណនីកូនៗទាំងអស់សម្រាប់ប៉ាម៉ាក់ (បែងចែក profileImage និង selfieUrl ដាច់ពីគ្នា)
+ * 🔹 ៥. មុខងារទាញយកទិន្នន័យគណនីកូនៗទាំងអស់សម្រាប់ប៉ាម៉ាក់ (100% Pure _id)
  */
 exports.getJuniorAccountsDashboard = async (req, res) => {
   try {
-    const parentUsername = req.user?.username || req.query?.parentUsername;
-    const parent = await User.findOne({ username: parentUsername }).lean();
+    const targetParentId =
+      req.user?._id || req.user?.id || req.query?.parentUserId;
+    const parent = await User.findById(targetParentId).lean();
     if (!parent) {
       return res
         .status(404)
         .json({ success: false, message: "រកមិនឃើញគណនីអាណាព្យាបាលទេ!" });
     }
 
-    const juniorSubUsernames = (parent.subAccounts || [])
-      .filter((s) => s.accountType === "junior" && s.accountId)
-      .map((s) => String(s.accountId).replace(/_khr$/i, ""));
+    const juniorLinkedIds = (parent.subAccounts || [])
+      .filter(
+        (s) =>
+          s.accountType === "junior" &&
+          s.linkedUserId &&
+          mongoose.Types.ObjectId.isValid(String(s.linkedUserId)),
+      )
+      .map((s) => s.linkedUserId);
 
     const childrenDocs = await User.find({
       $or: [
-        { parentUsername: parent.username, role: "junior" },
-        { username: { $in: juniorSubUsernames }, role: "junior" },
+        { parentId: parent._id, role: "junior" },
+        { _id: { $in: juniorLinkedIds }, role: "junior" },
       ],
     })
       .select("-password")
@@ -711,21 +745,8 @@ exports.getJuniorAccountsDashboard = async (req, res) => {
         const usdAccObj = child.mainAccounts?.USD || null;
         const khrAccObj = child.mainAccounts?.KHR || null;
 
-        const childAccNums = [];
-        if (usdAccObj?.accountNumber)
-          childAccNums.push(usdAccObj.accountNumber);
-        if (khrAccObj?.accountNumber)
-          childAccNums.push(khrAccObj.accountNumber);
-        if (child.accountNumber) childAccNums.push(child.accountNumber);
-
-        const trxs = await Transaction.find({
-          $or: [
-            { userId: child._id },
-            { username: child.username },
-            { senderAcc: { $in: childAccNums } },
-            { receiverAcc: { $in: childAccNums } },
-          ],
-        })
+        // 🆔 ទាញប្រតិបត្តិការរបស់កូនតាម userId (_id) របស់កូនតែមួយគត់!
+        const trxs = await Transaction.find({ userId: child._id })
           .sort({ _id: -1 })
           .limit(200)
           .lean();
@@ -737,12 +758,7 @@ exports.getJuniorAccountsDashboard = async (req, res) => {
         const now = new Date();
 
         const formattedTrxs = trxs.map((t) => {
-          const isInc =
-            t.username === child.username
-              ? Number(t.amount) > 0
-              : childAccNums.includes(t.receiverAcc) &&
-                !childAccNums.includes(t.senderAcc);
-
+          const isInc = Number(t.amount) > 0;
           const rawAmt = Math.abs(Number(t.amount || 0));
           const cur = t.currency === "KHR" ? "KHR" : "USD";
           const amtUSD = cur === "KHR" ? rawAmt / 4100 : rawAmt;
@@ -862,13 +878,13 @@ exports.getJuniorAccountsDashboard = async (req, res) => {
 };
 
 /**
- * 🔹 ៦. មុខងារ កែប្រែឈ្មោះ លេខសម្ងាត់ PIN ឬប្តូររូបថត Profile របស់កូន (ដោយមិនប៉ះពាល់រូបថត KYC selfieUrl ឡើយ!)
+ * 🔹 ៦. មុខងារ កែប្រែឈ្មោះ លេខសម្ងាត់ PIN ឬប្តូររូបថត Profile របស់កូន (100% Pure _id)
  */
 exports.resetJuniorCredentials = async (req, res) => {
   try {
     const {
-      parentUsername,
-      childUsername,
+      parentUserId,
+      childUserId,
       newPassword,
       newChildPin,
       newChildName,
@@ -876,7 +892,8 @@ exports.resetJuniorCredentials = async (req, res) => {
       pin,
     } = req.body;
 
-    const parent = await User.findOne({ username: parentUsername });
+    const targetParentId = parentUserId || req.user?._id || req.user?.id;
+    const parent = await User.findById(targetParentId);
     if (!parent) {
       return res.json({ success: false, message: "រកមិនឃើញគណនីប៉ាម៉ាក់ទេ!" });
     }
@@ -887,10 +904,7 @@ exports.resetJuniorCredentials = async (req, res) => {
       });
     }
 
-    const child = await User.findOne({
-      username: childUsername,
-      role: "junior",
-    });
+    const child = await User.findOne({ _id: childUserId, role: "junior" });
     if (!child) {
       return res.json({ success: false, message: "រកមិនឃើញគណនីកូននេះទេ!" });
     }
@@ -924,24 +938,25 @@ exports.resetJuniorCredentials = async (req, res) => {
 };
 
 // ============================================================================
-// ផ្នែកទី ៣៖ 🌟 គ្រប់គ្រងគណនីលំដាប់ខ្ពស់ (Premium Accounts Management)
+// ផ្នែកទី ៣៖ 🌟 គ្រប់គ្រងគណនីលំដាប់ខ្ពស់ (Premium Accounts Management - 100% Pure _id)
 // ============================================================================
 
 /**
  * 🔹 បង្កើតគណនី Premium ថ្មី (Create Premium Account)
  */
 exports.createPremiumAccount = async (req, res) => {
-  const { username, requestedNumber, accountName, price, pin, currencyOption } =
+  const { userId, requestedNumber, accountName, price, pin, currencyOption } =
     req.body;
 
   try {
-    // ជំហានទី ១៖ ផ្ទៀងផ្ទាត់អ្នកប្រើប្រាស់ និង PIN
-    const user = await User.findOne({ username });
+    // ជំហានទី ១៖ ផ្ទៀងផ្ទាត់អ្នកប្រើប្រាស់តាម _id តែមួយគត់ និង PIN
+    const targetUserId = userId || req.user?._id || req.user?.id;
+    const user = await User.findById(targetUserId);
     if (!user) return res.json({ success: false, message: "រកគណនីមិនឃើញទេ!" });
     if (user.pin !== pin)
       return res.json({ success: false, message: "លេខ PIN មិនត្រឹមត្រូវ!" });
 
-    // ជំហានទី ២៖ ឆែកមើលភាពទំនេរនៃលេខគណនីទី១ (រចនាសម្ព័ន្ធថ្មី + Legacy Support)
+    // ជំហានទី ២៖ ឆែកមើលភាពទំនេរនៃលេខគណនីទី១
     const isTaken = await Promise.all([
       User.findOne({
         $or: [
@@ -991,7 +1006,7 @@ exports.createPremiumAccount = async (req, res) => {
       }
     }
 
-    // ជំហានទី ៤៖ ផ្ទៀងផ្ទាត់តម្លៃ និងសមតុល្យ (តាមទម្រង់ថ្មី mainAccounts.USD.balance)
+    // ជំហានទី ៤៖ ផ្ទៀងផ្ទាត់តម្លៃ និងសមតុល្យ
     const actualPrice = calculatePremiumPrice(requestedNumber);
     if (price !== actualPrice)
       return res.json({
@@ -1005,26 +1020,31 @@ exports.createPremiumAccount = async (req, res) => {
 
     // ជំហានទី ៥៖ កាត់ប្រាក់ និងកត់ត្រាប្រតិបត្តិការ (Transaction) ប្រសិនបើមានតម្លៃ
     if (actualPrice > 0) {
-      // ស្វែងរក Super Admin និង Sub-Account សម្រាប់ប្រមូល Fee (888000999)
-      let superAdmin = await User.findOne({ username: "superadmin" });
+      let superAdmin = await User.findOne({
+        "subAccounts.accountNumber": "888000999",
+      });
 
-      // កាត់លុយពី Main Account USD ថ្មី
       if (user.mainAccounts?.USD) {
         user.mainAccounts.USD.balance -= actualPrice;
+        user.markModified("mainAccounts");
       } else {
         user.balance -= actualPrice;
       }
 
-      // បូកលុយចូល Sub-Account Fee របស់ Super Admin
+      let superAdminFeeAccId = "888000999";
       if (superAdmin) {
         let targetFeeSub = superAdmin.subAccounts?.find(
           (sub) => sub.accountNumber === "888000999",
         );
         if (targetFeeSub) {
           targetFeeSub.balance += actualPrice;
+          superAdminFeeAccId = targetFeeSub.accountId || "888000999";
           superAdmin.markModified("subAccounts");
         } else if (superAdmin.mainAccounts?.USD) {
           superAdmin.mainAccounts.USD.balance += actualPrice;
+          superAdminFeeAccId =
+            superAdmin.mainAccounts.USD.accountId || "MAIN_USD";
+          superAdmin.markModified("mainAccounts");
         } else {
           superAdmin.balance += actualPrice;
         }
@@ -1038,6 +1058,7 @@ exports.createPremiumAccount = async (req, res) => {
       await Transaction.create([
         {
           userId: user._id,
+          accountId: user.mainAccounts?.USD?.accountId || "MAIN_USD",
           username: user.username,
           refId,
           hash,
@@ -1055,6 +1076,7 @@ exports.createPremiumAccount = async (req, res) => {
         },
         {
           userId: superAdmin?._id,
+          accountId: superAdminFeeAccId,
           username: superAdmin ? superAdmin.username : "superadmin",
           refId,
           hash,
@@ -1064,7 +1086,7 @@ exports.createPremiumAccount = async (req, res) => {
           currency: "USD",
           senderName: user.fullName || user.username,
           receiverName: "Central Bank Fee Income",
-          receiverAcc: "888000999", // 🌟 ចង្អុលចំលេខកុង Sub-Account Fee
+          receiverAcc: "888000999",
           remark: `Sold Acc No: ${requestedNumber}`,
           status: "Success",
           trxMethod: "System Receipt",
@@ -1073,7 +1095,7 @@ exports.createPremiumAccount = async (req, res) => {
     }
 
     // ជំហានទី ៦៖ បង្កើតគណនីរង (Sub Accounts) បញ្ចូលទៅកាន់អ្នកប្រើប្រាស់
-    const baseAccountId = Date.now().toString();
+    const baseAccountId = "SUB_" + Date.now().toString();
 
     if (currencyOption === "USD" || currencyOption === "BOTH") {
       user.subAccounts.push({
@@ -1107,6 +1129,7 @@ exports.createPremiumAccount = async (req, res) => {
     }
 
     // ជំហានទី ៧៖ រក្សាទុកទិន្នន័យ
+    user.markModified("subAccounts");
     await user.save();
     res.json({
       success: true,
@@ -1157,7 +1180,7 @@ exports.getSuggestedNumbers = async (req, res) => {
     );
     generatedNumbers = [...new Set(generatedNumbers)]; // លុបលេខស្ទួន
 
-    // ជំហានទី ២៖ ឆែកមើលលេខដែលមានអ្នកប្រើប្រាស់រួចហើយ (រចនាសម្ព័ន្ធថ្មី)
+    // ជំហានទី ២៖ ឆែកមើលលេខដែលមានអ្នកប្រើប្រាស់រួចហើយ
     const existingUsers = await User.find({
       $or: [
         { "mainAccounts.USD.accountNumber": { $in: generatedNumbers } },
@@ -1220,25 +1243,35 @@ exports.checkAvailability = async (req, res) => {
 };
 
 // ============================================================================
-// ផ្នែកទី ៤៖ 🤝 គ្រប់គ្រងគណនីរួម (Joint Accounts Management)
+// ផ្នែកទី ៤៖ 🤝 គ្រប់គ្រងគណនីរួម (Joint Accounts Management - 100% Pure _id)
 // ============================================================================
 
 /**
- * 🔹 ស្វែងរកគណនីដៃគូសម្រាប់អញ្ជើញ (Search User for Joint Account)
+ * 🔹 ស្វែងរកគណនីដៃគូសម្រាប់អញ្ជើញ (Search User for Joint Account -> ត្រឡប់ _id ទៅវិញ)
  */
 exports.searchUserForJoint = async (req, res) => {
   try {
     const { identifier } = req.params;
-    const user = await User.findOne({
-      $or: [
-        { username: identifier },
-        { phone: identifier },
-        { "mainAccounts.USD.accountNumber": identifier },
-        { "mainAccounts.KHR.accountNumber": identifier },
-        { accountNumber: identifier },
-        { accountNumberKHR: identifier },
-      ],
-    }).select("username fullName profileImage");
+    const clean = String(identifier || "")
+      .replace(/^@/, "")
+      .trim();
+
+    const orConds = [
+      { username: clean },
+      { phone: clean },
+      { userId: clean },
+      { "mainAccounts.USD.accountNumber": clean },
+      { "mainAccounts.KHR.accountNumber": clean },
+      { accountNumber: clean },
+      { accountNumberKHR: clean },
+    ];
+    if (mongoose.Types.ObjectId.isValid(clean)) {
+      orConds.unshift({ _id: clean });
+    }
+
+    const user = await User.findOne({ $or: orConds }).select(
+      "_id username fullName profileImage",
+    );
 
     if (!user)
       return res.json({ success: false, message: "រកមិនឃើញគណនីនេះទេ!" });
@@ -1251,29 +1284,30 @@ exports.searchUserForJoint = async (req, res) => {
 };
 
 /**
- * 🔹 បង្កើតគណនីរួម និងបញ្ជូនការអញ្ជើញ (Create Joint Account & Invite)
+ * 🔹 បង្កើតគណនីរួម និងបញ្ជូនការអញ្ជើញ (Create Joint Account & Invite - 100% Pure _id)
  */
 exports.createJointAccount = async (req, res) => {
   const {
-    username,
+    userId,
+    partnerUserId,
     requestedNumber,
     price,
     pin,
     currencyOption,
-    partnerUsername,
     dailyLimit,
   } = req.body;
 
   try {
-    // ជំហានទី ១៖ ផ្ទៀងផ្ទាត់ម្ចាស់គណនី និងដៃគូ
-    const user = await User.findOne({ username });
+    // ជំហានទី ១៖ ផ្ទៀងផ្ទាត់ម្ចាស់គណនី និងដៃគូតាម _id តែមួយគត់!
+    const targetOwnerId = userId || req.user?._id || req.user?.id;
+    const user = await User.findById(targetOwnerId);
     if (!user || user.pin !== pin)
       return res.json({ success: false, message: "គណនី ឬ PIN មិនត្រឹមត្រូវ!" });
 
-    const partner = await User.findOne({ username: partnerUsername });
+    const partner = await User.findById(partnerUserId);
     if (!partner)
       return res.json({ success: false, message: "រកគណនីដៃគូមិនឃើញទេ!" });
-    if (partner.username === user.username)
+    if (String(partner._id) === String(user._id))
       return res.json({ success: false, message: "មិនអាចអញ្ជើញខ្លួនឯងបានទេ!" });
 
     // ជំហានទី ២៖ ឆែកភាពទំនេរនៃលេខគណនី
@@ -1322,7 +1356,7 @@ exports.createJointAccount = async (req, res) => {
       }
     }
 
-    // ជំហានទី ៤៖ ផ្ទៀងផ្ទាត់តម្លៃ និងសមតុល្យ (តាមទម្រង់ថ្មី)
+    // ជំហានទី ៤៖ ផ្ទៀងផ្ទាត់តម្លៃ និងសមតុល្យ
     const actualPrice = calculatePremiumPrice(requestedNumber);
     if (price !== actualPrice)
       return res.json({ success: false, message: "តម្លៃមិនត្រឹមត្រូវ!" });
@@ -1333,23 +1367,31 @@ exports.createJointAccount = async (req, res) => {
 
     // ជំហានទី ៥៖ កាត់ប្រាក់ និងកត់ត្រាប្រតិបត្តិការ (ប្រសិនបើមានតម្លៃ)
     if (actualPrice > 0) {
-      let superAdmin = await User.findOne({ username: "superadmin" });
+      let superAdmin = await User.findOne({
+        "subAccounts.accountNumber": "888000999",
+      });
 
       if (user.mainAccounts?.USD) {
         user.mainAccounts.USD.balance -= actualPrice;
+        user.markModified("mainAccounts");
       } else {
         user.balance -= actualPrice;
       }
 
+      let superAdminFeeAccId = "888000999";
       if (superAdmin) {
         let targetFeeSub = superAdmin.subAccounts?.find(
           (sub) => sub.accountNumber === "888000999",
         );
         if (targetFeeSub) {
           targetFeeSub.balance += actualPrice;
+          superAdminFeeAccId = targetFeeSub.accountId || "888000999";
           superAdmin.markModified("subAccounts");
         } else if (superAdmin.mainAccounts?.USD) {
           superAdmin.mainAccounts.USD.balance += actualPrice;
+          superAdminFeeAccId =
+            superAdmin.mainAccounts.USD.accountId || "MAIN_USD";
+          superAdmin.markModified("mainAccounts");
         } else {
           superAdmin.balance += actualPrice;
         }
@@ -1363,6 +1405,7 @@ exports.createJointAccount = async (req, res) => {
       await Transaction.create([
         {
           userId: user._id,
+          accountId: user.mainAccounts?.USD?.accountId || "MAIN_USD",
           username: user.username,
           refId,
           hash,
@@ -1380,6 +1423,7 @@ exports.createJointAccount = async (req, res) => {
         },
         {
           userId: superAdmin?._id,
+          accountId: superAdminFeeAccId,
           username: superAdmin ? superAdmin.username : "superadmin",
           refId,
           hash,
@@ -1397,7 +1441,7 @@ exports.createJointAccount = async (req, res) => {
       ]);
     }
 
-    // ជំហានទី ៦៖ បង្កើតទិន្នន័យ Joint Account (Database Record)
+    // ជំហានទី ៦៖ បង្កើតទិន្នន័យ Joint Account (ចងតាម userId _id សុទ្ធសាធ)
     const jointAccountName = `${(user.fullName || user.username).toUpperCase()} AND ${(partner.fullName || partner.username).toUpperCase()}`;
     const baseAccountId = "JNT_" + Date.now().toString();
 
@@ -1406,12 +1450,21 @@ exports.createJointAccount = async (req, res) => {
         accountId: accountId,
         accountNumber: accNum,
         accountName: jointAccountName + suffix,
+        ownerId: user._id, // 🔗 _id របស់ម្ចាស់ដើម
         balance: 0,
         currency: curr,
         members: [
-          { username: user.username, role: "owner", status: "active" },
           {
+            userId: user._id, // 🔗 _id របស់ម្ចាស់ដើម
+            username: user.username,
+            fullName: user.fullName || user.username,
+            role: "owner",
+            status: "active",
+          },
+          {
+            userId: partner._id, // 🔗 _id របស់ដៃគូ
             username: partner.username,
+            fullName: partner.fullName || partner.username,
             role: "co-owner",
             dailyLimit: dailyLimit || 0,
             spentToday: 0,
@@ -1446,7 +1499,7 @@ exports.createJointAccount = async (req, res) => {
       );
     }
 
-    // ជំហានទី ៧៖ បង្កើត Notification សារអញ្ជើញទៅកាន់ដៃគូ
+    // ជំហានទី ៧៖ បង្កើត Notification សារអញ្ជើញទៅកាន់ដៃគូតាម _id
     await Notification.create({
       userId: partner._id,
       username: partner.username,
@@ -1457,11 +1510,13 @@ exports.createJointAccount = async (req, res) => {
       type: "info",
       metadata: {
         type: "joint_invite",
+        ownerId: String(user._id),
         ownerUsername: user.username,
         accountNumber: requestedNumber,
       },
     });
 
+    user.markModified("subAccounts");
     await user.save();
     res.json({
       success: true,
@@ -1476,22 +1531,21 @@ exports.createJointAccount = async (req, res) => {
 };
 
 /**
- * 🔹 ឆ្លើយតបទៅនឹងការអញ្ជើញ (Accept/Reject Joint Account Invitation)
+ * 🔹 ឆ្លើយតបទៅនឹងការអញ្ជើញ (Accept/Reject Joint Account Invitation - 100% Pure _id)
  */
 exports.respondToJointInvite = async (req, res) => {
-  const { inviteeUsername, ownerUsername, accountNumber, action } = req.body;
+  const { inviteeUserId, ownerUserId, accountNumber, action } = req.body;
 
   try {
-    const owner = await User.findOne({ username: ownerUsername });
-    const invitee = await User.findOne({ username: inviteeUsername });
-
-    if (!owner || !invitee)
-      return res.json({ success: false, message: "រកគណនីមិនឃើញទេ!" });
+    const targetInviteeId = inviteeUserId || req.user?._id || req.user?.id;
+    const invitee = await User.findById(targetInviteeId);
+    if (!invitee)
+      return res.json({ success: false, message: "រកគណនីអ្នកទទួលមិនឃើញទេ!" });
 
     const baseNumber = accountNumber.substring(0, 8);
     const linkedAccs = await JointAccount.find({
       accountNumber: new RegExp("^" + baseNumber),
-      "members.username": inviteeUsername,
+      "members.userId": invitee._id,
       "members.status": "pending",
     });
 
@@ -1502,6 +1556,11 @@ exports.respondToJointInvite = async (req, res) => {
       });
     }
 
+    const resolvedOwnerId = ownerUserId || linkedAccs[0].ownerId;
+    const owner = await User.findById(resolvedOwnerId);
+    if (!owner)
+      return res.json({ success: false, message: "រកគណនីម្ចាស់ដើមមិនឃើញទេ!" });
+
     // =====================================
     // ករណីបដិសេធ (Reject)
     // =====================================
@@ -1509,24 +1568,31 @@ exports.respondToJointInvite = async (req, res) => {
       const pricePaid = linkedAccs[0].metadata?.pricePaid || 0;
       const refundAmount = pricePaid / 2;
 
-      // សងប្រាក់វិញ ៥០% ទៅម្ចាស់ដើម (រចនាសម្ព័ន្ធថ្មី mainAccounts.USD)
       if (refundAmount > 0) {
-        let superAdmin = await User.findOne({ username: "superadmin" });
+        let superAdmin = await User.findOne({
+          "subAccounts.accountNumber": "888000999",
+        });
         if (owner.mainAccounts?.USD) {
           owner.mainAccounts.USD.balance += refundAmount;
+          owner.markModified("mainAccounts");
         } else {
           owner.balance += refundAmount;
         }
 
+        let superAdminFeeAccId = "888000999";
         if (superAdmin) {
           let targetFeeSub = superAdmin.subAccounts?.find(
             (sub) => sub.accountNumber === "888000999",
           );
           if (targetFeeSub) {
             targetFeeSub.balance -= refundAmount;
+            superAdminFeeAccId = targetFeeSub.accountId || "888000999";
             superAdmin.markModified("subAccounts");
           } else if (superAdmin.mainAccounts?.USD) {
             superAdmin.mainAccounts.USD.balance -= refundAmount;
+            superAdminFeeAccId =
+              superAdmin.mainAccounts.USD.accountId || "MAIN_USD";
+            superAdmin.markModified("mainAccounts");
           } else {
             superAdmin.balance -= refundAmount;
           }
@@ -1540,6 +1606,7 @@ exports.respondToJointInvite = async (req, res) => {
         await Transaction.create([
           {
             userId: owner._id,
+            accountId: owner.mainAccounts?.USD?.accountId || "MAIN_USD",
             username: owner.username,
             refId,
             hash,
@@ -1557,6 +1624,7 @@ exports.respondToJointInvite = async (req, res) => {
           },
           {
             userId: superAdmin?._id,
+            accountId: superAdminFeeAccId,
             username: superAdmin ? superAdmin.username : "superadmin",
             refId,
             hash,
@@ -1580,6 +1648,7 @@ exports.respondToJointInvite = async (req, res) => {
       owner.subAccounts = owner.subAccounts.filter(
         (sa) => !accIdsToRemove.includes(sa.accountId),
       );
+      owner.markModified("subAccounts");
 
       // ជូនដំណឹងដល់ម្ចាស់ដើម
       await Notification.create({
@@ -1604,7 +1673,9 @@ exports.respondToJointInvite = async (req, res) => {
     // =====================================
     if (action === "accept") {
       for (let la of linkedAccs) {
-        let mIdx = la.members.findIndex((m) => m.username === inviteeUsername);
+        let mIdx = la.members.findIndex(
+          (m) => String(m.userId) === String(invitee._id),
+        );
         if (mIdx !== -1) {
           la.members[mIdx].status = "active";
           await la.save();
@@ -1631,6 +1702,8 @@ exports.respondToJointInvite = async (req, res) => {
         type: "info",
       });
 
+      owner.markModified("subAccounts");
+      invitee.markModified("subAccounts");
       await owner.save();
       await invitee.save();
 

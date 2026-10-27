@@ -1,5 +1,6 @@
 // ============================================================================
-// ឯកសារ: controllers/cardController.js (100% Full Code - 3 Card Categories Flow)
+// ឯកសារ: controllers/cardController.js
+// អត្ថន័យ: ខួរក្បាលស្នូលសម្រាប់គ្រប់គ្រងកាតទាំង ៣ ប្រភេទ និងការទូទាត់សងប្រាក់ (Strict _id Binding)
 // ============================================================================
 
 const User = require("../models/User");
@@ -8,6 +9,7 @@ const Transaction = require("../models/Transaction");
 const System = require("../models/System");
 const JointAccount = require("../models/JointAccount");
 const Notification = require("../models/Notification");
+const mongoose = require("mongoose");
 
 // ========================================================
 // 🛠️ Function ជំនួយ (Helpers)
@@ -67,6 +69,7 @@ async function resolveUserAccount(user, linkedAccStr) {
       currency: "USD",
       accountNumber:
         user.mainAccounts?.USD?.accountNumber || user.accountNumber,
+      accountId: user.mainAccounts?.USD?.accountId || "MAIN_USD",
     };
   }
   if (accNum === "KHR" || accNum === user.mainAccounts?.KHR?.accountNumber) {
@@ -76,6 +79,7 @@ async function resolveUserAccount(user, linkedAccStr) {
       currency: "KHR",
       accountNumber:
         user.mainAccounts?.KHR?.accountNumber || user.accountNumberKHR,
+      accountId: user.mainAccounts?.KHR?.accountId || "MAIN_KHR",
     };
   }
   if (user.subAccounts && user.subAccounts.length > 0) {
@@ -97,6 +101,7 @@ async function resolveUserAccount(user, linkedAccStr) {
           jointDoc,
           currency: sub.currency || "USD",
           accountNumber: sub.accountNumber,
+          accountId: sub.accountId,
         };
       }
       return {
@@ -105,6 +110,7 @@ async function resolveUserAccount(user, linkedAccStr) {
         accObj: sub,
         currency: sub.currency || "USD",
         accountNumber: sub.accountNumber,
+        accountId: sub.accountId,
       };
     }
   }
@@ -112,19 +118,29 @@ async function resolveUserAccount(user, linkedAccStr) {
 }
 
 // =======================================================
-// ០. ទាញយកកាតទាំងអស់របស់ User (រួមទាំង Auto-Migrate កាតចាស់)
+// ០. ទាញយកកាតទាំងអស់របស់ User (តាម _id និង Auto-Migrate កាតចាស់)
 // =======================================================
 const getMyCards = async (req, res) => {
   try {
-    const username = req.user.username;
-    let cards = await Card.find({ username }).sort({
+    const userId = req.user._id || req.user.id;
+    const userDoc =
+      userId && mongoose.isValidObjectId(userId)
+        ? await User.findById(userId)
+        : await User.findOne({ username: req.user.username });
+
+    if (!userDoc)
+      return res
+        .status(404)
+        .json({ success: false, message: "User not found" });
+
+    let cards = await Card.find({ userId: userDoc._id }).sort({
       orderIndex: 1,
       createdAt: 1,
     });
 
-    // 🔄 AUTO-MIGRATION: បើក្នុងតារាង Card ថ្មីអត់ទាន់មាន តែក្នុង User ចាស់មាន គឺចម្លងចូលអូតូ!
+    // 🔄 AUTO-MIGRATION
     if (cards.length === 0) {
-      const rawUser = await User.collection.findOne({ username });
+      const rawUser = await User.collection.findOne({ _id: userDoc._id });
       if (rawUser && rawUser.virtualCards && rawUser.virtualCards.length > 0) {
         const migrated = [];
         for (let i = 0; i < rawUser.virtualCards.length; i++) {
@@ -148,7 +164,8 @@ const getMyCards = async (req, res) => {
           const newCardDoc = await Card.create({
             userId: rawUser._id,
             username: rawUser.username,
-            userCustomId: rawUser.id || rawUser._id.toString(),
+            userCustomId:
+              rawUser.userId || rawUser.id || rawUser._id.toString(),
             id: oldC.id || "card_" + Date.now() + "_" + i,
             cardCategory: oldC.cardCategory || (hasNfc ? "debit" : "virtual"),
             type: oldC.type || "standard",
@@ -193,6 +210,7 @@ const getMyCards = async (req, res) => {
 const generateCard = async (req, res) => {
   const {
     username,
+    userId,
     cardCategory = "virtual",
     cardType,
     customBgUrl,
@@ -204,20 +222,22 @@ const generateCard = async (req, res) => {
     pin,
   } = req.body;
 
-  if (req.user.username !== username)
-    return res.status(403).json({ success: false, message: "Unauthorized!" });
-
   try {
-    const user = await User.findOne({ username });
+    const targetUserId = userId || req.user._id || req.user.id;
+    const user =
+      targetUserId && mongoose.isValidObjectId(targetUserId)
+        ? await User.findById(targetUserId)
+        : await User.findOne({ username });
+
     if (!user) return res.json({ success: false, message: "User not found" });
     if (user.pin !== pin)
       return res.json({ success: false, message: "លេខ PIN មិនត្រឹមត្រូវទេ!" });
 
-    const existingCardsCount = await Card.countDocuments({ username });
+    const existingCardsCount = await Card.countDocuments({ userId: user._id });
     if (existingCardsCount >= 10) {
       return res.json({
         success: false,
-        message: "អ្នកអាចបង្កើតកាតបានត្រឹមតែ ១០ សន្លឹកប៉ុណ្ណោះ!",
+        message: "អ្នកអាចបង្កើតកាតได้ត្រឹមតែ ១០ សន្លឹកប៉ុណ្ណោះ!",
       });
     }
 
@@ -225,7 +245,6 @@ const generateCard = async (req, res) => {
       ? cardCategory
       : "virtual";
 
-    // 🛡️ បើជា Virtual Card អនុញ្ញាតឱ្យតែ Standard និង Metal Gold ប៉ុណ្ណោះ
     let finalCardType = cardType || "standard";
     if (
       cleanCategory === "virtual" &&
@@ -235,7 +254,6 @@ const generateCard = async (req, res) => {
       finalCardType = "standard";
     }
 
-    // 🌟 ស្វែងរកគណនីដែលអតិថិជនជ្រើសរើស (សម្រាប់ភ្ជាប់ និងកាត់ថ្លៃសេវាចេញកាត)
     const targetAcc = await resolveUserAccount(user, linkedAccount);
     if (!targetAcc || !targetAcc.accObj) {
       return res.json({
@@ -255,7 +273,6 @@ const generateCard = async (req, res) => {
       }
     } catch (e) {}
 
-    // គណនាថ្លៃសេវាតាមរូបិយប័ណ្ណរបស់គណនីដែលបានជ្រើសរើស
     const feeInAccCurrency =
       targetAcc.currency === "USD"
         ? issuanceFeeUSD
@@ -277,7 +294,7 @@ const generateCard = async (req, res) => {
       });
     }
 
-    // 💸 កាត់លុយថ្លៃសេវាពីគណនីដែលបានជ្រើសរើសផ្ទាល់តែម្តង
+    // 💸 កាត់លុយថ្លៃសេវា
     if (targetAcc.type === "MAIN_USD") {
       user.mainAccounts.USD.balance -= feeInAccCurrency;
       user.markModified("mainAccounts");
@@ -295,7 +312,7 @@ const generateCard = async (req, res) => {
     }
     await user.save();
 
-    // 🏦 បូកលុយថ្លៃសេវាចូលគណនីកណ្តាលរបស់ Super Admin (888000999)
+    // 🏦 បូកចូល Super Admin
     let superAdmin = await User.findOne({ username: "superadmin" });
     if (superAdmin) {
       let targetFeeSub = superAdmin.subAccounts?.find(
@@ -323,7 +340,6 @@ const generateCard = async (req, res) => {
     const isPhysicalCard =
       cleanCategory === "debit" || cleanCategory === "credit";
 
-    // គណនាថ្ងៃកំណត់បង់ប្រាក់សម្រាប់ Credit Card (៣០ ថ្ងៃក្រោយ)
     const dueD = new Date();
     dueD.setDate(dueD.getDate() + 30);
     const billingDueStr = dueD.toISOString().split("T")[0];
@@ -333,11 +349,10 @@ const generateCard = async (req, res) => {
         ? Math.min(10000, Math.max(100, parseFloat(creditLimit) || 1000))
         : 0;
 
-    // 💳 បង្កើតកាតទុកក្នុង Model Card.js ថ្មី
     await Card.create({
       userId: user._id,
       username: user.username,
-      userCustomId: user.id || user._id.toString(),
+      userCustomId: user.userId || user.id || user._id.toString(),
       id: newCardId,
       cardCategory: cleanCategory,
       type: finalCardType,
@@ -345,7 +360,6 @@ const generateCard = async (req, res) => {
       number: details.number,
       cvv: details.cvv,
       expiry: details.expiry,
-      // Credit Card ប្រើវង់ប្រាក់ធនាគារ តែរក្សាទុកកុងបង្គោលសម្រាប់យោង
       linkedAccount:
         cleanCategory === "credit" ? "CREDIT_LINE" : targetAcc.accountNumber,
       currency: cleanCategory === "credit" ? "USD" : targetAcc.currency,
@@ -377,10 +391,10 @@ const generateCard = async (req, res) => {
           ? "Physical Debit Card"
           : "Virtual Card";
 
-    // 🧾 វិក្កយបត្រកាត់លុយថ្លៃសេវាចេញកាត
+    // 🧾 វិក្កយបត្រកាត់លុយ
     await Transaction.create({
       userId: user._id,
-      username: user.username,
+      accountId: targetAcc.accountId,
       refId,
       hash: trxHash,
       date: dateStr,
@@ -397,10 +411,11 @@ const generateCard = async (req, res) => {
       remark: `Issued ${tier.name} ${catDisplayLabel}`,
     });
 
-    // 🧾 វិក្កយបត្រចំណូលប្រព័ន្ធ (System Fee)
     await Transaction.create({
       userId: superAdmin?._id,
-      username: superAdmin ? superAdmin.username : "superadmin",
+      accountId: superAdmin
+        ? superAdmin.mainAccounts?.USD?.accountId
+        : undefined,
       refId,
       hash: trxHash,
       date: dateStr,
@@ -415,20 +430,18 @@ const generateCard = async (req, res) => {
       remark: `${catDisplayLabel} Issuance Fee`,
     });
 
-    // 🔔 ផ្ញើសារជូនដំណឹងទៅអតិថិជន (ដោយមិនបង្ហាញលេខ ៤ ខ្ទង់ចុងក្រោយឡើយ)
     if (isPhysicalCard) {
       await Notification.create({
         userId: user._id,
-        username: user.username,
         title: `💳 សំណើផលិត ${catDisplayLabel} ជោគជ័យ`,
-        message: `សំណើផលិតកាត ${tier.name} (លេខសម្គាល់: #${refId}) ត្រូវបានទទួល។ វិធីទទួលកាត: ${deliveryMethod || "Branch Pickup"}។ ពេលទទួលបានកាតពិតក្នុងដៃ សូមវាយលេខ ៤ ខ្ទង់ចុងក្រោយដែលបោះពុម្ពលើកាតដើម្បីបើកដំណើរការ!`,
+        message: `សំណើផលិតកាត ${tier.name} (លេខសម្គាល់: #${refId}) ត្រូវបានទទួល។ វិធីទទួលកាត: ${deliveryMethod || "Branch Pickup"}។`,
         date: dateStr,
         type: "info",
         isRead: false,
       });
     }
 
-    const allCards = await Card.find({ username }).sort({
+    const allCards = await Card.find({ userId: user._id }).sort({
       orderIndex: 1,
       createdAt: 1,
     });
@@ -445,15 +458,17 @@ const generateCard = async (req, res) => {
 };
 
 // =======================================================
-// ១.១ [ថ្មី] អតិថិជនវាយលេខ ៤ ខ្ទង់ចុងក្រោយដើម្បី Activate កាតរូបវ័ន្ត
+// ១.១ Activate Physical Card
 // =======================================================
 const activatePhysicalCard = async (req, res) => {
-  const { username, cardId, last4Digits, pin } = req.body;
-  if (req.user.username !== username)
-    return res.status(403).json({ success: false, message: "Unauthorized!" });
-
+  const { username, userId, cardId, last4Digits, pin } = req.body;
   try {
-    const user = await User.findOne({ username });
+    const targetUserId = userId || req.user._id || req.user.id;
+    const user =
+      targetUserId && mongoose.isValidObjectId(targetUserId)
+        ? await User.findById(targetUserId)
+        : await User.findOne({ username });
+
     if (!user) return res.json({ success: false, message: "User not found" });
     if (user.pin !== pin) {
       return res.json({
@@ -462,7 +477,7 @@ const activatePhysicalCard = async (req, res) => {
       });
     }
 
-    const card = await Card.findOne({ id: cardId, username });
+    const card = await Card.findOne({ id: cardId, userId: user._id });
     if (!card) {
       return res.json({ success: false, message: "រកមិនឃើញកាតនេះទេ!" });
     }
@@ -486,7 +501,6 @@ const activatePhysicalCard = async (req, res) => {
 
     await Notification.create({
       userId: user._id,
-      username: user.username,
       title: "🟢 កាតរូបវ័ន្តត្រូវបានបើកដំណើរការជោគជ័យ!",
       message: `កាត ${card.name} (**** ${actualLast4}) របស់អ្នកត្រូវបានផ្ទៀងផ្ទាត់ និងបើកដំណើរការពេញលេញហើយ។`,
       date: nowStr,
@@ -494,7 +508,7 @@ const activatePhysicalCard = async (req, res) => {
       isRead: false,
     });
 
-    const cards = await Card.find({ username }).sort({
+    const cards = await Card.find({ userId: user._id }).sort({
       orderIndex: 1,
       createdAt: 1,
     });
@@ -511,15 +525,17 @@ const activatePhysicalCard = async (req, res) => {
 };
 
 // =======================================================
-// ១.២ [ថ្មី] អតិថិជនបង់ប្រាក់សងបំណុលកាតឥណទាន (Pay Credit Card Bill)
+// ១.២ Pay Credit Card Bill
 // =======================================================
 const payCreditCardBill = async (req, res) => {
-  const { username, cardId, fromAccount, amount, pin } = req.body;
-  if (req.user.username !== username)
-    return res.status(403).json({ success: false, message: "Unauthorized!" });
-
+  const { username, userId, cardId, fromAccount, amount, pin } = req.body;
   try {
-    const user = await User.findOne({ username });
+    const targetUserId = userId || req.user._id || req.user.id;
+    const user =
+      targetUserId && mongoose.isValidObjectId(targetUserId)
+        ? await User.findById(targetUserId)
+        : await User.findOne({ username });
+
     if (!user) return res.json({ success: false, message: "User not found" });
     if (user.pin !== pin) {
       return res.json({
@@ -528,7 +544,7 @@ const payCreditCardBill = async (req, res) => {
       });
     }
 
-    const card = await Card.findOne({ id: cardId, username });
+    const card = await Card.findOne({ id: cardId, userId: user._id });
     if (!card || card.cardCategory !== "credit") {
       return res.json({
         success: false,
@@ -552,7 +568,7 @@ const payCreditCardBill = async (req, res) => {
       });
     }
     if (payAmountUSD > currentDebtUSD) {
-      payAmountUSD = currentDebtUSD; // ការពារកុំឱ្យបង់លើសចំនួនជំពាក់
+      payAmountUSD = currentDebtUSD;
     }
 
     const sourceAcc = await resolveUserAccount(user, fromAccount);
@@ -586,7 +602,6 @@ const payCreditCardBill = async (req, res) => {
       });
     }
 
-    // ១. កាត់ប្រាក់ពីគណនីរបស់អតិថិជន
     if (sourceAcc.type === "MAIN_USD") {
       user.mainAccounts.USD.balance -= deductInAccCurrency;
       user.markModified("mainAccounts");
@@ -604,14 +619,12 @@ const payCreditCardBill = async (req, res) => {
     }
     await user.save();
 
-    // ២. កាត់បន្ថយបំណុលក្នុងកាត Credit
     card.currentDebt = Math.max(
       0,
       Number((currentDebtUSD - payAmountUSD).toFixed(2)),
     );
     await card.save();
 
-    // ៣. បូកចូលគណនី Central Bank (888888888)
     const centralBank = await User.findOne({
       "mainAccounts.USD.accountNumber": "888888888",
     });
@@ -630,7 +643,7 @@ const payCreditCardBill = async (req, res) => {
 
     await Transaction.create({
       userId: user._id,
-      username: user.username,
+      accountId: sourceAcc.accountId,
       refId,
       hash: trxHash,
       date: dateStr,
@@ -647,7 +660,7 @@ const payCreditCardBill = async (req, res) => {
       remark: `សងប្រាក់កាតឥណទានចំនួន $${payAmountUSD.toFixed(2)}`,
     });
 
-    const cards = await Card.find({ username }).sort({
+    const cards = await Card.find({ userId: user._id }).sort({
       orderIndex: 1,
       createdAt: 1,
     });
@@ -668,10 +681,21 @@ const payCreditCardBill = async (req, res) => {
 // ២. បិទ/បើក កាត (Freeze / Unfreeze)
 // =======================================================
 const toggleLock = async (req, res) => {
-  const { cardId, isLocked } = req.body;
-  const username = req.user ? req.user.username : req.body.username;
+  const { cardId, isLocked, userId, username } = req.body;
   try {
-    const card = await Card.findOne({ id: cardId, username });
+    const targetUserId =
+      userId || (req.user ? req.user._id || req.user.id : null);
+    const userDoc =
+      targetUserId && mongoose.isValidObjectId(targetUserId)
+        ? await User.findById(targetUserId)
+        : await User.findOne({
+            username: username || (req.user ? req.user.username : ""),
+          });
+
+    if (!userDoc)
+      return res.json({ success: false, message: "User not found" });
+
+    const card = await Card.findOne({ id: cardId, userId: userDoc._id });
     if (!card)
       return res.json({ success: false, message: "រកមិនឃើញកាតនេះទេ!" });
 
@@ -697,17 +721,26 @@ const toggleLock = async (req, res) => {
 // ៣. បិទ/បើក ការទិញអនឡាញ
 // =======================================================
 const toggleOnlinePay = async (req, res) => {
-  const { username, cardId, isEnabled } = req.body;
-  if (req.user.username !== username)
-    return res.status(403).json({ success: false });
+  const { username, userId, cardId, isEnabled } = req.body;
   try {
-    const card = await Card.findOne({ id: cardId, username });
+    const targetUserId =
+      userId || (req.user ? req.user._id || req.user.id : null);
+    const userDoc =
+      targetUserId && mongoose.isValidObjectId(targetUserId)
+        ? await User.findById(targetUserId)
+        : await User.findOne({
+            username: username || (req.user ? req.user.username : ""),
+          });
+
+    if (!userDoc) return res.json({ success: false });
+
+    const card = await Card.findOne({ id: cardId, userId: userDoc._id });
     if (!card) return res.json({ success: false });
 
     card.isOnlinePayEnabled = isEnabled;
     await card.save();
 
-    const cards = await Card.find({ username }).sort({
+    const cards = await Card.find({ userId: userDoc._id }).sort({
       orderIndex: 1,
       createdAt: 1,
     });
@@ -721,11 +754,20 @@ const toggleOnlinePay = async (req, res) => {
 // ៤. ផ្លាស់ប្តូរដែនកំណត់ ២ ជាន់ (Dual Limits)
 // =======================================================
 const updateLimit = async (req, res) => {
-  const { username, cardId, newLimit, newCountLimit } = req.body;
-  if (req.user.username !== username)
-    return res.status(403).json({ success: false });
+  const { username, userId, cardId, newLimit, newCountLimit } = req.body;
   try {
-    const card = await Card.findOne({ id: cardId, username });
+    const targetUserId =
+      userId || (req.user ? req.user._id || req.user.id : null);
+    const userDoc =
+      targetUserId && mongoose.isValidObjectId(targetUserId)
+        ? await User.findById(targetUserId)
+        : await User.findOne({
+            username: username || (req.user ? req.user.username : ""),
+          });
+
+    if (!userDoc) return res.json({ success: false });
+
+    const card = await Card.findOne({ id: cardId, userId: userDoc._id });
     if (!card) return res.json({ success: false });
 
     if (newLimit !== undefined) card.dailyLimit = parseFloat(newLimit);
@@ -733,7 +775,7 @@ const updateLimit = async (req, res) => {
       card.dailyTxCountLimit = parseInt(newCountLimit, 10);
     await card.save();
 
-    const cards = await Card.find({ username }).sort({
+    const cards = await Card.find({ userId: userDoc._id }).sort({
       orderIndex: 1,
       createdAt: 1,
     });
@@ -744,14 +786,23 @@ const updateLimit = async (req, res) => {
 };
 
 // =======================================================
-// ៥. លុបកាត (ការពារមិនឱ្យលុប Credit Card ដែលនៅជំពាក់លុយ)
+// ៥. លុបកាត
 // =======================================================
 const deleteCard = async (req, res) => {
-  const { username, cardId } = req.body;
-  if (req.user.username !== username)
-    return res.status(403).json({ success: false });
+  const { username, userId, cardId } = req.body;
   try {
-    const card = await Card.findOne({ id: cardId, username });
+    const targetUserId =
+      userId || (req.user ? req.user._id || req.user.id : null);
+    const userDoc =
+      targetUserId && mongoose.isValidObjectId(targetUserId)
+        ? await User.findById(targetUserId)
+        : await User.findOne({
+            username: username || (req.user ? req.user.username : ""),
+          });
+
+    if (!userDoc) return res.json({ success: false });
+
+    const card = await Card.findOne({ id: cardId, userId: userDoc._id });
     if (!card) {
       return res.json({ success: false, message: "រកមិនឃើញកាតនេះទេ!" });
     }
@@ -759,12 +810,12 @@ const deleteCard = async (req, res) => {
     if (card.cardCategory === "credit" && (card.currentDebt || 0) > 0) {
       return res.json({
         success: false,
-        message: `មិនអាចបិទកាតឥណទាននេះបានទេ! អ្នកនៅជំពាក់ទឹកប្រាក់ចំនួន $${Number(card.currentDebt).toFixed(2)} សូមទូទាត់សងជាមុនសិន។`,
+        message: `មិនអាចបិទកាតឥណទាននេះได้ទេ! អ្នកនៅជំពាក់ទឹកប្រាក់ចំនួន $${Number(card.currentDebt).toFixed(2)} សូមទូទាត់សងជាមុនសិន។`,
       });
     }
 
-    await Card.findOneAndDelete({ id: cardId, username });
-    const cards = await Card.find({ username }).sort({
+    await Card.findOneAndDelete({ id: cardId, userId: userDoc._id });
+    const cards = await Card.find({ userId: userDoc._id }).sort({
       orderIndex: 1,
       createdAt: 1,
     });
@@ -778,11 +829,20 @@ const deleteCard = async (req, res) => {
 // ៦. ផ្លាស់ប្តូរលេខសម្ងាត់កាត (PIN)
 // =======================================================
 const resetPin = async (req, res) => {
-  const { username, cardId, oldPin, newPin } = req.body;
-  if (req.user.username !== username)
-    return res.status(403).json({ success: false });
+  const { username, userId, cardId, oldPin, newPin } = req.body;
   try {
-    const card = await Card.findOne({ id: cardId, username });
+    const targetUserId =
+      userId || (req.user ? req.user._id || req.user.id : null);
+    const userDoc =
+      targetUserId && mongoose.isValidObjectId(targetUserId)
+        ? await User.findById(targetUserId)
+        : await User.findOne({
+            username: username || (req.user ? req.user.username : ""),
+          });
+
+    if (!userDoc) return res.json({ success: false });
+
+    const card = await Card.findOne({ id: cardId, userId: userDoc._id });
     if (!card) return res.json({ success: false, message: "រកមិនឃើញកាតទេ!" });
 
     const currentPin = card.pin || "0000";
@@ -804,17 +864,26 @@ const resetPin = async (req, res) => {
 // ៧. ប្តូរឈ្មោះកាត
 // =======================================================
 const renameCard = async (req, res) => {
-  const { username, cardId, name } = req.body;
-  if (req.user.username !== username)
-    return res.status(403).json({ success: false });
+  const { username, userId, cardId, name } = req.body;
   try {
-    const card = await Card.findOne({ id: cardId, username });
+    const targetUserId =
+      userId || (req.user ? req.user._id || req.user.id : null);
+    const userDoc =
+      targetUserId && mongoose.isValidObjectId(targetUserId)
+        ? await User.findById(targetUserId)
+        : await User.findOne({
+            username: username || (req.user ? req.user.username : ""),
+          });
+
+    if (!userDoc) return res.json({ success: false });
+
+    const card = await Card.findOne({ id: cardId, userId: userDoc._id });
     if (!card) return res.json({ success: false });
 
     card.name = name.toUpperCase();
     await card.save();
 
-    const cards = await Card.find({ username }).sort({
+    const cards = await Card.find({ userId: userDoc._id }).sort({
       orderIndex: 1,
       createdAt: 1,
     });
@@ -825,11 +894,11 @@ const renameCard = async (req, res) => {
 };
 
 // =======================================================
-// ៨. ភ្ជាប់កាត NFC (អនុញ្ញាតតែលើកាត Debit និង Credit ប៉ុណ្ណោះ)
+// ៨. ភ្ជាប់កាត NFC
 // =======================================================
 const bindNfcCard = async (req, res) => {
   try {
-    const { username, cardId, pin, uid } = req.body;
+    const { username, userId, cardId, pin, uid } = req.body;
     const cleanUid = String(uid || "")
       .replaceAll(":", "")
       .trim()
@@ -844,7 +913,19 @@ const bindNfcCard = async (req, res) => {
       });
     }
 
-    const targetCard = await Card.findOne({ id: cardId, username });
+    const targetUserId =
+      userId || (req.user ? req.user._id || req.user.id : null);
+    const userDoc =
+      targetUserId && mongoose.isValidObjectId(targetUserId)
+        ? await User.findById(targetUserId)
+        : await User.findOne({
+            username: username || (req.user ? req.user.username : ""),
+          });
+
+    if (!userDoc)
+      return res.json({ success: false, message: "User not found" });
+
+    const targetCard = await Card.findOne({ id: cardId, userId: userDoc._id });
     if (!targetCard)
       return res.json({ success: false, message: "រកកាតនេះមិនឃើញទេ!" });
 
@@ -852,7 +933,7 @@ const bindNfcCard = async (req, res) => {
       return res.json({
         success: false,
         message:
-          "🛑 កាតនិម្មិត (Virtual Card) មិនអាចភ្ជាប់បន្ទះឈីប NFC បានទេ! សូមប្រើប្រាស់កាត Debit ឬ Credit។",
+          "🛑 កាតនិម្មិត (Virtual Card) មិនអាចភ្ជាប់បន្ទះឈីប NFC ได้ទេ! សូមប្រើប្រាស់កាត Debit ឬ Credit។",
       });
     }
 
@@ -860,7 +941,7 @@ const bindNfcCard = async (req, res) => {
       return res.json({
         success: false,
         message:
-          "⚠️ កាតនេះបានភ្ជាប់ NFC រួចរាល់ហើយ! សូម 'ផ្តាច់កាត' (Unbind) ចាស់ចេញជាមុនសិន។",
+          "⚠️ កាតនេះได้ភ្ជាប់ NFC រួចរាល់ហើយ! សូម 'ផ្តាច់កាត' (Unbind) ចាស់ចេញជាមុនសិន។",
       });
     }
 
@@ -880,8 +961,20 @@ const bindNfcCard = async (req, res) => {
 // =======================================================
 const unbindNfcCard = async (req, res) => {
   try {
-    const { username, cardId } = req.body;
-    const card = await Card.findOne({ id: cardId, username });
+    const { username, userId, cardId } = req.body;
+    const targetUserId =
+      userId || (req.user ? req.user._id || req.user.id : null);
+    const userDoc =
+      targetUserId && mongoose.isValidObjectId(targetUserId)
+        ? await User.findById(targetUserId)
+        : await User.findOne({
+            username: username || (req.user ? req.user.username : ""),
+          });
+
+    if (!userDoc)
+      return res.json({ success: false, message: "User not found" });
+
+    const card = await Card.findOne({ id: cardId, userId: userDoc._id });
     if (card) {
       card.uid = null;
       await card.save();
@@ -897,22 +990,30 @@ const unbindNfcCard = async (req, res) => {
 // ១០. រៀបចំទីតាំងកាតឡើងវិញ (Drag & Drop Reorder)
 // =======================================================
 const reorderCards = async (req, res) => {
-  const { username, orderedIds } = req.body;
-  if (req.user.username !== username)
-    return res.status(403).json({ success: false });
-
+  const { username, userId, orderedIds } = req.body;
   try {
+    const targetUserId =
+      userId || (req.user ? req.user._id || req.user.id : null);
+    const userDoc =
+      targetUserId && mongoose.isValidObjectId(targetUserId)
+        ? await User.findById(targetUserId)
+        : await User.findOne({
+            username: username || (req.user ? req.user.username : ""),
+          });
+
+    if (!userDoc) return res.status(403).json({ success: false });
+
     if (Array.isArray(orderedIds)) {
       await Promise.all(
         orderedIds.map((cardId, idx) =>
           Card.updateOne(
-            { id: cardId, username },
+            { id: cardId, userId: userDoc._id },
             { $set: { orderIndex: idx } },
           ),
         ),
       );
     }
-    const cards = await Card.find({ username }).sort({
+    const cards = await Card.find({ userId: userDoc._id }).sort({
       orderIndex: 1,
       createdAt: 1,
     });

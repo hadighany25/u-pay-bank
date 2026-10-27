@@ -1,12 +1,13 @@
 // ============================================================================
 // ឯកសារ: controllers/analyticsController.js
-// អត្ថន័យ: ខួរក្បាលវិភាគលំហូរសាច់ប្រាក់ ចំណូល-ចំណាយ និងផែនការកំណត់ការចាយ (Smart Budget Engine)
+// អត្ថន័យ: ខួរក្បាលវិភាគលំហូរសាច់ប្រាក់ ចំណូល-ចំណាយ និងផែនការកំណត់ការចាយ (Strict _id Binding)
 // ============================================================================
 
 const User = require("../models/User");
 const Transaction = require("../models/Transaction");
 const Notification = require("../models/Notification");
 const { readFXRates } = require("../services/systemService");
+const mongoose = require("mongoose");
 
 // 🛠️ អនុគមន៍ចាត់ថ្នាក់ប្រតិបត្តិការទៅតាមប្រភេទចំណូល និងចំណាយដោយស្វ័យប្រវត្តិ
 function classifyTransactionCategory(trx, isIncome) {
@@ -74,14 +75,18 @@ function classifyTransactionCategory(trx, isIncome) {
  */
 exports.getUserAnalyticsSummary = async (req, res) => {
   try {
-    const username = req.user?.username || req.query?.username;
-    if (!username) {
-      return res
-        .status(400)
-        .json({ success: false, message: "Missing username" });
-    }
+    const userId =
+      req.user?.id || req.user?._id || req.query?.userId || req.body?.userId;
+    const username =
+      req.user?.username || req.query?.username || req.body?.username;
 
-    const user = await User.findOne({ username }).lean();
+    const user =
+      userId && mongoose.isValidObjectId(userId)
+        ? await User.findById(userId).lean()
+        : username
+          ? await User.findOne({ username }).lean()
+          : null;
+
     if (!user) {
       return res
         .status(404)
@@ -105,6 +110,7 @@ exports.getUserAnalyticsSummary = async (req, res) => {
       });
     }
 
+    // 🌟 ស្វែងរក Transaction តាម userId _id ជាគោលដាច់ខាត
     const transactions = await Transaction.find({
       $or: [
         { userId: user._id },
@@ -127,9 +133,11 @@ exports.getUserAnalyticsSummary = async (req, res) => {
       if (seenIds.has(idStr)) return;
       seenIds.add(idStr);
 
-      // កំណត់ថាតើជាចំណូល ឬ ចំណាយសម្រាប់ User រូបនេះ
       let isIncome = false;
-      if (t.username === user.username) {
+      if (
+        String(t.userId) === String(user._id) ||
+        t.username === user.username
+      ) {
         isIncome = Number(t.amount) > 0;
       } else if (
         myAccounts.includes(t.receiverAcc) &&
@@ -177,7 +185,6 @@ exports.getUserAnalyticsSummary = async (req, res) => {
       });
     });
 
-    // ទាញយកការកំណត់ផែនការចំណាយ (Budget Settings) របស់ User
     const defaultBudget = {
       monthlyLimitUSD: 500,
       alertThresholdPct: 80,
@@ -225,6 +232,7 @@ exports.getUserAnalyticsSummary = async (req, res) => {
  */
 exports.saveUserBudgetSettings = async (req, res) => {
   try {
+    const userId = req.user?.id || req.user?._id || req.body?.userId;
     const username = req.user?.username || req.body?.username;
     const {
       monthlyLimitUSD,
@@ -233,7 +241,13 @@ exports.saveUserBudgetSettings = async (req, res) => {
       categoryLimitsUSD,
     } = req.body;
 
-    const user = await User.findOne({ username });
+    const user =
+      userId && mongoose.isValidObjectId(userId)
+        ? await User.findById(userId)
+        : username
+          ? await User.findOne({ username })
+          : null;
+
     if (!user) {
       return res
         .status(404)

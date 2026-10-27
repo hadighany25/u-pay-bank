@@ -1,4 +1,8 @@
-// gatewayController.js
+// ============================================================================
+// ឯកសារ: controllers/gatewayController.js
+// អត្ថន័យ: ខួរក្បាលស្នូលសម្រាប់ទទួលសំណើទូទាត់អនឡាញពី U-Mall / Gateway (Strict _id Binding)
+// ============================================================================
+
 const User = require("../models/User");
 const Merchant = require("../models/Merchant");
 const Transaction = require("../models/Transaction");
@@ -84,14 +88,13 @@ exports.requestCardPayment = async (req, res) => {
     const cleanCardNum = cardNumber.replace(/\s+/g, "");
     const spacedCardNum = cleanCardNum.replace(/(.{4})/g, "$1 ").trim();
 
-    const user = await User.findOne({
-      $or: [
-        { "virtualCards.number": cleanCardNum },
-        { "virtualCards.number": spacedCardNum },
-      ],
+    // 🌟 ស្វែងរកកាតតាមលេខកាត (កាតត្រូវបានចងភ្ជាប់តាម userId _id ស្រាប់)
+    const Card = require("../models/Card");
+    const card = await Card.findOne({
+      number: { $in: [cleanCardNum, spacedCardNum] },
     });
 
-    if (!user)
+    if (!card)
       return res.status(404).json({
         success: false,
         message: "រកមិនឃើញលេខកាតនេះក្នុងប្រព័ន្ធ U-Pay ទេ!",
@@ -99,27 +102,21 @@ exports.requestCardPayment = async (req, res) => {
 
     const cleanInputExpiry = String(expiry).trim();
     const cleanInputCvv = String(cvv).trim();
+    let dbExpiry = String(card.expiry || "").trim();
+    if (dbExpiry.length === 7 && dbExpiry.includes("/20")) {
+      dbExpiry = dbExpiry.replace("/20", "/");
+    }
 
-    const card = user.virtualCards.find((c) => {
-      if (!c.number || !c.expiry || !c.cvv) return false;
-      const dbCardNum = String(c.number).replace(/\s+/g, "");
-      let dbExpiry = String(c.expiry).trim();
-      const dbCvv = String(c.cvv).trim();
-      if (dbExpiry.length === 7 && dbExpiry.includes("/20")) {
-        dbExpiry = dbExpiry.replace("/20", "/");
-      }
-      return (
-        dbCardNum === cleanCardNum &&
-        dbExpiry === cleanInputExpiry &&
-        dbCvv === cleanInputCvv
-      );
-    });
-
-    if (!card)
+    if (
+      String(card.cvv).trim() !== cleanInputCvv ||
+      dbExpiry !== cleanInputExpiry
+    ) {
       return res.status(400).json({
         success: false,
         message: "ថ្ងៃផុតកំណត់ (Expiry) ឬ លេខកូដសម្ងាត់ (CVV) មិនត្រឹមត្រូវទេ!",
       });
+    }
+
     if (card.isLocked || card.lockedByAdmin)
       return res.status(403).json({
         success: false,
@@ -131,28 +128,41 @@ exports.requestCardPayment = async (req, res) => {
         message: "កាតនេះមិនទាន់បានបើកមុខងារទូទាត់អនឡាញទេ!",
       });
 
+    const user = await User.findById(card.userId);
+    if (!user)
+      return res.status(404).json({
+        success: false,
+        message: "រកមិនឃើញគណនីម្ចាស់កាតទេ!",
+      });
+
     const isKHR = currency === "KHR";
     let availableBalance = 0;
     let sourceAccNum = card.linkedAccount;
 
-    // 🌟 កែតម្រូវឱ្យស្គាល់ទម្រង់ User.js ថ្មី (Main Accounts)
     const mainUsdNum =
       user.mainAccounts?.USD?.accountNumber || user.accountNumber;
     const mainKhrNum =
       user.mainAccounts?.KHR?.accountNumber || user.accountNumberKHR;
 
+    let targetDeductAccObj = null;
+
     if (sourceAccNum === "USD" || sourceAccNum === mainUsdNum) {
       availableBalance = user.mainAccounts?.USD?.balance || user.balance || 0;
       sourceAccNum = mainUsdNum;
+      targetDeductAccObj = user.mainAccounts?.USD;
     } else if (sourceAccNum === "KHR" || sourceAccNum === mainKhrNum) {
       availableBalance =
         user.mainAccounts?.KHR?.balance || user.balanceKHR || 0;
       sourceAccNum = mainKhrNum;
+      targetDeductAccObj = user.mainAccounts?.KHR;
     } else {
       const sub = user.subAccounts.find(
         (s) => s.accountNumber === sourceAccNum,
       );
-      if (sub) availableBalance = sub.balance;
+      if (sub) {
+        availableBalance = sub.balance;
+        targetDeductAccObj = sub;
+      }
     }
 
     if (availableBalance < parseFloat(amount)) {
@@ -162,9 +172,9 @@ exports.requestCardPayment = async (req, res) => {
       });
     }
 
-    // 🌟 បន្ថែម cardId និង cardNumber ចូលដើម្បីកុំឱ្យគាំង Slip
     const pendingTrx = new Transaction({
       userId: user._id,
+      accountId: targetDeductAccObj ? targetDeductAccObj.accountId : "MAIN_USD",
       username: user.username,
       refId: orderId,
       hash: generateStandardHash(),
@@ -172,15 +182,15 @@ exports.requestCardPayment = async (req, res) => {
       amount: -parseFloat(amount),
       currency: currency,
       senderName: user.fullName || user.username,
-      senderAcc: sourceAccNum, // លេខកុងថ្មីពិតប្រាកដ
+      senderAcc: sourceAccNum,
       receiverName: merchant.name,
       receiverAcc: isKHR
         ? merchant.accountNumbers.KHR
         : merchant.accountNumbers.USD,
       trxMethod: "Card Payment",
       merchantId: merchant.merchantId,
-      cardId: card.id, // 🔥 ការពារកុំឱ្យគាំង Slip
-      cardNumber: card.number, // 🔥 ការពារកុំឱ្យគាំង Slip
+      cardId: card.id,
+      cardNumber: card.number,
       date: new Date().toLocaleString("en-US", {
         timeZone: "Asia/Phnom_Penh",
         hour12: true,
@@ -192,7 +202,6 @@ exports.requestCardPayment = async (req, res) => {
 
     await Notification.create({
       userId: user._id,
-      username: user.username,
       title: "សំណើទូទាត់ប្រាក់ 🛒",
       message: `ហាង ${merchant.name} បានស្នើសុំកាត់ប្រាក់ ${isKHR ? "៛" : "$"}${parseFloat(amount).toLocaleString()}។ សូមចុចដើម្បីបញ្ជាក់ការទូទាត់!`,
       type: "card_payment_request",
@@ -231,14 +240,8 @@ exports.confirmPayment = async (req, res) => {
     let user = null;
     if (req.user) {
       const userId = req.user.id || req.user._id;
-      if (userId) {
-        try {
-          user = await User.findOne({
-            $or: [{ id: String(userId) }, { _id: userId }],
-          });
-        } catch (err) {
-          user = await User.findOne({ id: String(userId) });
-        }
+      if (userId && mongoose.isValidObjectId(userId)) {
+        user = await User.findById(userId);
       }
       if (!user && req.user.username) {
         user = await User.findOne({ username: req.user.username });
@@ -255,7 +258,11 @@ exports.confirmPayment = async (req, res) => {
         .json({ success: false, message: "លេខសម្ងាត់ PIN មិនត្រឹមត្រូវទេ!" });
 
     const trx = await Transaction.findById(transactionId);
-    if (!trx || trx.status !== "Pending" || trx.username !== user.username) {
+    if (
+      !trx ||
+      trx.status !== "Pending" ||
+      String(trx.userId) !== String(user._id)
+    ) {
       return res.status(404).json({
         success: false,
         message: "សំណើទូទាត់មិនត្រឹមត្រូវ ឬផុតកំណត់!",
@@ -271,7 +278,6 @@ exports.confirmPayment = async (req, res) => {
     const amount = Math.abs(trx.amount);
     const isKHR = trx.currency === "KHR";
 
-    // 🌟 ការកាត់ប្រាក់ផ្អែកលើទម្រង់ User.js ថ្មី
     let deducted = false;
     const mainUsdNum =
       user.mainAccounts?.USD?.accountNumber || user.accountNumber;
@@ -323,12 +329,13 @@ exports.confirmPayment = async (req, res) => {
     if (!linkedAcc)
       linkedAcc = merchant.linkedAccounts.USD || merchant.linkedAccounts.KHR;
 
-    const merchantOwner = await User.findOne({ username: merchant.userId });
+    const merchantOwner = await User.findById(merchant.ownerId);
 
-    // 🌟 កត់ត្រាប្រវត្តិ ទទួលលុយ អោយ Merchant
     await Transaction.create({
       userId: merchantOwner ? merchantOwner._id : undefined,
-      username: merchant.userId,
+      accountId: merchantOwner
+        ? merchantOwner.mainAccounts?.USD?.accountId
+        : undefined,
       refId: trx.refId,
       hash: trx.hash,
       date: trx.date,
@@ -343,8 +350,8 @@ exports.confirmPayment = async (req, res) => {
       remark: trx.remark,
       status: "Hold",
       merchantId: merchant.merchantId,
-      cardId: trx.cardId, // 🔥 ការពារកុំឱ្យគាំង Slip ពេលហាងមើល
-      cardNumber: trx.cardNumber, // 🔥 ការពារកុំឱ្យគាំង Slip ពេលហាងមើល
+      cardId: trx.cardId,
+      cardNumber: trx.cardNumber,
     });
 
     const webhookPayload = {
@@ -375,14 +382,8 @@ exports.rejectPayment = async (req, res) => {
     let user = null;
     if (req.user) {
       const userId = req.user.id || req.user._id;
-      if (userId) {
-        try {
-          user = await User.findOne({
-            $or: [{ id: String(userId) }, { _id: userId }],
-          });
-        } catch (err) {
-          user = await User.findOne({ id: String(userId) });
-        }
+      if (userId && mongoose.isValidObjectId(userId)) {
+        user = await User.findById(userId);
       }
       if (!user && req.user.username)
         user = await User.findOne({ username: req.user.username });
@@ -392,7 +393,11 @@ exports.rejectPayment = async (req, res) => {
       return res.status(401).json({ success: false, message: "Unauthorized" });
 
     const trx = await Transaction.findById(transactionId);
-    if (!trx || trx.status !== "Pending" || trx.username !== user.username) {
+    if (
+      !trx ||
+      trx.status !== "Pending" ||
+      String(trx.userId) !== String(user._id)
+    ) {
       return res
         .status(404)
         .json({ success: false, message: "សំណើមិនត្រឹមត្រូវ!" });
@@ -434,7 +439,7 @@ exports.releaseHoldPayment = async (req, res) => {
     const trx = await Transaction.findOne({
       _id: transactionId,
       status: "Hold",
-      type: "Receive",
+      type: { $in: ["Receive", "Received"] },
     });
     if (!trx)
       return res.status(404).json({
@@ -443,17 +448,20 @@ exports.releaseHoldPayment = async (req, res) => {
       });
 
     const merchant = await Merchant.findOne({ merchantId: trx.merchantId });
-    const user = await User.findOne({ username: merchant.userId });
-
-    if (!merchant || !user)
+    if (!merchant)
       return res
         .status(404)
         .json({ success: false, message: "រកមិនឃើញគណនីហាង!" });
 
+    const user = await User.findById(merchant.ownerId);
+    if (!user)
+      return res
+        .status(404)
+        .json({ success: false, message: "រកមិនឃើញម្ចាស់ហាង!" });
+
     const amount = Math.abs(trx.amount);
     const isKHR = trx.currency === "KHR";
 
-    // 🌟 ការបញ្ចេញលុយចូលកុងថ្មី
     if (isKHR) {
       merchant.escrowHold.KHR -= amount;
       if (user.mainAccounts?.KHR) user.mainAccounts.KHR.balance += amount;
@@ -505,13 +513,12 @@ const autoReleaseEscrow = async () => {
         const merchant = await Merchant.findOne({ merchantId: trx.merchantId });
         if (!merchant) continue;
 
-        const user = await User.findOne({ username: merchant.userId });
+        const user = await User.findById(merchant.ownerId);
 
         if (merchant && user) {
           const amount = Math.abs(trx.amount);
           const isKHR = trx.currency === "KHR";
 
-          // 🌟 ការបញ្ចេញលុយចូលកុងថ្មី
           if (isKHR) {
             merchant.escrowHold.KHR = (merchant.escrowHold.KHR || 0) - amount;
             merchant.collected.KHR = (merchant.collected.KHR || 0) + amount;

@@ -112,7 +112,6 @@ async function generateSmartCustomerBotReply(userText, userName = "បង") {
   const raw = String(userText || "").trim();
   const lower = raw.toLowerCase();
 
-  // 🚨 ឆែកថាតើអតិថិជនពិតជាចង់ជួបភ្នាក់ងារមនុស្ស (Human Agent) ឬមានបញ្ហាបន្ទាន់មែនឬអត់
   const wantsHumanAgent = Boolean(
     lower.match(
       /human|ភ្នាក់ងារ|មនុស្ស|ជួបបុគ្គលិក|បុគ្គលិក|live agent|admin|បាត់លុយ|កាត់លុយ|វេរអត់ចូល|លុយអត់ចូល|ជាប់សោ/,
@@ -182,7 +181,7 @@ async function generateSmartCustomerBotReply(userText, userName = "បង") {
     return {
       switchedToAgent: false,
       isUrgent: false,
-      reply: `💳 <b>សេវាកម្មកាតធនាគារ U-PAY៖</b> បងអាចបង្កើតកាតនិម្មិត (Virtual Card) ឬស្នើសុំកាតរូបវ័ន្ត (Physical Debit/Credit NFC) បានយ៉ាងងាយស្រួលនៅក្នុងម៉ឺនុយ <b>"Cards"</b> នៅលើទំព័រដើម!`,
+      reply: `💳 <b>សេវាកម្មកាតធនាគារ U-PAY៖</b> បងអាចបង្កើតកាតនិម្មិត (Virtual Card) ឬស្នើសុំកាតរូបវ័ន្ត (Physical Debit/Credit NFC) ได้យ៉ាងងាយស្រួលនៅក្នុងម៉ឺនុយ <b>"Cards"</b> នៅលើទំព័រដើម!`,
     };
   }
 
@@ -197,9 +196,13 @@ async function generateSmartCustomerBotReply(userText, userName = "បង") {
 // 🎫 ផ្នែកទី ១៖ USER TICKETS & NOTIFICATIONS
 // ==========================================
 const createTicket = async (req, res) => {
-  const { username, subject, description, priority } = req.body;
+  const { username, userId, subject, description, priority } = req.body;
   try {
-    const user = await User.findOne({ username });
+    const user =
+      userId && mongoose.isValidObjectId(userId)
+        ? await User.findById(userId)
+        : await User.findOne({ username });
+
     if (!user) return res.json({ success: false });
 
     if (!user.tickets) user.tickets = [];
@@ -240,9 +243,13 @@ const getNotifications = async (req, res) => {
 };
 
 const readNotifications = async (req, res) => {
-  const { username } = req.body;
+  const { username, userId } = req.body;
   try {
-    const user = await User.findOne({ username });
+    const user =
+      userId && mongoose.isValidObjectId(userId)
+        ? await User.findById(userId)
+        : await User.findOne({ username });
+
     if (user) {
       await Notification.updateMany(
         { userId: user._id, isRead: false },
@@ -297,7 +304,7 @@ const sendChat = async (req, res) => {
     isScheduled,
     scheduledFor,
     requestAiBotReply,
-    escalateToAgent, // 👈 ទង់ពិសេសពេលអតិថិជនចុចប៊ូតុង "ភ្ជាប់ទៅភ្នាក់ងារផ្ទាល់"
+    escalateToAgent,
   } = req.body;
 
   try {
@@ -335,8 +342,6 @@ const sendChat = async (req, res) => {
       msgLower.match(/បាត់លុយ|កាត់លុយ|វេរអត់ចូល|លុយអត់ចូល|ជាប់សោ|បន្ទាន់/),
     );
 
-    // 🎯 គោលការណ៍ដែកថែប៖
-    // - បើអតិថិជនកំពុងនៅក្នុង Mode Bot (requestAiBotReply === true) ហើយមិនបានចុចសុំជួបភ្នាក់ងារទេ គឺបិទ needsSupport = false ដាច់ខាត!
     if (canonicalReceiverId === "ADMIN" && sender._id) {
       if (explicitlyAsksForAgent) {
         sender.needsSupport = true;
@@ -349,7 +354,6 @@ const sendChat = async (req, res) => {
           await sender.save();
         }
       } else if (sender.needsSupport) {
-        // កំពុងជជែកជាមួយភ្នាក់ងារស្រាប់
         if (isUrgentKeywords) {
           sender.chatStatus = "urgent";
           sender.chatSentiment = "angry";
@@ -365,7 +369,6 @@ const sendChat = async (req, res) => {
       message: String(message || "").trim() || "ឯកសារភ្ជាប់ 📁",
       time: timeFormatted,
       timestamp: nowTs,
-      // បើគ្រាន់តែសួរ Bot មិនបាច់ដាក់ isRead: false ឱ្យលោតលេខក្រហមក្នុង Admin ទេ
       isRead:
         canonicalReceiverId === "ADMIN" && !sender.needsSupport ? true : false,
     };
@@ -392,7 +395,6 @@ const sendChat = async (req, res) => {
 
     const io = req.app ? req.app.get("io") : global.io;
 
-    // 🤖 ប្រសិនបើអតិថិជនកំពុងសួរ Bot ឬទើបតែចុចសុំជួបភ្នាក់ងារ
     let botMessageDoc = null;
     if (
       canonicalReceiverId === "ADMIN" &&

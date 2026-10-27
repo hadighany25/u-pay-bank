@@ -1,17 +1,28 @@
 // ============================================================================
 // ឯកសារ: models/System.js
-// អត្ថន័យ: រក្សាទុកការកំណត់សកលរបស់ប្រព័ន្ធ (FX Rates, NBC Auto-Sync, Fees & Limits)
+// អត្ថន័យ: រក្សាទុកការកំណត់សកលរបស់ប្រព័ន្ធ (System Maintenance, FX Rates & Fee Tiers)
 // ============================================================================
+
 const mongoose = require("mongoose");
 
 const systemSchema = new mongoose.Schema(
   {
-    settingId: { type: String, default: "GLOBAL_SETTINGS" },
+    // ==========================================
+    // ⚙️ ១. អត្តសញ្ញាណការកំណត់ និងស្ថានភាពថែទាំប្រព័ន្ធ (Global Maintenance Control)
+    // ==========================================
+    settingId: {
+      type: String,
+      default: "GLOBAL_SETTINGS",
+      unique: true,
+      index: true,
+    },
     isSystemFrozen: { type: Boolean, default: false },
     maintenanceMeta: { type: Object, default: {} },
     maintenanceHistory: { type: Array, default: [] },
 
-    // 💱 អត្រាប្តូរប្រាក់គោល និងតារាងរូបិយប័ណ្ណអន្តរជាតិទាំង ៨ + កាលបរិច្ឆេទ Sync ធនាគារជាតិ
+    // ==========================================
+    // 💱 ២. អត្រាប្តូរប្រាក់ផ្លូវការ និងការភ្ជាប់ធនាគារជាតិ (FX Rates & NBC Sync)
+    // ==========================================
     fxRates: {
       type: Object,
       default: {
@@ -24,7 +35,9 @@ const systemSchema = new mongoose.Schema(
       },
     },
 
-    // 🛡️ ដែនកំណត់ផ្ទេរប្រាក់ប្រចាំថ្ងៃ និងតារាងកម្រៃសេវា (Fees & Limits)
+    // ==========================================
+    // 🛡️ ៣. ដែនកំណត់ផ្ទេរប្រាក់ប្រចាំថ្ងៃ និងតារាងកម្រៃសេវា (Transfer Limits & Fee Tiers)
+    // ==========================================
     transferLimit: { type: Number, default: 5000 },
     feeTiers: {
       type: Array,
@@ -34,7 +47,16 @@ const systemSchema = new mongoose.Schema(
       ],
     },
   },
-  { timestamps: true },
+  { timestamps: true, minimize: true },
 );
+
+systemSchema.set("toJSON", {
+  virtuals: true,
+  transform: function (doc, ret) {
+    ret._id = doc._id.toString();
+    ret.id = doc._id.toString();
+    delete ret.__v;
+  },
+});
 
 module.exports = mongoose.model("System", systemSchema);

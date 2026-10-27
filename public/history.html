@@ -1,4 +1,7 @@
-<!-- history.html -->
+<!-- ============================================================================
+     ឯកសារ: public/history.html
+     អត្ថន័យ: ទំព័រប្រវត្តិប្រតិបត្តិការសរុប, សារជូនដំណឹង និងទាញយក PDF Statement (100% Pure _id)
+     ============================================================================ -->
 <!doctype html>
 <html lang="en">
   <head>
@@ -10,13 +13,18 @@
     <link rel="icon" type="image/png" href="images/favicon.png" />
     <title>Transaction History - U-Pay</title>
 
-    <!-- 🔗 ១. ការភ្ជាប់ឯកសារ CSS & JS (Fast Load) -->
+    <!-- ==========================================
+         📦 ១. ផ្នែកភ្ជាប់ STYLESHEETS & FONTS
+         ========================================== -->
     <link href="style.css" rel="stylesheet" />
     <link
       href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
       rel="stylesheet"
     />
 
+    <!-- ==========================================
+         📦 ២. ផ្នែកភ្ជាប់ CORE SCRIPTS & LIBRARIES
+         ========================================== -->
     <script src="js/lang.js"></script>
     <script src="js/u-pay-core.js"></script>
 
@@ -41,11 +49,11 @@
     <script src="https://cdn.socket.io/4.7.2/socket.io.min.js" defer></script>
     <script src="js/pin.js" defer></script>
 
+    <!-- ==========================================
+         🎨 ៣. ផ្នែករចនាបថផ្ទាល់ខ្លួន (LOCAL CSS STYLES)
+         ========================================== -->
     <style>
-      /* ==========================================
-         ២. ការរចនាផ្ទាល់ខ្លួន (LOCAL STYLES)
-         ========================================== */
-
+      /* --- ៣.១. របារឧបករណ៍ និងប៊ូតុងប្តូរផ្ទាំង (Toolbar & Tabs) --- */
       .tool-bar {
         padding: 15px 20px;
         background: var(--bg-main);
@@ -84,6 +92,7 @@
         color: #0284c7;
       }
 
+      /* --- ៣.២. ប្រអប់ជ្រើសរើសគណនីច្រើនក្នុងពេលតែមួយ (Multi-Select Dropdown) --- */
       .custom-select-wrapper {
         position: relative;
         width: 100%;
@@ -182,6 +191,7 @@
         margin-top: 2px;
       }
 
+      /* --- ៣.៣. ប្រអប់ស្វែងរក, ច្រោះថ្ងៃខែ និងប៊ូតុងទាញយក PDF --- */
       .search-box {
         position: relative;
         width: 100%;
@@ -297,6 +307,7 @@
         box-shadow: 0 4px 10px rgba(0, 77, 64, 0.2);
       }
 
+      /* --- ៣.៤. បញ្ជីប្រតិបត្តិការ និងកាតសារជូនដំណឹង (Transactions & Messages List) --- */
       .history-list {
         padding: 10px 20px;
         flex: 1;
@@ -376,7 +387,6 @@
         background: #cbd5e1;
       }
 
-      /* កាតសារជូនដំណឹង (Message Card) */
       .msg-card {
         background: var(--bg-card);
         border-radius: 16px;
@@ -477,9 +487,7 @@
         border: 1px solid #ffedd5;
       }
 
-      /* ==========================================
-         ៣. ពណ៌ងងឹត (DARK MODE OVERRIDES)
-         ========================================== */
+      /* --- ៣.៥. រចនាបថផ្ទៃងងឹត (DARK MODE OVERRIDES) --- */
       body.dark-mode .tool-bar {
         background-color: #0f172a !important;
         border-color: #1e293b !important;
@@ -593,10 +601,11 @@
       }
     </style>
   </head>
+
   <body>
     <div class="app-container">
       <!-- ==========================================
-           ៤.១ ផ្នែកក្បាល (HEADER)
+           ៤.១. ផ្នែកក្បាល និងប៊ូតុងប្តូរផ្ទាំង (HEADER & TABS)
            ========================================== -->
       <div class="header-bar">
         <button
@@ -632,7 +641,7 @@
       </div>
 
       <!-- ==========================================
-           ៤.២ របារឧបករណ៍ (TOOL BAR)
+           ៤.២. របារឧបករណ៍ច្រោះទិន្នន័យ (TOOLBAR & FILTERS)
            ========================================== -->
       <div id="trxToolsBox">
         <div class="tool-bar">
@@ -784,7 +793,7 @@
       </div>
 
       <!-- ==========================================
-           ៤.៣ ផ្ទៃបង្ហាញទិន្នន័យ (CONTENT CONTAINERS)
+           ៤.៣. ផ្ទៃបង្ហាញទិន្នន័យ (CONTENT CONTAINERS)
            ========================================== -->
       <!-- ផ្ទៃបង្ហាញសារ (Messages) -->
       <div
@@ -803,21 +812,29 @@
     </div>
 
     <!-- ==========================================
-         ៥. ផ្នែក JAVASCRIPT (LOGIC & i18n)
+         ៥. ផ្នែក JAVASCRIPT (LOGIC & 100% PURE _ID)
          ========================================== -->
     <script src="/js/auth.js" defer></script>
     <script src="/js/slip.js" defer></script>
 
     <script>
-      // 🚀 OPTIMIZATION: ក្បួន Smart Cache ការពារការគាំងទូរស័ព្ទ!
+      // =========================================================
+      // ៥.១. ការចាប់ផ្តើមអថេរគោល និងផ្ទៀងផ្ទាត់សិទ្ធិចូលប្រើប្រាស់តាម _id
+      // =========================================================
       window.lastTrxState = "";
       window.lastNotifState = "";
 
-      const sessionUser = JSON.parse(sessionStorage.getItem("user"));
-      const sessionToken = sessionStorage.getItem("userToken");
-      if (!sessionUser || !sessionToken) window.location.href = "index.html";
+      const sessionUser =
+        window.currentUser ||
+        JSON.parse(sessionStorage.getItem("user") || "null");
+      const sessionToken =
+        sessionStorage.getItem("userToken") || localStorage.getItem("token");
 
-      const authHeadersFetch = {
+      if (!sessionUser || !sessionUser._id || !sessionToken) {
+        window.location.href = "index.html";
+      }
+
+      const authHeadersFetch = window.authHeaders || {
         "Content-Type": "application/json",
         Authorization: `Bearer ${sessionToken}`,
       };
@@ -884,28 +901,33 @@
             }
           });
         }
+
         populateAccountCheckboxes();
         renderTransactions();
         renderMessages(sessionUser.notifications);
       });
 
+      // =========================================================
+      // ៥.២. មុខងារគ្រប់គ្រង Dark Mode តាម _id និងការប្តូរផ្ទាំង (Tab Switching)
+      // =========================================================
       function applyThemeLocally() {
-        const userThemeKey = "theme_" + sessionUser.username;
-        const isDark = localStorage.getItem(userThemeKey) === "dark";
+        if (!sessionUser || !sessionUser._id) return;
+        const themeById = localStorage.getItem(`theme_${sessionUser._id}`);
+        const themeLegacy = sessionUser.username
+          ? localStorage.getItem(`theme_${sessionUser.username}`)
+          : null;
+        const isDark = (themeById || themeLegacy) === "dark";
 
-        if (isDark) {
-          document.body.classList.add("dark-mode");
-        } else {
-          document.body.classList.remove("dark-mode");
-        }
+        document.body.classList.toggle("dark-mode", isDark);
       }
 
       window.addEventListener("storage", (event) => {
-        if (sessionUser) {
-          const userThemeKey = "theme_" + sessionUser.username;
-          if (event.key === userThemeKey) {
-            applyThemeLocally();
-          }
+        if (
+          sessionUser &&
+          (event.key === `theme_${sessionUser._id}` ||
+            event.key === `theme_${sessionUser.username}`)
+        ) {
+          applyThemeLocally();
         }
       });
 
@@ -929,10 +951,11 @@
           toolsBox.style.display = "none";
           containerMsg.style.display = "block";
 
+          // 🆔 បាញ់សម្គាល់សារថាបានអានរួច តាម userId (_id) របស់អ្នកប្រើប្រាស់
           fetch("/api/communication/notifications/read", {
             method: "POST",
             headers: authHeadersFetch,
-            body: JSON.stringify({ username: sessionUser.username }),
+            body: JSON.stringify({ userId: sessionUser._id }),
           })
             .then((res) => res.json())
             .then((data) => {
@@ -974,7 +997,9 @@
         }
       }
 
-      // --- ៥.២ មុខងារ MULTI-SELECT DROPDOWN ---
+      // =========================================================
+      // ៥.៣. មុខងារ MULTI-SELECT DROPDOWN សម្រាប់ជ្រើសរើសគណនី
+      // =========================================================
       function toggleAccountDropdown() {
         const dropdown = document.getElementById("accountDropdown");
         const icon = document.getElementById("dropdownIcon");
@@ -997,10 +1022,10 @@
         const dropdown = document.getElementById("accountDropdown");
         allAvailableAccounts = [];
         let htmlStr = `
-            <div class="checkbox-item" style="border-bottom: 1px solid var(--border); border-radius: 0;">
-                <input type="checkbox" id="chk_all" onchange="handleCheckboxChange('all')" checked>
-                <label for="chk_all" class="kh-text">${window.t ? window.t("history_select_all") : "Select All"}</label>
-            </div>
+          <div class="checkbox-item" style="border-bottom: 1px solid var(--border); border-radius: 0;">
+            <input type="checkbox" id="chk_all" onchange="handleCheckboxChange('all')" checked>
+            <label for="chk_all" class="kh-text">${window.t ? window.t("history_select_all") : "Select All"}</label>
+          </div>
         `;
 
         if (
@@ -1011,19 +1036,19 @@
           const accNum = sessionUser.mainAccounts.USD.accountNumber;
           allAvailableAccounts.push(accNum);
           htmlStr += `
-                <div class="checkbox-item">
-                    <input type="checkbox" class="acc-checkbox" value="${accNum}" id="chk_${accNum}" onchange="handleCheckboxChange('single')" checked>
-                    <label for="chk_${accNum}" class="kh-text">${sessionUser.mainAccounts.USD.accountName || "Main Account (USD)"}<br><span>${accNum} (USD)</span></label>
-                </div>
-            `;
+            <div class="checkbox-item">
+              <input type="checkbox" class="acc-checkbox" value="${accNum}" id="chk_${accNum}" onchange="handleCheckboxChange('single')" checked>
+              <label for="chk_${accNum}" class="kh-text">${sessionUser.mainAccounts.USD.accountName || "Main Account (USD)"}<br><span>${accNum} (USD)</span></label>
+            </div>
+          `;
         } else if (sessionUser.accountNumber) {
           allAvailableAccounts.push(sessionUser.accountNumber);
           htmlStr += `
-                <div class="checkbox-item">
-                    <input type="checkbox" class="acc-checkbox" value="${sessionUser.accountNumber}" id="chk_${sessionUser.accountNumber}" onchange="handleCheckboxChange('single')" checked>
-                    <label for="chk_${sessionUser.accountNumber}" class="kh-text">${window.t ? window.t("history_main_acc") : "Main Account"}<br><span>${sessionUser.accountNumber} (USD)</span></label>
-                </div>
-            `;
+            <div class="checkbox-item">
+              <input type="checkbox" class="acc-checkbox" value="${sessionUser.accountNumber}" id="chk_${sessionUser.accountNumber}" onchange="handleCheckboxChange('single')" checked>
+              <label for="chk_${sessionUser.accountNumber}" class="kh-text">${window.t ? window.t("history_main_acc") : "Main Account"}<br><span>${sessionUser.accountNumber} (USD)</span></label>
+            </div>
+          `;
         }
 
         if (
@@ -1034,19 +1059,19 @@
           const accNumKHR = sessionUser.mainAccounts.KHR.accountNumber;
           allAvailableAccounts.push(accNumKHR);
           htmlStr += `
-                <div class="checkbox-item">
-                    <input type="checkbox" class="acc-checkbox" value="${accNumKHR}" id="chk_${accNumKHR}" onchange="handleCheckboxChange('single')" checked>
-                    <label for="chk_${accNumKHR}" class="kh-text">${sessionUser.mainAccounts.KHR.accountName || "Main Account (KHR)"}<br><span>${accNumKHR} (KHR)</span></label>
-                </div>
-            `;
+            <div class="checkbox-item">
+              <input type="checkbox" class="acc-checkbox" value="${accNumKHR}" id="chk_${accNumKHR}" onchange="handleCheckboxChange('single')" checked>
+              <label for="chk_${accNumKHR}" class="kh-text">${sessionUser.mainAccounts.KHR.accountName || "Main Account (KHR)"}<br><span>${accNumKHR} (KHR)</span></label>
+            </div>
+          `;
         } else if (sessionUser.accountNumberKHR) {
           allAvailableAccounts.push(sessionUser.accountNumberKHR);
           htmlStr += `
-                <div class="checkbox-item">
-                    <input type="checkbox" class="acc-checkbox" value="${sessionUser.accountNumberKHR}" id="chk_${sessionUser.accountNumberKHR}" onchange="handleCheckboxChange('single')" checked>
-                    <label for="chk_${sessionUser.accountNumberKHR}" class="kh-text">${window.t ? window.t("history_main_acc") : "Main Account"}<br><span>${sessionUser.accountNumberKHR} (KHR)</span></label>
-                </div>
-            `;
+            <div class="checkbox-item">
+              <input type="checkbox" class="acc-checkbox" value="${sessionUser.accountNumberKHR}" id="chk_${sessionUser.accountNumberKHR}" onchange="handleCheckboxChange('single')" checked>
+              <label for="chk_${sessionUser.accountNumberKHR}" class="kh-text">${window.t ? window.t("history_main_acc") : "Main Account"}<br><span>${sessionUser.accountNumberKHR} (KHR)</span></label>
+            </div>
+          `;
         }
 
         if (sessionUser.subAccounts && sessionUser.subAccounts.length > 0) {
@@ -1055,17 +1080,17 @@
 
             allAvailableAccounts.push(sub.accountNumber);
             let accTypeName =
-              sub.accountType === "joint"
+              sub.accountType === "joint" || sub.accountType === "joint_member"
                 ? "Joint"
                 : sub.accountType === "junior"
                   ? "Junior"
                   : "Sub";
             htmlStr += `
-                    <div class="checkbox-item">
-                        <input type="checkbox" class="acc-checkbox" value="${sub.accountNumber}" id="chk_${sub.accountNumber}" onchange="handleCheckboxChange('single')" checked>
-                        <label for="chk_${sub.accountNumber}" class="kh-text">${sub.accountName || accTypeName + " Account"}<br><span>${sub.accountNumber} (${sub.currency})</span></label>
-                    </div>
-                `;
+              <div class="checkbox-item">
+                <input type="checkbox" class="acc-checkbox" value="${sub.accountNumber}" id="chk_${sub.accountNumber}" onchange="handleCheckboxChange('single')" checked>
+                <label for="chk_${sub.accountNumber}" class="kh-text">${sub.accountName || accTypeName + " Account"}<br><span>${sub.accountNumber} (${sub.currency})</span></label>
+              </div>
+            `;
           });
         }
 
@@ -1117,7 +1142,9 @@
         }
       }
 
-      // --- ៥.៣ មុខងារជំនួយ (HELPER FUNCTIONS) ---
+      // =========================================================
+      // ៥.៤. មុខងារជំនួយ (HELPER FUNCTIONS)
+      // =========================================================
       function formatMoney(amount, isKHR = false) {
         return Math.abs(amount).toLocaleString("en-US", {
           minimumFractionDigits: isKHR ? 0 : 2,
@@ -1178,15 +1205,19 @@
         renderMessages(sessionUser.notifications);
       }
 
-      // --- ៥.៤ ទាញទិន្នន័យពី Server ---
+      // =========================================================
+      // ៥.៥. ទាញទិន្នន័យពី Server តាម _id ដោយស្វ័យប្រវត្តិ (SYNC BY _ID)
+      // =========================================================
       async function syncAllData() {
         try {
           const res = await fetch("/api/users", { headers: authHeadersFetch });
           if (res.ok) {
             const users = await res.json();
-            const serverUser = users.find(
-              (u) => u.username === sessionUser.username,
-            );
+            // 🆔 ចាប់យក User តាម _id តែមួយគត់!
+            const serverUser = Array.isArray(users)
+              ? users.find((u) => String(u._id) === String(sessionUser._id))
+              : null;
+
             if (serverUser) {
               sessionUser.notifications = serverUser.notifications || [];
               fullUserTransactions = serverUser.transactions || [];
@@ -1195,8 +1226,9 @@
               sessionUser.subAccounts = serverUser.subAccounts;
               sessionUser.accountNumber = serverUser.accountNumber;
               sessionUser.accountNumberKHR = serverUser.accountNumberKHR;
-              sessionUser.p2pDebts = serverUser.p2pDebts || []; // 🌟 អាប់ដេតទិន្នន័យបំណុលថ្មី
+              sessionUser.p2pDebts = serverUser.p2pDebts || [];
 
+              window.currentUser = sessionUser;
               sessionStorage.setItem("user", JSON.stringify(sessionUser));
 
               renderMessages(sessionUser.notifications);
@@ -1210,7 +1242,9 @@
 
       setInterval(syncAllData, 4000);
 
-      // --- ៥.៥ បង្ហាញប្រវត្តិប្រតិបត្តិការ (RENDER TRANSACTIONS) ជាមួយក្បួន SMART CACHE ---
+      // =========================================================
+      // ៥.៦. បង្ហាញប្រវត្តិប្រតិបត្តិការ (RENDER TRANSACTIONS - PURE _ID)
+      // =========================================================
       function renderTransactions() {
         const list = document.getElementById("historyList");
         const tFn = window.t || ((k) => k);
@@ -1255,11 +1289,14 @@
           const sAcc = t.senderAcc || t.senderAccount;
           const rAcc = t.receiverAcc || t.receiverAccount;
 
-          // 🌟 ឆែកគ្រប់ជ្រុងជ្រោយ ដើម្បីកុំឱ្យបាត់ទិន្នន័យអតិថិជន
+          // 🆔 ផ្ទៀងផ្ទាត់ថាប្រតិបត្តិការនេះជារបស់គណនី _id នេះពិតប្រាកដ
+          const belongsToUser =
+            !t.userId || String(t.userId) === String(sessionUser._id);
+
           let matchDirectAcc =
             selectedAccountNumbers.includes(sAcc) ||
             selectedAccountNumbers.includes(rAcc) ||
-            (t.username === sessionUser.username && (sAcc === "N/A" || !sAcc));
+            (belongsToUser && (sAcc === "N/A" || !sAcc));
           const matchMerchantAcc =
             isLinkedToMerchant && merchantRelatedAccounts.includes(rAcc);
 
@@ -1272,7 +1309,7 @@
               t.currency === "USD" &&
               mainUsdNum &&
               selectedAccountNumbers.includes(mainUsdNum) &&
-              t.username === sessionUser.username
+              belongsToUser
             ) {
               matchMain = true;
             }
@@ -1284,7 +1321,7 @@
               t.currency === "KHR" &&
               mainKhrNum &&
               selectedAccountNumbers.includes(mainKhrNum) &&
-              t.username === sessionUser.username
+              belongsToUser
             ) {
               matchMain = true;
             }
@@ -1292,7 +1329,6 @@
           return matchDirectAcc || matchMerchantAcc || matchMain;
         });
 
-        // 🌟 ១. កុំទាត់ចោលប្រតិបត្តិការ Hold
         filtered = filtered.filter(
           (tx) => tx.status !== "Pending" || tx.isHold,
         );
@@ -1329,7 +1365,6 @@
 
         currentTransactions = filtered;
 
-        // 🌟 ២. ទាញយកប្រវត្តិបំណុល P2P (Lend / Owe)
         let lendTrxs = [];
         let oweTrxs = [];
         const mainUsdNum =
@@ -1379,7 +1414,7 @@
 
         let htmlStr = "";
 
-        // 🌟 គូររបា HOLD
+        // 🌟 ១. គូររបា HOLD
         if (holdTrxs.length > 0) {
           htmlStr += `<div class="kh-text" style="font-size: 0.75rem; font-weight: 700; color: #f59e0b; margin: 20px 0 10px 5px; text-transform: uppercase; letter-spacing: 0.5px;">${tFn("history_on_hold") || "ON HOLD TRANSACTIONS"}</div>`;
           holdTrxs.forEach((tx) => {
@@ -1410,20 +1445,20 @@
             });
 
             htmlStr += `
-                <div class="trx-item" onclick="showSlip(${originalIndex})" style="border: 1px dashed #fcd34d; background: #fffbeb;">
-                  <div class="trx-left">
-                    <div class="trx-icon bg-orange text-orange"><i class="fa-solid fa-hourglass-half"></i></div>
-                    <div class="trx-info">
-                      <h4 class="kh-text" style="text-transform: capitalize;">${escapeHTML(title)}</h4>
-                      <p class="kh-text">${timeStr} • <span style="color:#f59e0b; font-weight:bold;">${tFn("history_hold_badge") || "HOLD"}</span></p>
-                    </div>
+              <div class="trx-item" onclick="showSlip(${originalIndex})" style="border: 1px dashed #fcd34d; background: #fffbeb;">
+                <div class="trx-left">
+                  <div class="trx-icon bg-orange text-orange"><i class="fa-solid fa-hourglass-half"></i></div>
+                  <div class="trx-info">
+                    <h4 class="kh-text" style="text-transform: capitalize;">${escapeHTML(title)}</h4>
+                    <p class="kh-text">${timeStr} • <span style="color:#f59e0b; font-weight:bold;">${tFn("history_hold_badge") || "HOLD"}</span></p>
                   </div>
-                  <div class="trx-amount text-orange">${isIncome ? "+" : "-"}${currSym}${formatMoney(tx.amount, isKHR)}</div>
-                </div>`;
+                </div>
+                <div class="trx-amount text-orange">${isIncome ? "+" : "-"}${currSym}${formatMoney(tx.amount, isKHR)}</div>
+              </div>`;
           });
         }
 
-        // 🌟 គូររបា LENDING (ប្រាក់ឱ្យគេខ្ចី)
+        // 🌟 ២. គូររបា LENDING (ប្រាក់ឱ្យគេខ្ចី)
         if (lendTrxs.length > 0) {
           htmlStr += `<div class="kh-text" style="font-size: 0.75rem; font-weight: 700; color: #10b981; margin: 20px 0 10px 5px; text-transform: uppercase; letter-spacing: 0.5px;">${tFn("acc_cat_lend") || "LENDING TRANSACTIONS"}</div>`;
           lendTrxs.forEach((d) => {
@@ -1432,20 +1467,20 @@
               minute: "2-digit",
             });
             htmlStr += `
-                <div class="trx-item" onclick="if(typeof openDebtSlip === 'function') openDebtSlip(${d.amount}, '${d.date}', '${d.refId || "N/A"}', '${d.partnerName || d.partnerUsername}', '${d.fundName}', true)" style="border: 1px dashed #6ee7b7; background: #ecfdf5; cursor: pointer;">
-                  <div class="trx-left">
-                    <div class="trx-icon bg-green text-green"><i class="fa-solid fa-hand-holding-dollar"></i></div>
-                    <div class="trx-info">
-                      <h4 class="kh-text" style="text-transform: capitalize;">${escapeHTML(d.partnerName || d.partnerUsername)}</h4>
-                      <p class="kh-text">${timeStr} • <span style="color:#10b981; font-weight:bold;">RECEIVABLE (${escapeHTML(d.fundName)})</span></p>
-                    </div>
+              <div class="trx-item" onclick="if(typeof openDebtSlip === 'function') openDebtSlip(${d.amount}, '${d.date}', '${d.refId || "N/A"}', '${d.partnerName || d.partnerUsername}', '${d.fundName}', true)" style="border: 1px dashed #6ee7b7; background: #ecfdf5; cursor: pointer;">
+                <div class="trx-left">
+                  <div class="trx-icon bg-green text-green"><i class="fa-solid fa-hand-holding-dollar"></i></div>
+                  <div class="trx-info">
+                    <h4 class="kh-text" style="text-transform: capitalize;">${escapeHTML(d.partnerName || d.partnerUsername)}</h4>
+                    <p class="kh-text">${timeStr} • <span style="color:#10b981; font-weight:bold;">RECEIVABLE (${escapeHTML(d.fundName)})</span></p>
                   </div>
-                  <div class="trx-amount text-green">+$${formatMoney(d.amount, false)}</div>
-                </div>`;
+                </div>
+                <div class="trx-amount text-green">+$${formatMoney(d.amount, false)}</div>
+              </div>`;
           });
         }
 
-        // 🌟 គូររបា OWE (ប្រាក់ជំពាក់គេ)
+        // 🌟 ៣. គូររបា OWE (ប្រាក់ជំពាក់គេ)
         if (oweTrxs.length > 0) {
           htmlStr += `<div class="kh-text" style="font-size: 0.75rem; font-weight: 700; color: #ef4444; margin: 20px 0 10px 5px; text-transform: uppercase; letter-spacing: 0.5px;">${tFn("acc_cat_owe") || "BORROWING TRANSACTIONS"}</div>`;
           oweTrxs.forEach((d) => {
@@ -1454,19 +1489,20 @@
               minute: "2-digit",
             });
             htmlStr += `
-                <div class="trx-item" onclick="if(typeof openDebtSlip === 'function') openDebtSlip(${d.amount}, '${d.date}', '${d.refId || "N/A"}', '${d.partnerName || d.partnerUsername}', '${d.fundName}', false)" style="border: 1px dashed #fca5a5; background: #fef2f2; cursor: pointer;">
-                  <div class="trx-left">
-                    <div class="trx-icon bg-red text-red"><i class="fa-solid fa-file-invoice-dollar"></i></div>
-                    <div class="trx-info">
-                      <h4 class="kh-text" style="text-transform: capitalize;">${escapeHTML(d.partnerName || d.partnerUsername)}</h4>
-                      <p class="kh-text">${timeStr} • <span style="color:#ef4444; font-weight:bold;">DEBT (${escapeHTML(d.fundName)})</span></p>
-                    </div>
+              <div class="trx-item" onclick="if(typeof openDebtSlip === 'function') openDebtSlip(${d.amount}, '${d.date}', '${d.refId || "N/A"}', '${d.partnerName || d.partnerUsername}', '${d.fundName}', false)" style="border: 1px dashed #fca5a5; background: #fef2f2; cursor: pointer;">
+                <div class="trx-left">
+                  <div class="trx-icon bg-red text-red"><i class="fa-solid fa-file-invoice-dollar"></i></div>
+                  <div class="trx-info">
+                    <h4 class="kh-text" style="text-transform: capitalize;">${escapeHTML(d.partnerName || d.partnerUsername)}</h4>
+                    <p class="kh-text">${timeStr} • <span style="color:#ef4444; font-weight:bold;">DEBT (${escapeHTML(d.fundName)})</span></p>
                   </div>
-                  <div class="trx-amount text-red">-$${formatMoney(d.amount, false)}</div>
-                </div>`;
+                </div>
+                <div class="trx-amount text-red">-$${formatMoney(d.amount, false)}</div>
+              </div>`;
           });
         }
 
+        // 🌟 ៤. គូរប្រតិបត្តិការជោគជ័យទូទៅ
         let lastDateLabel = "";
         let displaySuccess = successTrxs.slice(0, displayLimit);
 
@@ -1484,7 +1520,6 @@
           const tSender = (tx.senderName || "").toLowerCase();
           const tReceiver = (tx.receiverName || "").toLowerCase();
 
-          // 🌟 កំណត់ Icon តាមលំដាប់អាទិភាពត្រឹមត្រូវ ១០០% (ដូចក្នុង accounts.html)
           if (
             tType.includes("fee") ||
             tType.includes("penalty") ||
@@ -1635,29 +1670,28 @@
       function showSlip(index) {
         const tx = fullUserTransactions[index];
         if (typeof openGlobalSlip === "function")
-          openGlobalSlip(tx, sessionUser.username);
+          openGlobalSlip(tx, sessionUser._id); // 🆔 បោះ _id ទៅកាន់ openGlobalSlip
       }
 
-      // --- ៥.៦ បង្ហាញសារ (RENDER MESSAGES) ជាមួយក្បួន SMART CACHE ---
+      // =========================================================
+      // ៥.៧. បង្ហាញសារជូនដំណឹង (RENDER MESSAGES - PURE _ID)
+      // =========================================================
       function renderMessages(messages) {
         const containerMsg = document.getElementById("messagesContainer");
         const tFn = window.t || ((k) => k);
 
+        const deletedKey = `deletedMsgs_${sessionUser._id}`;
         const currentDeletedMsgs =
-          JSON.parse(
-            localStorage.getItem(`deletedMsgs_${sessionUser.username}`),
-          ) || [];
+          JSON.parse(localStorage.getItem(deletedKey)) || [];
         const activeMsgs = (messages || [])
           .filter((m) => !currentDeletedMsgs.includes(m.date + m.title))
           .sort((a, b) => new Date(b.date) - new Date(a.date));
 
-        // 🚀 ទាញយក Map ដែលបានកត់ចំណាំ
         const respondedMap =
           typeof window.getRespondedMap === "function"
             ? window.getRespondedMap()
             : {};
 
-        // 🚀 SMART CACHE: បើមិនមានការផ្លាស់ប្តូរទិន្នន័យ ឬប៊ូតុងចុចទេ មិនបាច់គូរថ្មីទេ
         const currentState =
           JSON.stringify(activeMsgs) +
           msgDisplayLimit +
@@ -1673,10 +1707,8 @@
         let htmlStr = "";
         let displayMsgs = activeMsgs.slice(0, msgDisplayLimit);
 
-        // 🔥 ប្រើប្រាស់មុខងារកណ្តាលពី u-pay-core.js ដើម្បីគូរសារ
         if (typeof window.generateMessageHTML === "function") {
           displayMsgs.forEach((m) => {
-            // បញ្ជូន respondedMap ចូលដើម្បីឱ្យ generateMessageHTML ចេះវែកញែក
             htmlStr += window.generateMessageHTML(m, true, respondedMap);
           });
         }
@@ -1689,7 +1721,9 @@
         if (typeof applyLanguage === "function") applyLanguage();
       }
 
-      // --- ៥.៨ មុខងារទាញយករបាយការណ៍ PDF ---
+      // =========================================================
+      // ៥.៨. មុខងារទាញយករបាយការណ៍ PDF Statement
+      // =========================================================
       async function exportStatementPDF() {
         const tFn = window.t || ((k) => k);
         if (selectedAccountNumbers.length === 0)
@@ -2107,7 +2141,7 @@
               },
             });
 
-            doc.save(`Statement_${sessionUser.username}_${start}.pdf`);
+            doc.save(`Statement_${sessionUser._id}_${start}.pdf`);
             Swal.close();
             Swal.fire({
               toast: true,

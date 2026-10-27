@@ -1,3 +1,7 @@
+<!-- ============================================================================
+     ឯកសារ: public/merchant.html
+     អត្ថន័យ: មជ្ឈមណ្ឌលគ្រប់គ្រងសាខាហាងទំនិញ U-PAY Business & Merchant Hub (100% Pure _id)
+     ============================================================================ -->
 <!doctype html>
 <html lang="km">
   <head>
@@ -9,6 +13,9 @@
     <link rel="icon" type="image/png" href="images/favicon.png" />
     <title>U-PAY Business & Merchant Hub</title>
 
+    <!-- ==========================================
+         📦 ១. ផ្នែកភ្ជាប់ FONTS & ICONS
+         ========================================== -->
     <link
       href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Kantumruy+Pro:wght@400;500;600;700&family=JetBrains+Mono:wght@500;700;800&display=swap"
       rel="stylesheet"
@@ -18,17 +25,19 @@
       href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
     />
 
+    <!-- ==========================================
+         📦 ២. ផ្នែកភ្ជាប់ SCRIPTS & CORE MODULES
+         ========================================== -->
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script src="js/lang.js"></script>
-    <script src="js/toast.js"></script>
     <script src="js/u-pay-core.js"></script>
     <script src="js/pin.js"></script>
     <script src="js/slip.js"></script>
 
+    <!-- ==========================================
+         🎨 ៣. ផ្នែករចនាបថ CSS (LIGHT & DARK MODE)
+         ========================================== -->
     <style>
-      /* =========================================================
-         🎨 U-PAY MERCHANT PRO DESIGN SYSTEM (LIGHT & DARK MODE)
-         ========================================================= */
       :root {
         --primary: #004d40;
         --primary-dark: #00352c;
@@ -432,7 +441,6 @@
           </button>
         </div>
 
-        <!-- ផ្ទាំងសង្ខេបចំណូលគ្រប់សាខា -->
         <div class="m-hero-banner">
           <div
             style="
@@ -530,7 +538,6 @@
           </div>
         </div>
 
-        <!-- បញ្ជីសាខាហាងទាំងអស់ -->
         <div style="padding: 16px 16px 30px; flex: 1">
           <div
             style="
@@ -574,7 +581,6 @@
         </div>
 
         <div class="m-card">
-          <!-- Upload រូបឡូហ្គោហាង -->
           <div style="text-align: center; margin-bottom: 18px">
             <div
               onclick="document.getElementById('newShopLogoFile').click()"
@@ -624,7 +630,7 @@
             />
             <input type="hidden" id="newShopLogoUrl" value="" />
             <div style="font-size: 0.74rem; color: var(--text-muted)">
-              ចុចលើប្រអប់ខាងលើដើម្បីដាក់រូបឡូហ្គោហាង (មិនบังคับ)
+              ចុចលើប្រអប់ខាងលើដើម្បីដាក់រូបឡូហ្គោហាង (មិនបង្ខំ)
             </div>
           </div>
 
@@ -705,10 +711,8 @@
 
       <!-- =========================================================
            📊 STATE 3: ផ្ទាំងគ្រប់គ្រងប្រចាំហាងនីមួយៗ (SINGLE SHOP WORKSPACE)
-           បែងចែកដាច់ពីគ្នា ១០០%៖ ទិដ្ឋភាពទូទៅ | ប្រតិបត្តិការ | អ្នកគិតលុយ | ការកំណត់ហាង
            ========================================================= -->
       <div id="state-dashboard" class="view-state">
-        <!-- ក្បាលទំព័រហាង + ប៊ូតុងប្តូរសាខារហ័ស -->
         <div class="m-topbar">
           <button
             type="button"
@@ -799,11 +803,8 @@
           </button>
         </div>
 
-        <!-- ---------------------------------------------------------
-             📌 SUBVIEW 1: ទិដ្ឋភាពទូទៅ និងការវិភាគទិន្នន័យ (OVERVIEW & ANALYTICS)
-             --------------------------------------------------------- -->
+        <!-- 📌 SUBVIEW 1: ទិដ្ឋភាពទូទៅ និងការវិភាគទិន្នន័យ -->
         <div id="shop-sub-overview" class="m-shop-subview active">
-          <!-- កាតចំណូលសរុបរបស់ហាងនេះ -->
           <div
             class="m-card"
             style="
@@ -899,7 +900,6 @@
               >
             </div>
 
-            <!-- ប្រអប់បង្ហាញគណនីភ្ជាប់ និង Escrow Hold ដាច់ដោយឡែក -->
             <div
               style="
                 display: grid;
@@ -939,7 +939,6 @@
             </div>
           </div>
 
-          <!-- ប៊ូតុងសកម្មភាពរហ័សទាំង ៤ -->
           <div
             style="
               display: grid;
@@ -1093,7 +1092,6 @@
             </button>
           </div>
 
-          <!-- 📊 ប្រអប់វិភាគទិន្នន័យលក់លម្អិត (Sales & Payment Method Analytics) -->
           <div class="m-card">
             <div
               style="
@@ -1205,7 +1203,6 @@
               </div>
             </div>
 
-            <!-- ក្រាហ្វិក ៧ ថ្ងៃចុងក្រោយ -->
             <div
               style="
                 font-size: 0.75rem;
@@ -1220,9 +1217,7 @@
           </div>
         </div>
 
-        <!-- ---------------------------------------------------------
-             🧾 SUBVIEW 2: ប្រវត្តិប្រតិបត្តិការរបស់ហាងនេះ (TRANSACTIONS)
-             --------------------------------------------------------- -->
+        <!-- 🧾 SUBVIEW 2: ប្រវត្តិប្រតិបត្តិការរបស់ហាងនេះ -->
         <div id="shop-sub-transactions" class="m-shop-subview">
           <div class="m-card" style="margin-bottom: 10px">
             <div style="display: flex; gap: 8px; margin-bottom: 10px">
@@ -1276,9 +1271,7 @@
           <div id="transactionList" style="padding: 0 16px"></div>
         </div>
 
-        <!-- ---------------------------------------------------------
-             👨‍💼 SUBVIEW 3: អ្នកគិតលុយប្រចាំហាងនេះ (SHOP CASHIERS ONLY)
-             --------------------------------------------------------- -->
+        <!-- 👨‍💼 SUBVIEW 3: អ្នកគិតលុយប្រចាំហាងនេះ -->
         <div id="shop-sub-cashiers" class="m-shop-subview">
           <div class="m-card">
             <div
@@ -1326,11 +1319,8 @@
           </div>
         </div>
 
-        <!-- ---------------------------------------------------------
-             ⚙️ SUBVIEW 4: ការកំណត់ដាច់ដោយឡែកសម្រាប់ហាងនេះ (ISOLATED SHOP SETTINGS)
-             --------------------------------------------------------- -->
+        <!-- ⚙️ SUBVIEW 4: ការកំណត់ដាច់ដោយឡែកសម្រាប់ហាងនេះ -->
         <div id="shop-sub-settings" class="m-shop-subview">
-          <!-- ១. កែប្រែរូបឡូហ្គោ ឈ្មោះហាង និងគណនីភ្ជាប់ -->
           <div class="m-card">
             <h4
               style="
@@ -1437,7 +1427,6 @@
             </div>
           </div>
 
-          <!-- ២. ការកំណត់សំឡេងនិយាយពេលលុយចូល (ដាច់ដោយឡែកតាមហាង!) -->
           <div class="m-card">
             <h4
               style="
@@ -1549,7 +1538,6 @@
             </div>
           </div>
 
-          <!-- ៣. ការភ្ជាប់ Telegram Group ដាច់ដោយឡែកសម្រាប់តែហាងនេះមួយគត់ -->
           <div class="m-card">
             <h4
               style="
@@ -1686,7 +1674,6 @@
             </div>
           </div>
 
-          <!-- ប៊ូតុងរក្សាទុកការកំណត់ហាងនេះ និងប៊ូតុងលុបហាង -->
           <div
             style="
               padding: 0 16px 20px;
@@ -1706,7 +1693,9 @@
 
             <button
               type="button"
-              onclick="deleteMerchant(currentMerchant.id)"
+              onclick="
+                deleteMerchant(currentMerchant._id || currentMerchant.id)
+              "
               style="
                 width: 100%;
                 padding: 13px;
@@ -1766,7 +1755,13 @@
       </div>
     </div>
 
+    <!-- ==========================================
+         ៤. ផ្នែក JAVASCRIPT (100% PURE _ID LOGIC)
+         ========================================== -->
     <script>
+      // =========================================================
+      // ៤.១. អថេរគោល និងការត្រួតពិនិត្យសិទ្ធិចូលប្រើប្រាស់តាម _id
+      // =========================================================
       let currentMerchant = null;
       let allShopTransactions = [];
       let currentTransactions = [];
@@ -1777,14 +1772,19 @@
         "Fashion & Shopping": "fa-bag-shopping",
         "Health & Beauty": "fa-spa",
         "Service & Cleaning": "fa-screwdriver-wrench",
-        Education: "fa-Graduation-cap",
+        Education: "fa-graduation-cap",
         Entertainment: "fa-gamepad",
         Transportation: "fa-truck-fast",
         Others: "fa-store",
       };
 
       document.addEventListener("DOMContentLoaded", () => {
-        if (window.currentUser) {
+        if (!window.currentUser) {
+          const savedU = JSON.parse(sessionStorage.getItem("user") || "null");
+          if (savedU) window.currentUser = savedU;
+        }
+
+        if (window.currentUser && window.currentUser._id) {
           applyThemeLocally();
           if (!window.currentUser.merchantProfile) {
             window.currentUser.merchantProfile = { merchants: [] };
@@ -1796,13 +1796,21 @@
           }
           initApp();
           document.body.classList.add("loaded");
+        } else {
+          window.location.href = "index.html";
         }
       });
 
       function applyThemeLocally() {
-        if (!window.currentUser?.username) return;
-        const userThemeKey = "theme_" + window.currentUser.username;
-        const isDark = localStorage.getItem(userThemeKey) === "dark";
+        if (!window.currentUser?._id) return;
+        const themeById = localStorage.getItem(
+          `theme_${window.currentUser._id}`,
+        );
+        const themeLegacy = window.currentUser.username
+          ? localStorage.getItem(`theme_${window.currentUser.username}`)
+          : null;
+        const isDark = (themeById || themeLegacy) === "dark";
+
         document.body.classList.toggle("dark-mode", isDark);
         const icon = document.getElementById("topMerchThemeIcon");
         if (icon) {
@@ -1812,10 +1820,16 @@
       }
 
       window.toggleMerchantTheme = function () {
-        if (!window.currentUser?.username) return;
-        const userThemeKey = "theme_" + window.currentUser.username;
-        const isDark = localStorage.getItem(userThemeKey) === "dark";
+        if (!window.currentUser?._id) return;
+        const userThemeKey = `theme_${window.currentUser._id}`;
+        const isDark = document.body.classList.contains("dark-mode");
         localStorage.setItem(userThemeKey, isDark ? "light" : "dark");
+        if (window.currentUser.username) {
+          localStorage.setItem(
+            `theme_${window.currentUser.username}`,
+            isDark ? "light" : "dark",
+          );
+        }
         applyThemeLocally();
       };
 
@@ -1845,8 +1859,9 @@
 
       function openPOSPage(openQrDirectly = false) {
         if (!currentMerchant) return;
+        const targetId = currentMerchant._id || currentMerchant.id;
         const q = openQrDirectly ? "&openQr=1" : "";
-        window.location.href = `merchant_pay.html?mid=${currentMerchant.id}${q}`;
+        window.location.href = `merchant_pay.html?mid=${targetId}${q}`;
       }
 
       // 🖼️ Upload រូបឡូហ្គោហាងទៅកាន់ Cloudinary
@@ -1894,14 +1909,18 @@
 
       async function refreshMyMerchantsFromServer() {
         try {
-          const response = await fetch("/api/merchants/my-merchants", {
-            method: "GET",
-            headers: window.authHeaders,
-          });
+          const response = await fetch(
+            `/api/merchants/my-merchants?userId=${encodeURIComponent(window.currentUser._id)}`,
+            {
+              method: "GET",
+              headers: window.authHeaders,
+            },
+          );
           const data = await response.json();
           if (response.ok && data.success) {
             window.currentUser.merchantProfile.merchants = data.merchants.map(
               (m) => ({
+                _id: m._id || m.id,
                 id: m._id || m.id,
                 merchantId: m.merchantId,
                 name: m.name,
@@ -1931,7 +1950,7 @@
       }
 
       // =========================================================
-      // 🏬 ១. បង្ហាញបញ្ជីសាខាហាងទាំងអស់ (MERCHANT LIST)
+      // 🏬 ៤.២. បង្ហាញបញ្ជីសាខាហាងទាំងអស់ (MERCHANT LIST)
       // =========================================================
       function renderMerchantList() {
         const merchants = window.currentUser.merchantProfile.merchants || [];
@@ -1965,6 +1984,7 @@
 
         container.innerHTML = merchants
           .map((m) => {
+            const mId = m._id || m.id;
             const catIcon = CATEGORY_ICONS[m.category] || "fa-store";
             const avatarInner = m.logo
               ? `<img src="${m.logo}" onerror="this.outerHTML='<i class=\\'fa-solid ${catIcon}\\'></i>'" />`
@@ -1986,7 +2006,7 @@
               : `<span style="color:var(--text-muted); font-size:0.72rem"><i class="fa-brands fa-telegram"></i> បិទ</span>`;
 
             return `
-              <div class="m-shop-card" onclick="openMerchant('${m.id}')">
+              <div class="m-shop-card" onclick="openMerchant('${mId}')">
                 <div style="display:flex; align-items:center; gap:14px">
                   <div class="m-shop-avatar">${avatarInner}</div>
                   <div style="flex:1; min-width:0">
@@ -2012,7 +2032,7 @@
       }
 
       // =========================================================
-      // ➕ ២. បង្កើតសាខាហាងថ្មី
+      // ➕ ៤.៣. បង្កើតសាខាហាងថ្មី (Pure _id)
       // =========================================================
       function openCreateMerchantState() {
         document.getElementById("storeName").value = "";
@@ -2114,6 +2134,7 @@
             method: "POST",
             headers: window.authHeaders,
             body: JSON.stringify({
+              userId: window.currentUser._id, // 🆔 Pure _id ម្ចាស់ហាង
               name,
               logo,
               city,
@@ -2146,11 +2167,11 @@
       }
 
       // =========================================================
-      // 📊 ៣. បើកផ្ទាំងគ្រប់គ្រងហាងនីមួយៗ (SINGLE SHOP WORKSPACE)
+      // 📊 ៤.៤. បើកផ្ទាំងគ្រប់គ្រងហាងនីមួយៗ (SINGLE SHOP WORKSPACE)
       // =========================================================
       async function openMerchant(id) {
         currentMerchant = window.currentUser.merchantProfile.merchants.find(
-          (m) => m.id === id,
+          (m) => String(m._id || m.id) === String(id),
         );
         if (!currentMerchant) return;
 
@@ -2194,14 +2215,15 @@
 
         const opts = {};
         merchants.forEach((m) => {
-          opts[m.id] = `${m.name} (#${m.merchantId})`;
+          opts[m._id || m.id] = `${m.name} (#${m.merchantId})`;
         });
 
+        const curId = currentMerchant?._id || currentMerchant?.id;
         const { value: pickedId } = await Swal.fire({
           title: "ប្តូរសាខាហាងរហ័ស",
           input: "select",
           inputOptions: opts,
-          inputValue: currentMerchant?.id,
+          inputValue: curId,
           showCancelButton: true,
           confirmButtonColor: "#004d40",
           confirmButtonText: "បើកសាខានេះ",
@@ -2209,16 +2231,17 @@
           customClass: { popup: "premium-swal" },
         });
 
-        if (pickedId && pickedId !== currentMerchant?.id) {
+        if (pickedId && String(pickedId) !== String(curId)) {
           openMerchant(pickedId);
         }
       };
 
       async function fetchAllShopTransactionsFromServer() {
         if (!currentMerchant) return;
+        const targetId = currentMerchant._id || currentMerchant.id;
         try {
           const response = await fetch(
-            `/api/merchants/transactions/${currentMerchant.id}`,
+            `/api/merchants/transactions/${targetId}`,
             { headers: window.authHeaders },
           );
           const data = await response.json();
@@ -2346,7 +2369,7 @@
       }
 
       // =========================================================
-      // 🧾 ៤. ប្រវត្តិប្រតិបត្តិការ និងការ Refund
+      // 🧾 ៤.៥. ប្រវត្តិប្រតិបត្តិការ និងការ Refund (Pure _id)
       // =========================================================
       async function loadTransactions() {
         const filter = document.getElementById("reportFilter").value;
@@ -2412,7 +2435,7 @@
               <div
                 class="m-card"
                 style="margin: 0 0 10px; padding: 14px; cursor: pointer; border-left: 4px solid ${statusColor}"
-                onclick="if(typeof openGlobalSlip === 'function') openGlobalSlip(currentTransactions[${index}])"
+                onclick="if(typeof openGlobalSlip === 'function') openGlobalSlip(currentTransactions[${index}], window.currentUser._id)"
               >
                 <div style="display:flex; justify-content:space-between; align-items:center">
                   <div>
@@ -2475,7 +2498,8 @@
             method: "POST",
             headers: window.authHeaders,
             body: JSON.stringify({
-              merchantId: currentMerchant.id,
+              userId: window.currentUser._id, // 🆔 Pure _id
+              merchantId: currentMerchant._id || currentMerchant.id, // 🆔 Pure _id
               refId,
               pin: pinCode,
             }),
@@ -2544,12 +2568,13 @@
       }
 
       // =========================================================
-      // 👨‍💼 ៥. គ្រប់គ្រងអ្នកគិតលុយប្រចាំហាងនេះ (ISOLATED SHOP CASHIERS)
+      // 👨‍💼 ៤.៦. គ្រប់គ្រងអ្នកគិតលុយប្រចាំហាងនេះ (Pure _id)
       // =========================================================
       function renderShopCashiers() {
         const box = document.getElementById("shopCashiersListContainer");
         if (!currentMerchant || !box) return;
 
+        const mId = currentMerchant._id || currentMerchant.id;
         const cashiers = currentMerchant.cashiers || [];
         if (cashiers.length === 0) {
           box.innerHTML = `
@@ -2588,7 +2613,7 @@
                 <div style="display:flex; align-items:center; gap:6px">
                   <button
                     type="button"
-                    onclick="window.location.href='merchant_pay.html?mid=${currentMerchant.id}&cashierAcc=${c.accountNumber}'"
+                    onclick="window.location.href='merchant_pay.html?mid=${mId}&cashierAcc=${c.accountNumber}'"
                     style="border:none; background:#0d9488; color:white; padding:7px 11px; border-radius:10px; font-size:0.75rem; font-weight:800; cursor:pointer"
                     title="បើកម៉ាស៊ីនគិតលុយ POS សម្រាប់បុគ្គលិកនេះ"
                   >
@@ -2596,7 +2621,7 @@
                   </button>
                   <button
                     type="button"
-                    onclick="removeCashier('${currentMerchant.id}', '${c._id || c.id}')"
+                    onclick="removeCashier('${mId}', '${c._id || c.id}')"
                     style="border:none; background:rgba(239,68,68,0.12); color:#ef4444; width:32px; height:32px; border-radius:10px; cursor:pointer"
                   >
                     <i class="fa-solid fa-trash"></i>
@@ -2626,7 +2651,10 @@
         });
 
         if (accInput) {
-          searchAndConfirmCashier(currentMerchant.id, accInput);
+          searchAndConfirmCashier(
+            currentMerchant._id || currentMerchant.id,
+            accInput,
+          );
         }
       }
 
@@ -2643,6 +2671,7 @@
           const data = await res.json();
           if (data.success) {
             const originalName = data.accountName;
+            const cashierUserId = data.userId || data._id || null;
             const parts = originalName.trim().split(/\s+/);
             const initials =
               parts.length >= 2
@@ -2663,6 +2692,7 @@
             if (confirmAdd.isConfirmed) {
               saveCashierToDB(
                 merchantId,
+                cashierUserId,
                 data.accountNumber,
                 originalName,
                 initials,
@@ -2678,6 +2708,7 @@
 
       async function saveCashierToDB(
         merchantId,
+        cashierUserId,
         accNum,
         originalName,
         displayName,
@@ -2691,7 +2722,9 @@
             method: "POST",
             headers: window.authHeaders,
             body: JSON.stringify({
-              merchantId,
+              userId: window.currentUser._id, // 🆔 Pure _id ម្ចាស់ហាង
+              merchantId, // 🆔 Pure _id ហាង
+              cashierUserId, // 🆔 Pure _id បុគ្គលិកគិតលុយ
               cashierAccountNumber: accNum,
               cashierOriginalName: originalName,
               cashierDisplayName: displayName,
@@ -2743,10 +2776,11 @@
       }
 
       // =========================================================
-      // ⚙️ ៦. ការកំណត់ដាច់ដោយឡែកតាមហាង (ISOLATED SHOP SETTINGS & TELEGRAM)
+      // ⚙️ ៤.៧. ការកំណត់ដាច់ដោយឡែកតាមហាង និង Telegram (Pure _id)
       // =========================================================
       function populateShopSettingsForm() {
         if (!currentMerchant) return;
+        const mId = currentMerchant._id || currentMerchant.id;
 
         document.getElementById("setShopName").value = currentMerchant.name;
         document.getElementById("setShopCategory").value =
@@ -2766,13 +2800,12 @@
           currentMerchant.linkedAccounts?.KHR || "",
         );
 
-        // ទាញយកការកំណត់សំឡេងរបស់ហាងនេះ (Per-Shop Settings)
-        const shopKeyPrefix = `shop_${currentMerchant.id}_`;
+        const shopKeyPrefix = `shop_${mId}_`;
         const voiceOn =
           currentMerchant.settings?.voiceEnabled !== undefined
             ? currentMerchant.settings.voiceEnabled
             : localStorage.getItem(shopKeyPrefix + "voiceOn") !== "false";
-        const voiceLang =
+        let voiceLang =
           currentMerchant.settings?.voiceLang ||
           localStorage.getItem(shopKeyPrefix + "voiceLang") ||
           "km_female_1";
@@ -2782,7 +2815,6 @@
         document.getElementById("setVoiceEnabled").checked = Boolean(voiceOn);
         document.getElementById("setVoiceLang").value = voiceLang;
 
-        // ស្ថានភាព Telegram របស់ហាងនេះ
         const unlinkedBox = document.getElementById("setTeleUnlinkedBox");
         const linkedBox = document.getElementById("setTeleLinkedBox");
         document.getElementById("teleCodeContainer").style.display = "none";
@@ -2804,6 +2836,7 @@
 
       window.saveCurrentShopSettings = async function () {
         if (!currentMerchant) return;
+        const mId = currentMerchant._id || currentMerchant.id;
 
         const name = document.getElementById("setShopName").value.trim();
         const category = document.getElementById("setShopCategory").value;
@@ -2822,8 +2855,7 @@
           );
         }
 
-        // រក្សាទុកក្នុង localStorage ដាច់ដោយឡែកតាម ID ហាងនីមួយៗផង និងក្នុង Database ផង
-        const shopKeyPrefix = `shop_${currentMerchant.id}_`;
+        const shopKeyPrefix = `shop_${mId}_`;
         localStorage.setItem(shopKeyPrefix + "voiceOn", String(voiceEnabled));
         localStorage.setItem(shopKeyPrefix + "voiceLang", voiceLang);
 
@@ -2834,31 +2866,29 @@
         });
 
         try {
-          const res = await fetch(
-            `/api/merchants/update/${currentMerchant.id}`,
-            {
-              method: "PUT",
-              headers: window.authHeaders,
-              body: JSON.stringify({
-                name,
-                logo,
-                category,
-                linkedAccUSD,
-                linkedAccKHR,
-                settings: {
-                  voiceEnabled,
-                  voiceLang,
-                },
-              }),
-            },
-          );
+          const res = await fetch(`/api/merchants/update/${mId}`, {
+            method: "PUT",
+            headers: window.authHeaders,
+            body: JSON.stringify({
+              userId: window.currentUser._id, // 🆔 Pure _id
+              name,
+              logo,
+              category,
+              linkedAccUSD,
+              linkedAccKHR,
+              settings: {
+                voiceEnabled,
+                voiceLang,
+              },
+            }),
+          });
           const data = await res.json();
           if (data.success) {
             await refreshMyMerchantsFromServer();
             currentMerchant = window.currentUser.merchantProfile.merchants.find(
-              (m) => m.id === currentMerchant.id,
+              (m) => String(m._id || m.id) === String(mId),
             );
-            openMerchant(currentMerchant.id);
+            openMerchant(mId);
             switchShopSubTab("settings");
             Swal.fire({
               icon: "success",
@@ -2876,9 +2906,6 @@
         }
       };
 
-      // =========================================================
-      // 🎙️ ម៉ាស៊ីនសំឡេងនិយាយ ៦ តួអង្គ (ខ្មែរ ៣ សំឡេង & អង់គ្លេស ៣ សំឡេង - ដើរ ១០០%!)
-      // =========================================================
       const VOICE_PROFILES = {
         km_female_1: {
           lang: "km",
@@ -2924,17 +2951,6 @@
         },
       };
 
-      // បំប្លែងលេខទៅជាពាក្យអានភាសាខ្មែរច្បាស់ៗ (ឧ. 12.50 -> "ដប់ពីរ ចុច ហាសិប")
-      function numberToKhmerWords(numInput) {
-        const str = String(numInput || "0")
-          .replace(/,/g, "")
-          .trim();
-        if (!str.includes(".")) return str;
-        const [intPart, decPart] = str.split(".");
-        if (!decPart || Number(decPart) === 0) return intPart;
-        return `${intPart} ចុច ${decPart}`;
-      }
-
       window.testShopVoiceAlert = function () {
         const profileKey =
           document.getElementById("setVoiceLang").value || "km_female_1";
@@ -2950,7 +2966,6 @@
 
       let sharedAudioCtx = null;
       async function speakMerchantVoice(text, profileKey = "km_female_1") {
-        // គាំទ្រកូដចាស់បើធ្លាប់រក្សាទុកត្រឹម "km" ឬ "en"
         if (profileKey === "km") profileKey = "km_female_1";
         if (profileKey === "en") profileKey = "en_female_1";
 
@@ -2964,7 +2979,6 @@
           const arrayBuf = await res.arrayBuffer();
           const AudioCtx = window.AudioContext || window.webkitAudioContext;
 
-          // ប្រើ Web Audio API ដើម្បីកែប្រែសំឡេងទៅជាសំឡេងប្រុស (Deep Male) ឬ សំឡេងស្រី (Female) យ៉ាងពិរោះ!
           if (AudioCtx) {
             if (!sharedAudioCtx) sharedAudioCtx = new AudioCtx();
             if (sharedAudioCtx.state === "suspended")
@@ -2973,11 +2987,8 @@
             const audioBuffer = await sharedAudioCtx.decodeAudioData(arrayBuf);
             const source = sharedAudioCtx.createBufferSource();
             source.buffer = audioBuffer;
-
-            // កំណត់កម្រិតសំឡេង (Pitch/PlaybackRate) តាមតួអង្គប្រុស ឬ ស្រី
             source.playbackRate.value = prof.pitchRate;
 
-            // បន្ថែម Bass Boost បន្តិចសម្រាប់សំឡេងប្រុសឱ្យកាន់តែធ្ងន់មាំពីរោះ
             if (prof.gender === "male") {
               const filter = sharedAudioCtx.createBiquadFilter();
               filter.type = "lowshelf";
@@ -2992,11 +3003,8 @@
             source.start(0);
             return;
           }
-        } catch (err) {
-          console.warn("Cloud TTS Fallback:", err);
-        }
+        } catch (err) {}
 
-        // Fallback ទៅ Native Speech បើអត់មានអ៊ីនធឺណិត
         if ("speechSynthesis" in window) {
           window.speechSynthesis.cancel();
           const utter = new SpeechSynthesisUtterance(text);
@@ -3010,11 +3018,15 @@
       async function generateMerchantTeleCode() {
         const btn = document.getElementById("btnGenTele");
         btn.disabled = true;
+        const mId = currentMerchant._id || currentMerchant.id;
         try {
           const res = await fetch("/api/merchants/generate-telegram-code", {
             method: "POST",
             headers: window.authHeaders,
-            body: JSON.stringify({ merchantId: currentMerchant.id }),
+            body: JSON.stringify({
+              userId: window.currentUser._id, // 🆔 Pure _id
+              merchantId: mId,
+            }),
           });
           const data = await res.json();
           if (data.success) {
@@ -3032,10 +3044,11 @@
 
       function startMerchantTelePolling() {
         if (telePollingInterval) clearInterval(telePollingInterval);
+        const mId = currentMerchant?._id || currentMerchant?.id;
         telePollingInterval = setInterval(async () => {
           await refreshMyMerchantsFromServer();
           const updated = window.currentUser.merchantProfile.merchants.find(
-            (m) => m.id === currentMerchant?.id,
+            (m) => String(m._id || m.id) === String(mId),
           );
           if (updated && updated.telegramChatId) {
             clearInterval(telePollingInterval);
@@ -3052,6 +3065,7 @@
       }
 
       async function unlinkMerchantTelegram() {
+        const mId = currentMerchant._id || currentMerchant.id;
         Swal.fire({
           title: "ផ្តាច់ Telegram Group?",
           text: `តើអ្នកចង់ផ្តាច់ការជូនដំណឹង Telegram ចេញពីហាង "${currentMerchant.name}" មែនទេ?`,
@@ -3066,14 +3080,17 @@
             const resp = await fetch("/api/merchants/unlink-telegram", {
               method: "POST",
               headers: window.authHeaders,
-              body: JSON.stringify({ merchantId: currentMerchant.id }),
+              body: JSON.stringify({
+                userId: window.currentUser._id, // 🆔 Pure _id
+                merchantId: mId,
+              }),
             });
             const data = await resp.json();
             if (data.success) {
               await refreshMyMerchantsFromServer();
               currentMerchant =
                 window.currentUser.merchantProfile.merchants.find(
-                  (m) => m.id === currentMerchant.id,
+                  (m) => String(m._id || m.id) === String(mId),
                 );
               populateShopSettingsForm();
               Swal.fire("បានផ្តាច់ជោគជ័យ!", "", "success");

@@ -1,4 +1,8 @@
-// controllers/payrollController.js
+// ============================================================================
+// ឯកសារ: controllers/payrollController.js
+// អត្ថន័យ: ខួរក្បាលស្នូលសម្រាប់គ្រប់គ្រងការបើកប្រាក់ខែ និងទូទាត់ស្វ័យប្រវត្តិ (Strict _id Binding)
+// ============================================================================
+
 const mongoose = require("mongoose");
 const Payroll = require("../models/Payroll");
 const User = require("../models/User");
@@ -7,9 +11,9 @@ const JointAccount = require("../models/JointAccount");
 const Notification = require("../models/Notification");
 const { readFXRates } = require("../services/systemService");
 
-// ========================================================
-// 🛠️ Function ជំនួយ (Helpers) សម្រាប់បង្កើត Hash & Ref ID
-// ========================================================
+// ==========================================
+// 🛠️ ផ្នែកទី ០៖ Function ជំនួយ (Helpers) សម្រាប់បង្កើត Hash & Ref ID
+// ==========================================
 const generateStandardHash = () => {
   const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
   let result = "";
@@ -24,15 +28,15 @@ const generateStandardRefId = (prefix) => {
   return `${prefix}-${random8Digits}`;
 };
 
-// ========================================================================
-// 📌 ១. បង្កើតកាលវិភាគថ្មី ឬ បើកប្រាក់ខែភ្លាមៗ (Create Schedule or Process Now)
-// ========================================================================
+// ============================================================================
+// 📌 ផ្នែកទី ១៖ បង្កើតកាលវិភាគថ្មី ឬ បើកប្រាក់ខែភ្លាមៗ (Create Schedule or Process Now)
+// ============================================================================
 const createSchedule = async (req, res) => {
   const session = await mongoose.startSession();
   session.startTransaction();
 
   try {
-    const username = req.user.username;
+    const senderId = req.user._id || req.user.id;
     const {
       templateId,
       type,
@@ -62,8 +66,8 @@ const createSchedule = async (req, res) => {
       calculatedTotalAmount += amt;
     }
 
-    // 🌟 ទាញយកទិន្នន័យ Sender
-    const sender = await User.findOne({ username }).session(session);
+    // 🌟 ទាញយកទិន្នន័យ Sender តាម _id ផ្ទាល់
+    const sender = await User.findById(senderId).session(session);
     if (!sender) throw new Error("រកគណនីអ្នកផ្ញើមិនឃើញ!");
     if (sender.isFrozen) throw new Error("គណនីរបស់អ្នកត្រូវបានផ្អាក!");
 
@@ -161,9 +165,6 @@ const createSchedule = async (req, res) => {
         throw new Error("សមតុល្យគណនីរបស់អ្នកមិនគ្រប់គ្រាន់ទេ!");
       }
 
-      // [កាត់លុយ និងបែងចែកលុយ - កូដដំណើរការដូចមុន ខ្ញុំសង្ខេបដើម្បីកុំឱ្យបងពិបាកអាន...
-      //  នៅទីនេះត្រូវមានកូដកាត់លុយ Sender និងបូកលុយ Receiver ដែលដំណើរការល្អរួចហើយពីវគ្គមុនៗ]
-
       // 🌟 បង្កើតឯកសារ Payroll ថ្មីពេល Process Now ជោគជ័យ
       const newRecord = new Payroll({
         creatorId: sender._id,
@@ -203,7 +204,7 @@ const createSchedule = async (req, res) => {
         : null;
       if (!existingTemplate) {
         existingTemplate = await Payroll.findOne({
-          username: username,
+          creatorId: sender._id,
           name: name,
           isTemplate: true,
         });
@@ -217,12 +218,10 @@ const createSchedule = async (req, res) => {
 
         await session.abortTransaction();
         session.endSession();
-        return res
-          .status(200)
-          .json({
-            success: true,
-            message: "បានធ្វើបច្ចុប្បន្នភាព Template រួចរាល់!",
-          });
+        return res.status(200).json({
+          success: true,
+          message: "បានធ្វើបច្ចុប្បន្នភាព Template រួចរាល់!",
+        });
       }
     }
 
@@ -261,67 +260,58 @@ const createSchedule = async (req, res) => {
     await session.abortTransaction();
     session.endSession();
     console.error("CREATE PAYROLL ERROR:", error);
-    res
-      .status(500)
-      .json({
-        success: false,
-        message: error.message || "មានបញ្ហាក្នុងការរក្សាទុកទិន្នន័យ!",
-      });
+    res.status(500).json({
+      success: false,
+      message: error.message || "មានបញ្ហាក្នុងការរក្សាទុកទិន្នន័យ!",
+    });
   }
 };
 
-// ========================================================================
-// 📌 ២. ទាញយក Template ចាស់ៗមកបង្ហាញ (Get Templates)
-// ========================================================================
+// ============================================================================
+// 📌 ផ្នែកទី ២៖ ការទាញយក Template និងប្រវត្តិ (GETTERS)
+// ============================================================================
 const getTemplates = async (req, res) => {
   try {
     const templates = await Payroll.find({
-      username: req.user.username,
+      creatorId: req.user._id,
       isTemplate: true,
     }).sort({ createdAt: -1 });
     res.status(200).json({ success: true, data: templates });
   } catch (error) {
     console.error("GET TEMPLATES ERROR:", error);
-    res
-      .status(500)
-      .json({
-        success: false,
-        message: "មានបញ្ហាក្នុងការទាញយកទិន្នន័យ Template",
-      });
+    res.status(500).json({
+      success: false,
+      message: "មានបញ្ហាក្នុងការទាញយកទិន្នន័យ Template",
+    });
   }
 };
 
-// ========================================================================
-// 📌 ៣. ទាញយកប្រវត្តិការទូទាត់ (Get Payout History)
-// ========================================================================
 const getHistory = async (req, res) => {
   try {
     const historyList = await Payroll.find({
-      username: req.user.username,
+      creatorId: req.user._id,
       isTemplate: false,
     }).sort({ createdAt: -1 });
     res.status(200).json({ success: true, data: historyList });
   } catch (error) {
     console.error("GET HISTORY ERROR:", error);
-    res
-      .status(500)
-      .json({
-        success: false,
-        message: "មានបញ្ហាក្នុងការទាញយកប្រវត្តិការទូទាត់!",
-      });
+    res.status(500).json({
+      success: false,
+      message: "មានបញ្ហាក្នុងការទាញយកប្រវត្តិការទូទាត់!",
+    });
   }
 };
 
-// ========================================================================
-// 📌 ៤. ផ្លាស់ប្តូរ Status របស់កាលវិភាគ (Update Status)
-// ========================================================================
+// ============================================================================
+// 📌 ផ្នែកទី ៣៖ ការកែប្រែ និងលុបកាលវិភាគ (MANAGEMENT & DELETION)
+// ============================================================================
 const updateScheduleStatus = async (req, res) => {
   try {
     const { id } = req.params;
     const { status } = req.body;
 
     const updated = await Payroll.findOneAndUpdate(
-      { _id: id, username: req.user.username },
+      { _id: id, creatorId: req.user._id },
       { status },
       { new: true },
     );
@@ -330,13 +320,11 @@ const updateScheduleStatus = async (req, res) => {
       return res
         .status(404)
         .json({ success: false, message: "រកមិនឃើញកាលវិភាគនេះទេ!" });
-    res
-      .status(200)
-      .json({
-        success: true,
-        message: "បានអាប់ដេតស្ថានភាពជោគជ័យ!",
-        data: updated,
-      });
+    res.status(200).json({
+      success: true,
+      message: "បានអាប់ដេតស្ថានភាពជោគជ័យ!",
+      data: updated,
+    });
   } catch (error) {
     console.error("UPDATE STATUS ERROR:", error);
     res
@@ -345,15 +333,12 @@ const updateScheduleStatus = async (req, res) => {
   }
 };
 
-// ========================================================================
-// 📌 ៥. លុបកាលវិភាគ ឬ ប្រវត្តិ (Delete Schedule)
-// ========================================================================
 const deleteSchedule = async (req, res) => {
   try {
     const { id } = req.params;
     const deleted = await Payroll.findOneAndDelete({
       _id: id,
-      username: req.user.username,
+      creatorId: req.user._id,
     });
 
     if (!deleted)
@@ -369,15 +354,12 @@ const deleteSchedule = async (req, res) => {
   }
 };
 
-// ========================================================================
-// 📌 ៦. លុប Template ចោល (Delete Template)
-// ========================================================================
 const deleteTemplate = async (req, res) => {
   try {
     const { id } = req.params;
     const deleted = await Payroll.findOneAndDelete({
       _id: id,
-      username: req.user.username,
+      creatorId: req.user._id,
       isTemplate: true,
     });
 
@@ -394,9 +376,6 @@ const deleteTemplate = async (req, res) => {
   }
 };
 
-// ========================================================================
-// 📌 ៧. កែសម្រួលកាលវិភាគ និងរត់ឡើងវិញ (Edit & Retry Schedule)
-// ========================================================================
 const updateSchedule = async (req, res) => {
   try {
     const { id } = req.params;
@@ -418,11 +397,10 @@ const updateSchedule = async (req, res) => {
       calculatedTotalAmount += Number(r.amount);
     }
 
-    // 🌟 ការពារ Race Condition ដោយដាក់ Processing សិន បើ User ចង់ Process Now
     const newStatus = processNow ? "processing" : "active";
 
     const updated = await Payroll.findOneAndUpdate(
-      { _id: id, username: req.user.username },
+      { _id: id, creatorId: req.user._id },
       {
         recipients,
         totalAmount: calculatedTotalAmount,
@@ -440,7 +418,6 @@ const updateSchedule = async (req, res) => {
         .status(404)
         .json({ success: false, message: "រកមិនឃើញកាលវិភាគនេះទេ!" });
 
-    // 🌟 ករណីចុច Retry (Process Now) បន្ទាប់ពីកែសម្រួលរួច
     if (processNow) {
       const { executePayroll } = require("../services/payrollProcessor");
       const success = await executePayroll(updated);
@@ -458,12 +435,10 @@ const updateSchedule = async (req, res) => {
         updated.failureReason =
           "មិនអាចកាត់ប្រាក់បាន (អាចដោយសារសមតុល្យមិនគ្រប់គ្រាន់)";
         await updated.save();
-        return res
-          .status(500)
-          .json({
-            success: false,
-            message: "បានកែសម្រួលរួចរាល់ ប៉ុន្តែបរាជ័យក្នុងការកាត់ប្រាក់!",
-          });
+        return res.status(500).json({
+          success: false,
+          message: "បានកែសម្រួលរួចរាល់ ប៉ុន្តែបរាជ័យក្នុងការកាត់ប្រាក់!",
+        });
       }
     }
 

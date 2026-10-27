@@ -1,4 +1,8 @@
-// controllers/merchantController.js
+// ============================================================================
+// ឯកសារ: controllers/merchantController.js
+// អត្ថន័យ: ខួរក្បាលស្នូលសម្រាប់គ្រប់គ្រងហាងទំនិញ, POS NFC Tap-to-Pay និង Cashier (Strict _id Binding)
+// ============================================================================
+
 const Merchant = require("../models/Merchant");
 const crypto = require("crypto");
 const User = require("../models/User");
@@ -8,6 +12,7 @@ const PDFDocument = require("pdfkit");
 const path = require("path");
 const fs = require("fs");
 const bot = require("../services/telegramBot"); // 🌟 នាំចូល Telegram Bot Service
+const mongoose = require("mongoose");
 
 // ========================================================
 // 🛠️ ផ្នែកទី ១៖ Function ជំនួយ (Helpers)
@@ -80,7 +85,7 @@ function verifyValidMerchantAccount(owner, accNum, expectedCurrency) {
   return null;
 }
 
-// ១. មុខងារបង្កើតហាងថ្មី (Create Merchant - គាំទ្ររូបឡូហ្គោហាង និងការកំណត់ដាច់ដោយឡែក)
+// ១. មុខងារបង្កើតហាងថ្មី (Create Merchant - ភ្ជាប់តាម ownerId _id)
 exports.createMerchant = async (req, res) => {
   try {
     const {
@@ -93,9 +98,10 @@ exports.createMerchant = async (req, res) => {
       pin,
       settings,
     } = req.body;
-    const username = req.user.username;
 
-    const owner = await User.findOne({ username });
+    const ownerId = req.user._id || req.user.id;
+    const owner = await User.findById(ownerId);
+
     if (!owner)
       return res
         .status(404)
@@ -162,7 +168,6 @@ exports.createMerchant = async (req, res) => {
 
     await Notification.create({
       userId: owner._id,
-      username: owner.username,
       title: "បង្កើតហាងជោគជ័យ! 🏪",
       message: `អបអរសាទរ! ហាង "${name}" ត្រូវបានបង្កើតដោយជោគជ័យ និងរួចរាល់សម្រាប់ទទួលប្រាក់។`,
       type: "system_alert",
@@ -182,27 +187,24 @@ exports.createMerchant = async (req, res) => {
   }
 };
 
-// ២. ទាញយកហាងទាំងអស់របស់អ្នកប្រើប្រាស់ (Get Merchants + Auto-Migrate សុវត្ថិភាព ៣ ជាន់)
+// ២. ទាញយកហាងទាំងអស់របស់អ្នកប្រើប្រាស់ (Get Merchants by ownerId _id)
 exports.getMyMerchants = async (req, res) => {
   try {
-    const username = req.user.username;
-    const owner = await User.findOne({ username }).select(
-      "_id id userId username",
-    );
+    const ownerId = req.user._id || req.user.id;
+    const owner = await User.findById(ownerId).select("_id id userId username");
 
     const query = owner
       ? {
           $or: [
-            { userId: username },
-            { username: username },
+            { userId: owner.username },
+            { username: owner.username },
             { ownerId: owner._id },
           ],
         }
-      : { $or: [{ userId: username }, { username: username }] };
+      : { userId: req.user.username };
 
     const merchants = await Merchant.find(query).select("-apiSecret");
 
-    // 🔄 Auto-Migrate: បើហាងចាស់ៗអត់ទាន់មាន ownerId, username, ឬ userCustomId គឺបំពេញឱ្យអូតូ
     if (owner && merchants.length > 0) {
       for (const m of merchants) {
         if (!m.ownerId || !m.username || !m.userCustomId) {
@@ -220,26 +222,31 @@ exports.getMyMerchants = async (req, res) => {
   }
 };
 
-// ៣. លុបហាង (Delete Merchant by Owner)
+// ៣. លុបហាង (Delete Merchant by Owner & ownerId)
 exports.deleteMerchant = async (req, res) => {
   try {
     const { merchantId } = req.params;
-    const username = req.user.username;
+    const ownerId = req.user._id || req.user.id;
 
     const merchant = await Merchant.findOneAndDelete({
       _id: merchantId,
-      $or: [{ userId: username }, { username: username }],
+      $or: [
+        { ownerId: ownerId },
+        { userId: req.user.username },
+        { username: req.user.username },
+      ],
     });
     if (!merchant)
       return res
         .status(404)
         .json({ success: false, message: "Merchant not found" });
 
-    const owner = await User.findOne({ username });
+    const owner =
+      (await User.findById(ownerId)) ||
+      (await User.findOne({ username: req.user.username }));
     if (owner) {
       await Notification.create({
         userId: owner._id,
-        username: owner.username,
         title: "ហាងត្រូវបានលុប! ❌",
         message: `ហាង "${merchant.name}" របស់អ្នកត្រូវបានលុបចេញពីប្រព័ន្ធ U-Pay រួចរាល់។`,
         type: "system_alert",
@@ -256,7 +263,7 @@ exports.deleteMerchant = async (req, res) => {
   }
 };
 
-// ៤. កែប្រែព័ត៌មានហាង រូបឡូហ្គោ គណនីភ្ជាប់ និងការកំណត់ដាច់ដោយឡែកតាមហាង (Update Merchant & Per-Shop Settings)
+// ៤. កែប្រែព័ត៌មានហាង រូបឡូហ្គោ គណនីភ្ជាប់ (Update Merchant by ownerId)
 exports.updateMerchant = async (req, res) => {
   try {
     const {
@@ -269,9 +276,11 @@ exports.updateMerchant = async (req, res) => {
       webhookUrl,
       settings,
     } = req.body;
-    const username = req.user.username;
+    const ownerId = req.user._id || req.user.id;
 
-    const owner = await User.findOne({ username });
+    const owner =
+      (await User.findById(ownerId)) ||
+      (await User.findOne({ username: req.user.username }));
     if (!owner)
       return res
         .status(404)
@@ -279,7 +288,11 @@ exports.updateMerchant = async (req, res) => {
 
     const merchant = await Merchant.findOne({
       _id: req.params.merchantId,
-      $or: [{ userId: username }, { username: username }],
+      $or: [
+        { ownerId: owner._id },
+        { userId: owner.username },
+        { username: owner.username },
+      ],
     });
 
     if (!merchant)
@@ -295,7 +308,6 @@ exports.updateMerchant = async (req, res) => {
     if (category !== undefined) merchant.category = category;
     if (webhookUrl !== undefined) merchant.webhookUrl = webhookUrl;
 
-    // ⚙️ អាប់ដេតការកំណត់ដាច់ដោយឡែកសម្រាប់តែហាងនេះ (Per-Shop Settings)
     if (settings && typeof settings === "object") {
       merchant.settings = {
         ...(merchant.settings
@@ -306,7 +318,6 @@ exports.updateMerchant = async (req, res) => {
       merchant.markModified("settings");
     }
 
-    // 🔗 បើមានបញ្ជូនគណនីភ្ជាប់ថ្មីមក ធ្វើការផ្ទៀងផ្ទាត់ និងអាប់ដេត
     if (linkedAccUSD !== undefined || linkedAccKHR !== undefined) {
       const validUsdAcc = verifyValidMerchantAccount(
         owner,
@@ -447,7 +458,6 @@ exports.getMerchantRevenue = async (req, res) => {
 // 👑 ផ្នែកទី ៣៖ Admin Management APIs (សម្រាប់តែ Admin)
 // ========================================================
 
-// ផ្អាក ឬបើកដំណើរការហាង (Freeze/Unfreeze)
 exports.adminToggleMerchantFreeze = async (req, res) => {
   try {
     const { id, isFrozen } = req.body;
@@ -459,7 +469,6 @@ exports.adminToggleMerchantFreeze = async (req, res) => {
   }
 };
 
-// Admin លុបហាងចោលពីប្រព័ន្ធ
 exports.adminDeleteMerchant = async (req, res) => {
   try {
     await Merchant.findByIdAndDelete(req.params.id);
@@ -469,7 +478,6 @@ exports.adminDeleteMerchant = async (req, res) => {
   }
 };
 
-// Admin កែប្រែព័ត៌មានហាង
 exports.adminEditMerchant = async (req, res) => {
   try {
     const { id, name, merchantId, category, webhookUrl, linkedAccount } =
@@ -508,15 +516,14 @@ exports.adminEditMerchant = async (req, res) => {
 const pendingMerchantTeleCodes = {};
 exports.pendingMerchantTeleCodes = pendingMerchantTeleCodes;
 
-// ៧. បង្កើតលេខកូដ ៤ ខ្ទង់សម្រាប់ភ្ជាប់ Telegram
 exports.generateTelegramCode = async (req, res) => {
   try {
     const { merchantId } = req.body;
-    const userId = req.user.username;
+    const ownerId = req.user._id || req.user.id;
 
     const merchant = await Merchant.findOne({
       _id: merchantId,
-      userId: userId,
+      ownerId: ownerId,
     });
     if (!merchant)
       return res
@@ -542,15 +549,14 @@ exports.generateTelegramCode = async (req, res) => {
   }
 };
 
-// ៨. ផ្តាច់ការជូនដំណឹងពី Telegram វិញ (ដាច់ដោយឡែកតាមហាង)
 exports.unlinkTelegram = async (req, res) => {
   try {
     const { merchantId } = req.body;
-    const userId = req.user.username;
+    const ownerId = req.user._id || req.user.id;
 
     const merchant = await Merchant.findOne({
       _id: merchantId,
-      $or: [{ userId: userId }, { username: userId }],
+      ownerId: ownerId,
     });
     if (!merchant)
       return res
@@ -614,7 +620,6 @@ exports.createMerchantQR = async (req, res) => {
 // 👨‍💼 ផ្នែកទី ៥៖ Cashier Management (គ្រប់គ្រងអ្នកគិតលុយ)
 // ========================================================
 
-// ៩. ស្វែងរកគណនី U-Pay របស់កូនចៅ (គាំទ្រទាំងលេខគណនី, @username, និងលេខទូរស័ព្ទ!)
 exports.searchCashierAccount = async (req, res) => {
   try {
     const clean = String(req.params.accountNumber || "")
@@ -660,7 +665,6 @@ exports.searchCashierAccount = async (req, res) => {
   }
 };
 
-// ១០. បន្ថែមអ្នកគិតលុយចូលក្នុងហាង
 exports.addCashier = async (req, res) => {
   try {
     const {
@@ -669,11 +673,11 @@ exports.addCashier = async (req, res) => {
       cashierOriginalName,
       cashierDisplayName,
     } = req.body;
-    const userId = req.user.username;
+    const ownerId = req.user._id || req.user.id;
 
     const merchant = await Merchant.findOne({
       _id: merchantId,
-      userId: userId,
+      ownerId: ownerId,
     });
     if (!merchant)
       return res
@@ -739,7 +743,6 @@ exports.addCashier = async (req, res) => {
 
     await merchant.save();
 
-    // 🌟 ផ្តល់ដំណឹង Telegram ទៅកាន់ម្ចាស់ហាង (Merchant Alert)
     if (typeof bot !== "undefined" && bot && bot.sendMerchantAlert) {
       const msg = `👨‍💼 <b>បន្ថែមអ្នកគិតលុយថ្មី</b>\n\nអ្នកបានបន្ថែម <b>${cashierDisplayName}</b> ទៅក្នុងហាង ${merchant.name} ដោយជោគជ័យ។`;
       bot.sendMerchantAlert(merchant._id, msg).catch(() => {});
@@ -756,22 +759,20 @@ exports.addCashier = async (req, res) => {
   }
 };
 
-// ១១. លុបអ្នកគិតលុយចេញពីហាង
 exports.removeCashier = async (req, res) => {
   try {
     const { merchantId, cashierId } = req.params;
-    const userId = req.user.username;
+    const ownerId = req.user._id || req.user.id;
 
     const merchant = await Merchant.findOne({
       _id: merchantId,
-      userId: userId,
+      ownerId: ownerId,
     });
     if (!merchant)
       return res
         .status(404)
         .json({ success: false, message: "រកមិនឃើញហាងរបស់អ្នកទេ" });
 
-    // រក្សាឈ្មោះទុកមុននឹងលុប ដើម្បីបាញ់សារ
     const removedCashier = merchant.cashiers.find(
       (c) => c._id.toString() === cashierId,
     );
@@ -781,7 +782,6 @@ exports.removeCashier = async (req, res) => {
     );
     await merchant.save();
 
-    // 🌟 ផ្តល់ដំណឹង Telegram ទៅម្ចាស់ហាង
     if (
       removedCashier &&
       typeof bot !== "undefined" &&
@@ -804,7 +804,7 @@ exports.removeCashier = async (req, res) => {
 };
 
 // =======================================================
-// 💳 ផ្នែកទី ៦៖ TAP TO PAY (NFC Card Payment - Fixed & Secured)
+// 💳 ផ្នែកទី ៦៖ TAP TO PAY (NFC Card Payment)
 // =======================================================
 const activeTaps = new Set();
 
@@ -812,7 +812,6 @@ exports.processTapToPay = async (req, res) => {
   const { uid, amount, currency, pin, merchantId, cashierAcc } = req.body;
   const payAmount = parseFloat(amount);
 
-  // 🌟 1. Normalize UID ឱ្យត្រូវគ្រប់ទម្រង់ទាំងអស់ (Hex vs Decimal)
   const rawInputUid = String(uid || "").trim();
   let cleanUid = rawInputUid.replaceAll(":", "").toUpperCase();
   if (/^\d{10}$/.test(cleanUid)) {
@@ -847,7 +846,6 @@ exports.processTapToPay = async (req, res) => {
       });
     }
 
-    // 🌟 2. ស្វែងរកកាតតាមគ្រប់លក្ខខណ្ឌទាំងអស់ (Flexible Query)
     const card = await Card.findOne({
       $or: [
         { uid: cleanUid },
@@ -864,7 +862,6 @@ exports.processTapToPay = async (req, res) => {
         message: "រកមិនឃើញកាតនេះក្នុងប្រព័ន្ធទេ (Card not found)!",
       });
 
-    // 🛡️ ការពារ៖ ហាមយកកាតនិម្មិត (Virtual Card) មកស្កេន NFC
     const cardCat =
       card.cardCategory || (card.isPhysical ? "debit" : "virtual");
     if (cardCat === "virtual" && !card.isPhysical) {
@@ -878,9 +875,7 @@ exports.processTapToPay = async (req, res) => {
     if (card.isLocked)
       return res.json({ success: false, message: "កាតនេះត្រូវបាន Block!" });
 
-    const customer = await User.findOne({
-      $or: [{ _id: card.userId }, { username: card.username }],
-    });
+    const customer = await User.findById(card.userId);
     if (!customer)
       return res.json({ success: false, message: "រកមិនឃើញគណនីម្ចាស់កាតទេ!" });
     if (customer.isFrozen)
@@ -894,7 +889,6 @@ exports.processTapToPay = async (req, res) => {
       }
     } catch (e) {}
 
-    // 🔍 ស្វែងរកគណនីកាត់លុយពិតប្រាកដ (គាំទ្រទាំងលេខកុង Main និង Sub Accounts)
     let cardLinkedAcc = String(card.linkedAccount || "USD").trim();
     if (cardLinkedAcc.includes("_"))
       cardLinkedAcc = cardLinkedAcc.split("_")[1];
@@ -923,7 +917,6 @@ exports.processTapToPay = async (req, res) => {
       }
     }
 
-    // Fallback បើរកកុងភ្ជាប់មិនឃើញ ប្រើ Main USD អូតូ
     if (!customerDeductAccObj && customer.mainAccounts?.USD) {
       customerDeductAccObj = customer.mainAccounts.USD;
     }
@@ -1001,14 +994,13 @@ exports.processTapToPay = async (req, res) => {
     if (!shop) shop = await Merchant.findOne({ merchantId: merchantId });
     if (!shop) return res.json({ success: false, message: "រកមិនឃើញហាងទេ!" });
 
-    const shopOwner = await User.findOne({ username: shop.userId });
+    const shopOwner = await User.findById(shop.ownerId);
     if (!shopOwner)
       return res.json({ success: false, message: "រកម្ចាស់ហាងមិនឃើញទេ!" });
 
     const dateStr = getKhmerDate();
     let amtInUsdForLimit = deductUsd > 0 ? deductUsd : deductKhr / exchangeRate;
 
-    // កាត់លុយពីអតិថិជន
     if (customerAccType === "MAIN") {
       if (cardCurrency === "USD")
         customer.mainAccounts.USD.balance -= deductUsd;
@@ -1032,7 +1024,6 @@ exports.processTapToPay = async (req, res) => {
     card.dailyTxCountToday = (card.dailyTxCountToday || 0) + 1;
     await card.save();
 
-    // បញ្ចូលលុយទៅហាង
     let targetReceiveAccNumber = shop.linkedAccounts
       ? shop.linkedAccounts[currency]
       : null;
@@ -1083,7 +1074,6 @@ exports.processTapToPay = async (req, res) => {
 
     await Notification.create({
       userId: customer._id,
-      username: customer.username,
       title: "ទូទាត់ប្រាក់ (Tap to Pay) 💳",
       message: `អ្នកបានទូទាត់ប្រាក់ ${currency === "USD" ? "$" : "៛"}${payAmount.toLocaleString()} ទៅកាន់ហាង ${shop.name} ពីគណនី (${actualCustomerAcc})។`,
       date: dateStr,
@@ -1093,7 +1083,7 @@ exports.processTapToPay = async (req, res) => {
 
     await Transaction.create({
       userId: customer._id,
-      username: customer.username,
+      accountId: customerDeductAccObj.accountId,
       refId: trxRef,
       hash: trxHash,
       date: dateStr,
@@ -1114,7 +1104,7 @@ exports.processTapToPay = async (req, res) => {
 
     await Transaction.create({
       userId: shopOwner ? shopOwner._id : undefined,
-      username: shop.userId,
+      accountId: shopOwner ? shopOwner.mainAccounts?.USD?.accountId : undefined,
       refId: trxRef,
       hash: trxHash,
       date: dateStr,
@@ -1145,11 +1135,11 @@ exports.processTapToPay = async (req, res) => {
     }
 
     if (global.io) {
-      global.io.to(shop.userId).emit("transactionUpdated");
-      global.io.to(customer.username).emit("transactionUpdated");
+      global.io.to(String(shopOwner._id)).emit("transactionUpdated");
+      global.io.to(String(customer._id)).emit("transactionUpdated");
     }
 
-    res.json({ success: true, message: "ការទូទាត់បានជោគជ័យ!" });
+    res.json({ success: true, message: "ការទូទាត់ได้ជោគជ័យ!" });
   } catch (error) {
     console.error("Tap to Pay Processing Error:", error);
     res
@@ -1161,7 +1151,7 @@ exports.processTapToPay = async (req, res) => {
 };
 
 // =======================================================
-// 💳 CHECK CARD BEFORE PAYMENT (Fixed & Secured with Smart UID Normalization)
+// 💳 CHECK CARD BEFORE PAYMENT
 // =======================================================
 exports.checkCardBeforePayment = async (req, res) => {
   const { uid, amount, currency } = req.body;
@@ -1178,10 +1168,8 @@ exports.checkCardBeforePayment = async (req, res) => {
       });
     }
 
-    // 🌟 1. បង្កើតទម្រង់ UID គ្រប់បែបយ៉ាង ដើម្បីធានាថាស្គាល់គ្រប់កាតទាំងអស់
     let cleanUid = rawInputUid.replaceAll(":", "").toUpperCase();
 
-    // បើជា Decimal 10 ខ្ទង់ បម្លែងទៅជា Hex 8 ខ្ទង់
     if (/^\d{10}$/.test(cleanUid)) {
       let hex = parseInt(cleanUid, 10)
         .toString(16)
@@ -1194,7 +1182,6 @@ exports.checkCardBeforePayment = async (req, res) => {
         hex.substring(0, 2);
     }
 
-    // 🌟 2. ស្វែងរកក្នុង Database តាមគ្រប់លក្ខខណ្ឌ (ទាំង Clean, Raw, Upper, Lower)
     const card = await Card.findOne({
       $or: [
         { uid: cleanUid },
@@ -1229,9 +1216,7 @@ exports.checkCardBeforePayment = async (req, res) => {
         message: "កាតនេះត្រូវបានបិទមុខងារទូទាត់!",
       });
 
-    const customer = await User.findOne({
-      $or: [{ _id: card.userId }, { username: card.username }],
-    });
+    const customer = await User.findById(card.userId);
     if (!customer)
       return res.json({ success: false, message: "រកមិនឃើញគណនីម្ចាស់កាតទេ!" });
     if (customer.isFrozen)
@@ -1278,7 +1263,7 @@ exports.checkCardBeforePayment = async (req, res) => {
     if (!customerDeductAccObj) {
       return res.json({
         success: false,
-        message: "រកគណនីដែលភ្ជាប់ជាមួយកាតនេះមិនឃើញទេ!",
+        message: "រកគណនីที่ភ្ជាប់กับกាតนี้ไม่พบ!",
       });
     }
 
@@ -1298,7 +1283,7 @@ exports.checkCardBeforePayment = async (req, res) => {
 
     res.json({
       success: true,
-      message: "កាតត្រឹមត្រូវ និងអាចទូទាត់បាន",
+      message: "កាតត្រឹមត្រូវ และสามารถชำระเงินได้",
       cardType: card.type,
       cardCurrency: cardCurrency,
       balance: availableBalance,
@@ -1310,7 +1295,7 @@ exports.checkCardBeforePayment = async (req, res) => {
 };
 
 // =======================================================
-// ↩️ ផ្នែកទី ៧៖ មុខងារបង្វិលប្រាក់ (Refund ចូលគណនីដើមរបស់កាត និងដកពីកុងហាង)
+// ↩️ ផ្នែកទី ៧៖ មុខងារបង្វិលប្រាក់ (Refund)
 // =======================================================
 exports.refundTransaction = async (req, res) => {
   const { merchantId, refId, pin } = req.body;
@@ -1323,7 +1308,7 @@ exports.refundTransaction = async (req, res) => {
     });
     if (!shop) return res.json({ success: false, message: "រកហាងមិនឃើញទេ!" });
 
-    const owner = await User.findOne({ username: shop.userId });
+    const owner = await User.findById(shop.ownerId);
     if (!owner)
       return res.json({ success: false, message: "រកម្ចាស់ហាងមិនឃើញទេ!" });
     if (owner.pin !== pin)
@@ -1342,15 +1327,14 @@ exports.refundTransaction = async (req, res) => {
     if (isAlreadyRefunded)
       return res.json({
         success: false,
-        message: "ប្រតិបត្តិការនេះត្រូវបានបង្វិលប្រាក់រួចហើយ!",
+        message: "ប្រតិបត្តិการนี้ได้รับการคืนเงินไปแล้ว!",
       });
 
     const merchantTrx = trxs.find((t) => t.amount > 0);
     if (!merchantTrx || merchantTrx.status !== "Hold") {
       return res.json({
         success: false,
-        message:
-          "អាចធ្វើការ Refund បានតែលើប្រតិបត្តិការដែលមានស្ថានភាព Hold ប៉ុណ្ណោះ!",
+        message: "สามารถ Refund ได้เฉพาะรายการที่มีสถานะ Hold เท่านั้น!",
       });
     }
 
@@ -1361,9 +1345,7 @@ exports.refundTransaction = async (req, res) => {
     const refundAmount = Math.abs(customerTrx.amount);
     const customerCurrency = customerTrx.currency;
     const merchantCurrency = merchantTrx.currency;
-    const customerUsername = customerTrx.username;
 
-    // ១. ដកលុយចេញពី Escrow របស់ហាង និងដកពីគណនីដែលហាងបានទទួលប្រាក់ (merchantTrx.receiverAcc)
     const decEscrow =
       merchantCurrency === "USD"
         ? { "escrowHold.USD": -merchantTrx.amount }
@@ -1407,8 +1389,7 @@ exports.refundTransaction = async (req, res) => {
       await owner.save();
     }
 
-    // ២. បង្វិលលុយចូលគណនីដើមរបស់អតិថិជនដែលបានភ្ជាប់ជាមួយកាត (customerTrx.senderAcc)
-    const customerObj = await User.findOne({ username: customerUsername });
+    const customerObj = await User.findById(customerTrx.userId);
     if (customerObj) {
       const targetRefundAcc = customerTrx.senderAcc;
       let refundedToSpecific = false;
@@ -1453,7 +1434,6 @@ exports.refundTransaction = async (req, res) => {
         }
       }
 
-      // Fallback បើរកកុងដើមមិនឃើញ ទើបដាក់ចូល Main Account
       if (!refundedToSpecific) {
         if (customerCurrency === "USD") {
           if (customerObj.mainAccounts?.USD)
@@ -1471,7 +1451,6 @@ exports.refundTransaction = async (req, res) => {
 
       await Notification.create({
         userId: customerObj._id,
-        username: customerObj.username,
         title: "ប្រាក់ត្រូវបានបង្វិលត្រឡប់ ↩️",
         message: `ហាង ${shop.name} បានបង្វិលប្រាក់ ${customerCurrency === "USD" ? "$" : "៛"}${refundAmount.toLocaleString()} ចូលគណនី (${targetRefundAcc}) របស់អ្នកវិញហើយ។`,
         date: dateStr,
@@ -1489,7 +1468,7 @@ exports.refundTransaction = async (req, res) => {
 
       await Transaction.create({
         userId: customerObj._id,
-        username: customerUsername,
+        accountId: customerObj.mainAccounts?.USD?.accountId,
         refId: newRefId,
         hash: newHash,
         date: dateStr,
@@ -1499,7 +1478,7 @@ exports.refundTransaction = async (req, res) => {
         senderName: shop.name,
         senderAcc: shopReceiveAcc || "N/A",
         receiverName: customerTrx.senderName,
-        receiverAcc: targetRefundAcc, // 🌟 បង្ហាញវិក្កយបត្រ Refund ចំគណនីដែលបានភ្ជាប់កាត
+        receiverAcc: targetRefundAcc,
         status: "Success",
         remark: `បង្វិលប្រាក់ត្រឡប់វិញពីហាង (Ref: ${refId})`,
         trxMethod: "Refund",
@@ -1509,8 +1488,7 @@ exports.refundTransaction = async (req, res) => {
 
       await Transaction.create({
         userId: owner._id,
-        username: shop.userId,
-        merchantId: shop.merchantId,
+        accountId: owner.mainAccounts?.USD?.accountId,
         refId: newRefId,
         hash: newHash,
         date: dateStr,
@@ -1522,23 +1500,23 @@ exports.refundTransaction = async (req, res) => {
         receiverName: customerTrx.senderName,
         receiverAcc: targetRefundAcc,
         status: "Success",
-        remark: `បានធ្វើការបង្វិលប្រាក់ទៅអតិថិជន (Ref: ${refId})`,
+        remark: `ได้ทำการคืนเงินให้ลูกค้า (Ref: ${refId})`,
         trxMethod: "Refund",
       });
 
       if (typeof bot !== "undefined" && bot && bot.sendMerchantAlert) {
-        const refundMsg = `🔄 <b>ប្រាក់ត្រូវបានបង្វិល (Refunded)</b>\n\nហាងរបស់អ្នកបានបង្វិលប្រាក់ចំនួន <b>${merchantCurrency === "USD" ? "$" : "៛"}${Math.abs(merchantTrx.amount).toLocaleString()}</b> ទៅកាន់អតិថិជន <b>${customerTrx.senderName}</b> វិញជោគជ័យ។\nលេខយោង៖ #${newRefId}`;
+        const refundMsg = `🔄 <b>ប្រាក់ត្រូវបានបង្វិល (Refunded)</b>\n\nហាងរបស់អ្នកได้คืนเงินចំនួន <b>${merchantCurrency === "USD" ? "$" : "៛"}${Math.abs(merchantTrx.amount).toLocaleString()}</b> ให้กับลูกค้า <b>${customerTrx.senderName}</b> เรียบร้อยแล้ว\nหมายเลขอ้างอิง៖ #${newRefId}`;
         bot.sendMerchantAlert(shop._id, refundMsg).catch(() => {});
       }
 
       if (global.io) {
-        global.io.to(shop.userId).emit("transactionUpdated");
-        global.io.to(customerUsername).emit("transactionUpdated");
+        global.io.to(String(owner._id)).emit("transactionUpdated");
+        global.io.to(String(customerObj._id)).emit("transactionUpdated");
       }
 
       res.json({
         success: true,
-        message: "ការបង្វិលប្រាក់បានសម្រេចជោគជ័យ!",
+        message: "การคืนเงินสำเร็จเรียบร้อย!",
         refId: newRefId,
         hash: newHash,
         senderName: customerTrx.senderName,
@@ -1546,7 +1524,7 @@ exports.refundTransaction = async (req, res) => {
     } else {
       res.json({
         success: false,
-        message: "រកមិនឃើញគណនីអតិថិជនដើម្បីបង្វិលប្រាក់ទេ!",
+        message: "ไม่พบบัญชีลูกค้าสำหรับคืนเงิน!",
       });
     }
   } catch (error) {
@@ -1710,7 +1688,7 @@ exports.downloadMerchantCredentialPDF = async (req, res) => {
     drawSection(
       "Merchant Information",
       [
-        { label: "User ID", value: merchant.userId || "N/A" },
+        { label: "Owner ID", value: String(merchant.ownerId || "N/A") },
         { label: "Name", value: merchant.name || "N/A" },
         { label: "City", value: merchant.city || "N/A" },
         { label: "Category", value: merchant.category || "N/A" },
@@ -1869,10 +1847,6 @@ exports.downloadMerchantCredentialPDF = async (req, res) => {
   }
 };
 
-// =======================================================
-// 🔊 ផ្នែកទី ៩៖ ប្រព័ន្ធបង្កើតសំឡេងនិយាយខ្មែរ & អង់គ្លេស (Cloud TTS Proxy Streamer)
-// ធានាថាដើរ ១០០% លើគ្រប់ឧបករណ៍ទាំងអស់ដោយមិនជាប់ CORS Block!
-// =======================================================
 exports.streamMerchantTTS = async (req, res) => {
   try {
     const text = String(req.query.text || "").trim();

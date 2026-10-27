@@ -3296,7 +3296,7 @@ const kycAction = async (req, res) => {
               userId: parentDoc._id,
               username: parentDoc.username,
               title: "គណនីកូនត្រូវបានអនុម័ត និងបើកដំណើរការ! 🎉👶",
-              message: `ជូនចំពោះ ${getDisplayName(parentDoc)}៖ សំបុត្រកំណើតរបស់កូន "${customerFullName}" ត្រូវបានពិនិត្យ និងអនុម័តដោយមន្ត្រីធនាគារ (${currentAdminFullName}) រួចរាល់ហើយ! គណនីកូនបានបើកដំណើរការដោយស្វ័យប្រវត្តិ។`,
+              message: `ជូនចំពោះ ${getDisplayName(parentDoc)}៖ សំបុត្រកំណើតរបស់កូន "${customerFullName}" ត្រូវបានពិនិត្យ និងអនុម័តដោយមន្ត្រីធនាគាររួចរាល់ហើយ! គណនីកូនបានបើកដំណើរការដោយស្វ័យប្រវត្តិ។`,
               date: getFormattedDate(),
               type: "kyc_approved",
               isRead: false,
@@ -4730,11 +4730,9 @@ const executeCashierTransaction = async (
     amount: userModifier,
     currency: destCurrency,
     fee: 0,
-    senderName:
-      requestType === "Deposit" ? "បញ្ជរសាច់ប្រាក់ U-Pay" : customerFullName,
+    senderName: requestType === "Deposit" ? "Cash Deposit" : customerFullName,
     senderAcc: requestType === "Deposit" ? "" : actualReceiverAcc,
-    receiverName:
-      requestType === "Deposit" ? customerFullName : "បញ្ជរសាច់ប្រាក់ U-Pay",
+    receiverName: requestType === "Deposit" ? customerFullName : "Cash Deposit",
     receiverAcc: requestType === "Deposit" ? actualReceiverAcc : "",
     remark: finalRemark,
     status: "Success",

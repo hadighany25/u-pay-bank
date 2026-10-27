@@ -1,18 +1,8 @@
-// controllers/ufundController.js
+// ============================================================================
+// ឯកសារ: controllers/ufundController.js
+// អត្ថន័យ: ខួរក្បាលស្នូលសម្រាប់គ្រប់គ្រងប្រព័ន្ធសន្សំ U-Fund (Strict _id Binding)
+// ============================================================================
 
-/**
- * ============================================================================
- * 🏦 U-FUND CONTROLLER (CENTRAL BRAIN)
- * ============================================================================
- * តួនាទី (Role): ឯកសារនេះគឺជាខួរក្បាលស្នូលសម្រាប់គ្រប់គ្រងប្រព័ន្ធសន្សំ U-Fund។
- * វាទទួលបន្ទុកលើការបង្កើតគម្រោង ដាក់ប្រាក់ (Manual & QR Scan) ចេញលុយជួស (Bailout)
- * អញ្ជើញសមាជិក ការគ្រប់គ្រងបំណុលទ្វេភាគ (P2P Debt) និងដំណើរការបិទ/រំសាយគម្រោង។
- * ============================================================================
- */
-
-// ==========================================
-// 📦 ផ្នែកទី ០៖ នាំចូលម៉ូឌុល និងមុខងារជំនួយ (Imports & Helpers)
-// ==========================================
 const mongoose = require("mongoose");
 const User = require("../models/User");
 const UFund = require("../models/UFund");
@@ -45,29 +35,40 @@ const generateStandardRefId = (prefix) => {
  */
 
 // ---------------------------------------------------------
-// ១. ទាញយកបញ្ជី U-Fund (Get My Funds)
-// តួនាទី៖ បាញ់បញ្ជីគម្រោងទាំងអស់ដែល User នេះជាសមាជិក ទៅឱ្យ Frontend រួមទាំង Auto-Sync រូប Profile
+// ១. ទាញយកបញ្ជី U-Fund (Get My Funds by userId _id)
 // ---------------------------------------------------------
 exports.getMyFunds = async (req, res) => {
-  const { username } = req.body;
+  const { username, userId } = req.body;
   try {
-    let funds = await UFund.find({ "members.username": username }).sort({
+    const userDoc =
+      userId && mongoose.isValidObjectId(userId)
+        ? await User.findById(userId)
+        : await User.findOne({ username });
+
+    if (!userDoc) {
+      return res.json({ success: true, funds: [] });
+    }
+
+    // 🎯 ស្វែងរកគម្រោងដែលសមាជិកมี userId នេះ
+    let funds = await UFund.find({ "members.userId": userDoc._id }).sort({
       createdAt: -1,
     });
 
     for (let fund of funds) {
       let isModified = false;
       for (let member of fund.members) {
-        const u = await User.findOne({ username: member.username }).select(
-          "profileImage",
-        );
-        if (
-          u &&
-          u.profileImage !== undefined &&
-          u.profileImage !== member.profileImage
-        ) {
-          member.profileImage = u.profileImage;
-          isModified = true;
+        if (member.userId) {
+          const u = await User.findById(member.userId).select(
+            "profileImage fullName",
+          );
+          if (
+            u &&
+            u.profileImage !== undefined &&
+            u.profileImage !== member.profileImage
+          ) {
+            member.profileImage = u.profileImage;
+            isModified = true;
+          }
         }
       }
       if (isModified) {
@@ -77,7 +78,9 @@ exports.getMyFunds = async (req, res) => {
     }
 
     funds = funds.filter((fund) => {
-      const member = fund.members.find((m) => m.username === username);
+      const member = fund.members.find(
+        (m) => String(m.userId) === String(userDoc._id),
+      );
       return member && member.status !== "pending";
     });
 
@@ -103,6 +106,7 @@ exports.getMyFunds = async (req, res) => {
 exports.createFund = async (req, res) => {
   const {
     username,
+    userId,
     name,
     target,
     type,
@@ -116,7 +120,11 @@ exports.createFund = async (req, res) => {
     lateJoinerRule,
   } = req.body;
   try {
-    const user = await User.findOne({ username });
+    const user =
+      userId && mongoose.isValidObjectId(userId)
+        ? await User.findById(userId)
+        : await User.findOne({ username });
+
     if (!user)
       return res.json({ success: false, message: "រកមិនឃើញគណនីរបស់អ្នកទេ!" });
 
@@ -128,11 +136,13 @@ exports.createFund = async (req, res) => {
     }
 
     const newFund = new UFund({
+      creatorId: user._id,
+      creator: user.username,
+      creatorUserId: user.userId,
       name: name,
       type: type || "personal",
       targetAmount: parseFloat(target),
-      creator: username,
-      qrCodeString: `UFND-${Date.now()}-${username}`,
+      qrCodeString: `UFND-${Date.now()}-${user.username}`,
       isLocked: isLocked || false,
       deadline: deadline ? new Date(deadline) : null,
       announcement: announcement || "",
@@ -144,6 +154,7 @@ exports.createFund = async (req, res) => {
       },
       members: [
         {
+          userId: user._id,
           username: user.username,
           fullName: user.fullName || user.username,
           profileImage: user.profileImage || "",
@@ -178,6 +189,7 @@ exports.createFund = async (req, res) => {
 exports.updateSettings = async (req, res) => {
   const {
     username,
+    userId,
     fundId,
     name,
     target,
@@ -191,7 +203,13 @@ exports.updateSettings = async (req, res) => {
   try {
     const fund = await UFund.findById(fundId);
     if (!fund) return res.json({ success: false, message: "Fund Not Found!" });
-    if (fund.creator !== username)
+
+    const userDoc =
+      userId && mongoose.isValidObjectId(userId)
+        ? await User.findById(userId)
+        : await User.findOne({ username });
+
+    if (!userDoc || String(fund.creatorId) !== String(userDoc._id))
       return res.json({ success: false, message: "អ្នកគ្មានសិទ្ធិកែប្រែទេ!" });
 
     if (name) fund.name = name;
@@ -211,12 +229,11 @@ exports.updateSettings = async (req, res) => {
     await fund.save();
 
     for (let m of fund.members) {
-      if (m.username !== username && m.status !== "pending") {
-        const mUser = await User.findOne({ username: m.username });
+      if (String(m.userId) !== String(userDoc._id) && m.status !== "pending") {
+        const mUser = await User.findById(m.userId);
         if (mUser) {
           await Notification.create({
             userId: mUser._id,
-            username: mUser.username,
             title: "ការកំណត់គម្រោងត្រូវបានផ្លាស់ប្តូរ ⚙️",
             message: `Admin បានកែប្រែការកំណត់ថ្មី ឬមានសារប្រកាសថ្មីនៅក្នុងគម្រោង "${fund.name}"។ សូមចូលទៅពិនិត្យមើល!`,
             date: getFormattedDate(),
@@ -248,9 +265,13 @@ exports.updateSettings = async (req, res) => {
 // ៤. ដាក់ប្រាក់ និង ចេញលុយជួសសមាជិក (Manual Deposit)
 // ---------------------------------------------------------
 exports.depositFund = async (req, res) => {
-  const { username, fundId, amount, isAuto, bailoutTarget } = req.body;
+  const { username, userId, fundId, amount, isAuto, bailoutTarget } = req.body;
   try {
-    const user = await User.findOne({ username });
+    const user =
+      userId && mongoose.isValidObjectId(userId)
+        ? await User.findById(userId)
+        : await User.findOne({ username });
+
     const centralBank = await User.findOne({
       "mainAccounts.USD.accountNumber": "888888888",
     });
@@ -266,7 +287,9 @@ exports.depositFund = async (req, res) => {
         message: "គម្រោងនេះបានសម្រេចគោលដៅរួចរាល់ហើយ!",
       });
 
-    const member = fund.members.find((m) => m.username === username);
+    const member = fund.members.find(
+      (m) => String(m.userId) === String(user._id),
+    );
     if (member && member.status === "pending") {
       if (isAuto)
         return res.json({
@@ -298,264 +321,17 @@ exports.depositFund = async (req, res) => {
     let isBailout = false;
 
     if (bailoutTarget) {
-      targetMember = fund.members.find((m) => m.username === bailoutTarget);
+      targetMember = fund.members.find(
+        (m) =>
+          m.username === bailoutTarget ||
+          String(m.userId) === String(bailoutTarget),
+      );
       if (!targetMember || targetMember.status !== "overdue") {
         return res.json({
           success: false,
           message: "រកអ្នកជំពាក់នេះមិនឃើញទេ!",
         });
       }
-      isBailout = true;
-    } else {
-      targetMember = member;
-    }
-
-    // 🌟 កាត់ប្រាក់ពី User និងបញ្ចូលទៅ Sub-Account 888000555 របស់ Central Bank
-    user.mainAccounts.USD.balance -= depositAmount;
-
-    const cbUfundAcc = centralBank.subAccounts.find(
-      (acc) => acc.accountNumber === "888000555",
-    );
-    if (cbUfundAcc) {
-      cbUfundAcc.balance += depositAmount;
-      centralBank.markModified("subAccounts");
-    } else {
-      // ករណីរកមិនឃើញកុងនេះ ក៏បូកចូលលុយចម្បងធម្មតាវិញ
-      if (centralBank.mainAccounts?.USD)
-        centralBank.mainAccounts.USD.balance += depositAmount;
-      else centralBank.balance += depositAmount;
-    }
-
-    fund.currentAmount += depositAmount;
-
-    if (targetMember) {
-      targetMember.contributedAmount += depositAmount;
-      if (targetMember.status === "overdue") {
-        targetMember.debtAmount =
-          (targetMember.debtAmount || 0) - depositAmount;
-        if (targetMember.debtAmount <= 0) {
-          targetMember.debtAmount = 0;
-          targetMember.status = "active";
-          targetMember.overdueSince = null;
-        }
-      }
-    }
-
-    const dateNow = getFormattedDate();
-    const refId = generateStandardRefId("FND");
-    const hash = generateStandardHash();
-    const depositorName = user.fullName || user.username;
-
-    // កត់ត្រា P2P Debt ទាំងសងខាង
-    if (isBailout) {
-      const tUser = await User.findOne({ username: bailoutTarget });
-      if (tUser) {
-        tUser.p2pDebts = tUser.p2pDebts || [];
-        tUser.p2pDebts.push({
-          type: "owe",
-          partnerUsername: username,
-          partnerName: depositorName,
-          amount: depositAmount,
-          fundName: fund.name,
-          date: dateNow,
-          refId: refId,
-        });
-
-        await Notification.create({
-          userId: tUser._id,
-          username: tUser.username,
-          title: "មានអ្នកចេញលុយជួសអ្នក! 🤝",
-          message: `${depositorName} បានចេញលុយសងបំណុល U-Fund ជួសអ្នកចំនួន $${depositAmount}។ ប្រព័ន្ធបានកត់ត្រាវាជាបំណុលបុគ្គល (P2P) ដែលអ្នកត្រូវសងគាត់វិញ។`,
-          date: dateNow,
-          isRead: false,
-          type: "ufund_update",
-          fundId: fund._id,
-        });
-
-        tUser.markModified("p2pDebts");
-        await tUser.save();
-
-        user.p2pDebts = user.p2pDebts || [];
-        user.p2pDebts.push({
-          type: "lend",
-          partnerUsername: tUser.username,
-          partnerName: tUser.fullName || tUser.username,
-          amount: depositAmount,
-          fundName: fund.name,
-          date: dateNow,
-          refId: refId,
-        });
-        user.markModified("p2pDebts");
-      }
-    }
-
-    await Transaction.create({
-      userId: user._id,
-      username: user.username,
-      refId: refId,
-      hash: hash,
-      date: dateNow,
-      type: isBailout ? "U-Fund Bailout Pay" : "U-Fund Deposit",
-      amount: -depositAmount,
-      currency: "USD",
-      senderName: depositorName,
-      receiverName: isBailout
-        ? `Bailout for ${targetMember.fullName}`
-        : `U-Fund: ${fund.name}`,
-      senderAcc: user.mainAccounts?.USD?.accountNumber,
-      remark: isBailout ? "Paid on behalf of another member" : "Manual Deposit",
-      status: "Success",
-      trxMethod: "U-PAY App",
-    });
-
-    await Transaction.create({
-      userId: centralBank._id,
-      username: centralBank.username,
-      refId: refId,
-      hash: hash,
-      date: dateNow,
-      type: "U-Fund Pool Receive",
-      amount: depositAmount,
-      currency: "USD",
-      senderName: depositorName,
-      receiverName: "U-Pay Central Bank",
-      receiverAcc: "888000555", // កត់ត្រាចូលកុង U-Fund របស់ Central Bank
-      remark: `Received for U-Fund: ${fund.name}`,
-      status: "Success",
-      trxMethod: "System Transfer",
-    });
-
-    const isTargetReachedNow = fund.currentAmount >= fund.targetAmount;
-
-    const notifyPromises = fund.members.map(async (m) => {
-      if (m.username !== user.username && m.status !== "pending") {
-        const otherMember = await User.findOne({ username: m.username });
-        if (otherMember) {
-          let alertMsg = isBailout
-            ? `${depositorName} បានបង់ប្រាក់ $${depositAmount} សងជួស ${targetMember.fullName} នៅក្នុងគម្រោង "${fund.name}"។`
-            : `${depositorName} បានដាក់ប្រាក់ $${depositAmount} ចូលគម្រោង "${fund.name}"។`;
-
-          return Notification.create({
-            userId: otherMember._id,
-            username: otherMember.username,
-            title: isBailout ? "មានអ្នកសងជួស! 🤝" : "មានការដាក់ប្រាក់ថ្មី! 💰",
-            message: alertMsg,
-            date: dateNow,
-            isRead: false,
-            type: "ufund_deposit",
-            fundId: fund._id,
-          });
-        }
-      }
-    });
-    await Promise.all(notifyPromises);
-
-    if (isTargetReachedNow) {
-      fund.members = fund.members.filter((m) => m.status !== "pending");
-    }
-
-    fund.markModified("members");
-    await Promise.all([user.save(), centralBank.save(), fund.save()]);
-
-    let responseMsg = isTargetReachedNow
-      ? "ដាក់ប្រាក់ជោគជ័យ! ហើយគម្រោងបានពេញល្មម 🎉"
-      : "ដាក់ប្រាក់ជោគជ័យ!";
-    if (isBailout)
-      responseMsg = `អ្នកបានចេញលុយសងជួស ${targetMember.fullName} ជោគជ័យ! បំណុលនេះនឹងត្រូវទារមកវិញនៅពេលក្រោយ។`;
-
-    res.json({ success: true, message: responseMsg, fund });
-  } catch (error) {
-    console.error("Deposit Error:", error);
-    res.json({ success: false, message: "បរាជ័យក្នុងការដាក់ប្រាក់" });
-  }
-};
-
-// ---------------------------------------------------------
-// ៥. មុខងារ Scan QR ដាក់ប្រាក់ចូល U-Fund (Scan Pay)
-// ---------------------------------------------------------
-exports.scanDepositFund = async (req, res) => {
-  const { username, qrString, amount, bailoutTarget } = req.body;
-  try {
-    const fund = await UFund.findOne({ qrCodeString: qrString });
-    if (!fund)
-      return res.json({
-        success: false,
-        message: "QR Code មិនត្រឹមត្រូវ ឬគម្រោងត្រូវបានលុប!",
-      });
-    if (fund.currentAmount >= fund.targetAmount)
-      return res.json({
-        success: false,
-        message: "គម្រោងនេះពេញលុយហើយ មិនអាចដាក់ប្រាក់បានទៀតទេ!",
-      });
-
-    const user = await User.findOne({ username });
-    const centralBank = await User.findOne({
-      "mainAccounts.USD.accountNumber": "888888888",
-    });
-
-    if (!user || !centralBank)
-      return res.json({ success: false, message: "គណនីមិនត្រឹមត្រូវ!" });
-
-    const depositAmount = parseFloat(amount);
-    if (depositAmount <= 0)
-      return res.json({
-        success: false,
-        message: "ចំនួនទឹកប្រាក់ត្រូវធំជាង ០!",
-      });
-
-    const userUsdBalance = user.mainAccounts?.USD?.balance || 0;
-    if (userUsdBalance < depositAmount)
-      return res.json({
-        success: false,
-        message: "សមតុល្យរបស់អ្នកមិនគ្រប់គ្រាន់ទេ!",
-      });
-
-    let member = fund.members.find((m) => m.username === username);
-    const adminMember = fund.members.find((m) => m.role === "admin");
-
-    const catchUpAmount =
-      fund.lateJoinerRule === "catchup" ? fund.baseContribution || 0 : 0;
-    let wasNewOrPending = false;
-
-    if (!member) {
-      wasNewOrPending = true;
-      const autoInfo = adminMember
-        ? adminMember.autoDeposit
-        : { enabled: false, amount: 0, frequency: "none", time: "08:00" };
-
-      fund.members.push({
-        username: user.username,
-        fullName: user.fullName || user.username,
-        profileImage: user.profileImage || "",
-        role: "member",
-        status: "active",
-        contributedAmount: 0,
-        debtAmount: 0,
-        overdueSince: null,
-        autoDeposit: { ...autoInfo },
-      });
-      member = fund.members[fund.members.length - 1];
-    } else if (member.status === "pending") {
-      wasNewOrPending = true;
-      member.status = "active";
-    }
-
-    if (wasNewOrPending && fund.type === "group" && catchUpAmount > 0) {
-      member.status = "overdue";
-      member.debtAmount = catchUpAmount;
-      member.overdueSince = new Date();
-    }
-
-    let targetMember = null;
-    let isBailout = false;
-
-    if (bailoutTarget) {
-      targetMember = fund.members.find((m) => m.username === bailoutTarget);
-      if (!targetMember || targetMember.status !== "overdue")
-        return res.json({
-          success: false,
-          message: "រកអ្នកជំពាក់នេះមិនឃើញទេ!",
-        });
       isBailout = true;
     } else {
       targetMember = member;
@@ -596,15 +372,14 @@ exports.scanDepositFund = async (req, res) => {
     const hash = generateStandardHash();
     const depositorName = user.fullName || user.username;
 
-    // កត់ត្រា P2P Debt & បាញ់សារ (QR Scan)
+    // កត់ត្រា P2P Debt ទាំងសងខាង (តាម _id)
     if (isBailout) {
-      const tUser = await User.findOne({ username: bailoutTarget });
+      const tUser = await User.findById(targetMember.userId);
       if (tUser) {
         tUser.p2pDebts = tUser.p2pDebts || [];
         tUser.p2pDebts.push({
           type: "owe",
-          partnerUsername: username,
-          partnerName: depositorName,
+          partnerId: user._id,
           amount: depositAmount,
           fundName: fund.name,
           date: dateNow,
@@ -613,7 +388,256 @@ exports.scanDepositFund = async (req, res) => {
 
         await Notification.create({
           userId: tUser._id,
-          username: tUser.username,
+          title: "មានអ្នកចេញលុយជួសអ្នក! 🤝",
+          message: `${depositorName} បានចេញលុយសងបំណុល U-Fund ជួសអ្នកចំនួន $${depositAmount}។ ប្រព័ន្ធបានកត់ត្រាវាជាបំណុលបុគ្គល (P2P) ដែលអ្នកត្រូវសងគាត់វិញ។`,
+          date: dateNow,
+          isRead: false,
+          type: "ufund_update",
+          fundId: fund._id,
+        });
+
+        tUser.markModified("p2pDebts");
+        await tUser.save();
+
+        user.p2pDebts = user.p2pDebts || [];
+        user.p2pDebts.push({
+          type: "lend",
+          partnerId: tUser._id,
+          amount: depositAmount,
+          fundName: fund.name,
+          date: dateNow,
+          refId: refId,
+        });
+        user.markModified("p2pDebts");
+      }
+    }
+
+    await Transaction.create({
+      userId: user._id,
+      accountId: user.mainAccounts?.USD?.accountId,
+      refId: refId,
+      hash: hash,
+      date: dateNow,
+      type: isBailout ? "U-Fund Bailout Pay" : "U-Fund Deposit",
+      amount: -depositAmount,
+      currency: "USD",
+      senderName: depositorName,
+      receiverName: isBailout
+        ? `Bailout for ${targetMember.fullName}`
+        : `U-Fund: ${fund.name}`,
+      senderAcc: user.mainAccounts?.USD?.accountNumber,
+      remark: isBailout ? "Paid on behalf of another member" : "Manual Deposit",
+      status: "Success",
+      trxMethod: "U-PAY App",
+    });
+
+    await Transaction.create({
+      userId: centralBank._id,
+      accountId: cbUfundAcc ? cbUfundAcc.accountId : "MAIN_USD",
+      refId: refId,
+      hash: hash,
+      date: dateNow,
+      type: "U-Fund Pool Receive",
+      amount: depositAmount,
+      currency: "USD",
+      senderName: depositorName,
+      receiverName: "U-Pay Central Bank",
+      receiverAcc: "888000555",
+      remark: `Received for U-Fund: ${fund.name}`,
+      status: "Success",
+      trxMethod: "System Transfer",
+    });
+
+    const isTargetReachedNow = fund.currentAmount >= fund.targetAmount;
+
+    const notifyPromises = fund.members.map(async (m) => {
+      if (String(m.userId) !== String(user._id) && m.status !== "pending") {
+        return Notification.create({
+          userId: m.userId,
+          title: isBailout ? "មានអ្នកសងជួស! 🤝" : "មានការដាក់ប្រាក់ថ្មី! 💰",
+          message: isBailout
+            ? `${depositorName} បានបង់ប្រាក់ $${depositAmount} សងជួស ${targetMember.fullName} នៅក្នុងគម្រោង "${fund.name}"។`
+            : `${depositorName} បានដាក់ប្រាក់ $${depositAmount} ចូលគម្រោង "${fund.name}"។`,
+          date: dateNow,
+          isRead: false,
+          type: "ufund_deposit",
+          fundId: fund._id,
+        });
+      }
+    });
+    await Promise.all(notifyPromises);
+
+    if (isTargetReachedNow) {
+      fund.members = fund.members.filter((m) => m.status !== "pending");
+    }
+
+    fund.markModified("members");
+    await Promise.all([user.save(), centralBank.save(), fund.save()]);
+
+    let responseMsg = isTargetReachedNow
+      ? "ដាក់ប្រាក់ជោគជ័យ! ហើយគម្រោងបានពេញល្មម 🎉"
+      : "ដាក់ប្រាក់ជោគជ័យ!";
+    if (isBailout)
+      responseMsg = `អ្នកបានចេញលុយសងជួស ${targetMember.fullName} ជោគជ័យ! បំណុលនេះនឹងត្រូវទារមកវិញនៅពេលក្រោយ។`;
+
+    res.json({ success: true, message: responseMsg, fund });
+  } catch (error) {
+    console.error("Deposit Error:", error);
+    res.json({ success: false, message: "បរាជ័យក្នុងការដាក់ប្រាក់" });
+  }
+};
+
+// ---------------------------------------------------------
+// ៥. មុខងារ Scan QR ដាក់ប្រាក់ចូល U-Fund (Scan Pay)
+// ---------------------------------------------------------
+exports.scanDepositFund = async (req, res) => {
+  const { username, userId, qrString, amount, bailoutTarget } = req.body;
+  try {
+    const fund = await UFund.findOne({ qrCodeString: qrString });
+    if (!fund)
+      return res.json({
+        success: false,
+        message: "QR Code មិនត្រឹមត្រូវ ឬគម្រោងត្រូវបានលុប!",
+      });
+    if (fund.currentAmount >= fund.targetAmount)
+      return res.json({
+        success: false,
+        message: "គម្រោងនេះពេញលុយហើយ មិនអាចដាក់ប្រាក់បានទៀតទេ!",
+      });
+
+    const user =
+      userId && mongoose.isValidObjectId(userId)
+        ? await User.findById(userId)
+        : await User.findOne({ username });
+
+    const centralBank = await User.findOne({
+      "mainAccounts.USD.accountNumber": "888888888",
+    });
+
+    if (!user || !centralBank)
+      return res.json({ success: false, message: "គណនីមិនត្រឹមត្រូវ!" });
+
+    const depositAmount = parseFloat(amount);
+    if (depositAmount <= 0)
+      return res.json({
+        success: false,
+        message: "ចំនួនទឹកប្រាក់ត្រូវធំជាង ០!",
+      });
+
+    const userUsdBalance = user.mainAccounts?.USD?.balance || 0;
+    if (userUsdBalance < depositAmount)
+      return res.json({
+        success: false,
+        message: "សមតុល្យរបស់អ្នកមិនគ្រប់គ្រាន់ទេ!",
+      });
+
+    let member = fund.members.find(
+      (m) => String(m.userId) === String(user._id),
+    );
+    const adminMember = fund.members.find((m) => m.role === "admin");
+
+    const catchUpAmount =
+      fund.lateJoinerRule === "catchup" ? fund.baseContribution || 0 : 0;
+    let wasNewOrPending = false;
+
+    if (!member) {
+      wasNewOrPending = true;
+      const autoInfo = adminMember
+        ? adminMember.autoDeposit
+        : { enabled: false, amount: 0, frequency: "none", time: "08:00" };
+
+      fund.members.push({
+        userId: user._id,
+        username: user.username,
+        fullName: user.fullName || user.username,
+        profileImage: user.profileImage || "",
+        role: "member",
+        status: "active",
+        contributedAmount: 0,
+        debtAmount: 0,
+        overdueSince: null,
+        autoDeposit: { ...autoInfo },
+      });
+      member = fund.members[fund.members.length - 1];
+    } else if (member.status === "pending") {
+      wasNewOrPending = true;
+      member.status = "active";
+    }
+
+    if (wasNewOrPending && fund.type === "group" && catchUpAmount > 0) {
+      member.status = "overdue";
+      member.debtAmount = catchUpAmount;
+      member.overdueSince = new Date();
+    }
+
+    let targetMember = null;
+    let isBailout = false;
+
+    if (bailoutTarget) {
+      targetMember = fund.members.find(
+        (m) =>
+          m.username === bailoutTarget ||
+          String(m.userId) === String(bailoutTarget),
+      );
+      if (!targetMember || targetMember.status !== "overdue")
+        return res.json({
+          success: false,
+          message: "រកអ្នកជំពាក់នេះមិនឃើញទេ!",
+        });
+      isBailout = true;
+    } else {
+      targetMember = member;
+    }
+
+    user.mainAccounts.USD.balance -= depositAmount;
+
+    const cbUfundAcc = centralBank.subAccounts?.find(
+      (acc) => acc.accountNumber === "888000555",
+    );
+    if (cbUfundAcc) {
+      cbUfundAcc.balance += depositAmount;
+      centralBank.markModified("subAccounts");
+    } else {
+      if (centralBank.mainAccounts?.USD)
+        centralBank.mainAccounts.USD.balance += depositAmount;
+      else centralBank.balance += depositAmount;
+    }
+
+    fund.currentAmount += depositAmount;
+
+    if (targetMember) {
+      targetMember.contributedAmount += depositAmount;
+      if (targetMember.status === "overdue") {
+        targetMember.debtAmount =
+          (targetMember.debtAmount || 0) - depositAmount;
+        if (targetMember.debtAmount <= 0) {
+          targetMember.debtAmount = 0;
+          targetMember.status = "active";
+          targetMember.overdueSince = null;
+        }
+      }
+    }
+
+    const dateNow = getFormattedDate();
+    const refId = generateStandardRefId("FND");
+    const hash = generateStandardHash();
+    const depositorName = user.fullName || user.username;
+
+    if (isBailout) {
+      const tUser = await User.findById(targetMember.userId);
+      if (tUser) {
+        tUser.p2pDebts = tUser.p2pDebts || [];
+        tUser.p2pDebts.push({
+          type: "owe",
+          partnerId: user._id,
+          amount: depositAmount,
+          fundName: fund.name,
+          date: dateNow,
+          refId: refId,
+        });
+
+        await Notification.create({
+          userId: tUser._id,
           title: "មានអ្នកចេញលុយជួសអ្នក! 🤝",
           message: `${depositorName} បានចេញលុយសងបំណុល U-Fund ជួសអ្នកចំនួន $${depositAmount} តាមរយៈ QR។ ប្រព័ន្ធបានកត់ត្រាវាជាបំណុលបុគ្គល (P2P) ដែលអ្នកត្រូវសងគាត់វិញ។`,
           date: dateNow,
@@ -628,8 +652,7 @@ exports.scanDepositFund = async (req, res) => {
         user.p2pDebts = user.p2pDebts || [];
         user.p2pDebts.push({
           type: "lend",
-          partnerUsername: tUser.username,
-          partnerName: tUser.fullName || tUser.username,
+          partnerId: tUser._id,
           amount: depositAmount,
           fundName: fund.name,
           date: dateNow,
@@ -641,7 +664,7 @@ exports.scanDepositFund = async (req, res) => {
 
     await Transaction.create({
       userId: user._id,
-      username: user.username,
+      accountId: user.mainAccounts?.USD?.accountId,
       refId: refId,
       hash: hash,
       date: dateNow,
@@ -662,7 +685,7 @@ exports.scanDepositFund = async (req, res) => {
 
     await Transaction.create({
       userId: centralBank._id,
-      username: centralBank.username,
+      accountId: cbUfundAcc ? cbUfundAcc.accountId : "MAIN_USD",
       refId: refId,
       hash: hash,
       date: dateNow,
@@ -671,7 +694,7 @@ exports.scanDepositFund = async (req, res) => {
       currency: "USD",
       senderName: depositorName,
       receiverName: "U-Pay Central Bank",
-      receiverAcc: "888000555", // កត់ត្រាចូលកុង U-Fund របស់ Central Bank
+      receiverAcc: "888000555",
       remark: `QR Scan for U-Fund: ${fund.name}`,
       status: "Success",
       trxMethod: "System Transfer",
@@ -680,26 +703,22 @@ exports.scanDepositFund = async (req, res) => {
     const isTargetReachedNow = fund.currentAmount >= fund.targetAmount;
 
     const notifyPromises = fund.members.map(async (m) => {
-      if (m.username !== user.username && m.status !== "pending") {
-        const otherMember = await User.findOne({ username: m.username });
-        if (otherMember) {
-          let alertMsg = isBailout
-            ? `${depositorName} បានបង់ប្រាក់តាម QR ជួស ${targetMember.fullName} ចំនួន $${depositAmount} នៅក្នុងគម្រោង "${fund.name}"។`
-            : `${depositorName} បាន Scan ដាក់ប្រាក់ $${depositAmount} ចូលគម្រោង "${fund.name}"។`;
+      if (String(m.userId) !== String(user._id) && m.status !== "pending") {
+        let alertMsg = isBailout
+          ? `${depositorName} បានបង់ប្រាក់តាម QR ជួស ${targetMember.fullName} ចំនួន $${depositAmount} នៅក្នុងគម្រោង "${fund.name}"។`
+          : `${depositorName} បាន Scan ដាក់ប្រាក់ $${depositAmount} ចូលគម្រោង "${fund.name}"។`;
 
-          return Notification.create({
-            userId: otherMember._id,
-            username: otherMember.username,
-            title: isBailout
-              ? "មានអ្នកសងជួស (QR)! 🤝"
-              : "មានការដាក់ប្រាក់តាម QR! 💸",
-            message: alertMsg,
-            date: dateNow,
-            isRead: false,
-            type: "ufund_deposit",
-            fundId: fund._id,
-          });
-        }
+        return Notification.create({
+          userId: m.userId,
+          title: isBailout
+            ? "មានអ្នកសងជួស (QR)! 🤝"
+            : "មានការដាក់ប្រាក់តាម QR! 💸",
+          message: alertMsg,
+          date: dateNow,
+          isRead: false,
+          type: "ufund_deposit",
+          fundId: fund._id,
+        });
       }
     });
 
@@ -708,7 +727,6 @@ exports.scanDepositFund = async (req, res) => {
     if (isTargetReachedNow) {
       await Notification.create({
         userId: user._id,
-        username: user.username,
         title: "គោលដៅត្រូវបានសម្រេច! 🎉",
         message: `អបអរសាទរ! គម្រោង "${fund.name}" ប្រមូលប្រាក់បានគ្រប់ចំនួន ($${fund.targetAmount}) ហើយ។`,
         date: dateNow,
@@ -739,10 +757,14 @@ exports.scanDepositFund = async (req, res) => {
 // ៦. មុខងារទូទាត់ការជំពាក់ដោយផ្ទាល់ដៃ (Pay Overdue)
 // ---------------------------------------------------------
 exports.payOverdue = async (req, res) => {
-  const { username, fundId } = req.body;
+  const { username, userId, fundId } = req.body;
   try {
     const fund = await UFund.findById(fundId);
-    const user = await User.findOne({ username });
+    const user =
+      userId && mongoose.isValidObjectId(userId)
+        ? await User.findById(userId)
+        : await User.findOne({ username });
+
     const centralBank = await User.findOne({
       "mainAccounts.USD.accountNumber": "888888888",
     });
@@ -750,7 +772,9 @@ exports.payOverdue = async (req, res) => {
     if (!fund || !user || !centralBank)
       return res.json({ success: false, message: "ទិន្នន័យមិនត្រឹមត្រូវ!" });
 
-    const member = fund.members.find((m) => m.username === username);
+    const member = fund.members.find(
+      (m) => String(m.userId) === String(user._id),
+    );
     if (!member || member.status !== "overdue")
       return res.json({
         success: false,
@@ -767,7 +791,6 @@ exports.payOverdue = async (req, res) => {
         message: `ទឹកប្រាក់មិនគ្រប់គ្រាន់ទេ! អ្នកត្រូវមានយ៉ាងហោចណាស់ $${overdueAmount} ដើម្បីទូទាត់បំណុល។`,
       });
 
-    // 🌟 កាត់ប្រាក់ពី User និងបញ្ចូលទៅ Sub-Account 888000555 របស់ Central Bank
     user.mainAccounts.USD.balance -= overdueAmount;
 
     const cbUfundAcc = centralBank.subAccounts?.find(
@@ -794,7 +817,7 @@ exports.payOverdue = async (req, res) => {
 
     await Transaction.create({
       userId: user._id,
-      username: user.username,
+      accountId: user.mainAccounts?.USD?.accountId,
       refId: refId,
       hash: hash,
       date: dateNow,
@@ -811,7 +834,7 @@ exports.payOverdue = async (req, res) => {
 
     await Transaction.create({
       userId: centralBank._id,
-      username: centralBank.username,
+      accountId: cbUfundAcc ? cbUfundAcc.accountId : "MAIN_USD",
       refId: refId,
       hash: hash,
       date: dateNow,
@@ -820,7 +843,7 @@ exports.payOverdue = async (req, res) => {
       currency: "USD",
       senderName: user.fullName || user.username,
       receiverName: "U-Pay Central Bank",
-      receiverAcc: "888000555", // កត់ត្រាចូលកុង U-Fund របស់ Central Bank
+      receiverAcc: "888000555",
       remark: `Overdue Received for: ${fund.name}`,
       status: "Success",
       trxMethod: "System Transfer",
@@ -849,7 +872,8 @@ exports.payOverdue = async (req, res) => {
 // ៧. អញ្ជើញមិត្តភក្តិ (Invite Member)
 // ---------------------------------------------------------
 exports.inviteMember = async (req, res) => {
-  const { fundId, inviteeIdentifier, inviterUsername } = req.body;
+  const { fundId, inviteeIdentifier, inviterUsername, inviterUserId } =
+    req.body;
   try {
     const fund = await UFund.findById(fundId);
     if (!fund)
@@ -866,7 +890,6 @@ exports.inviteMember = async (req, res) => {
         { phone: inviteeIdentifier },
         { "mainAccounts.USD.accountNumber": inviteeIdentifier },
         { "mainAccounts.KHR.accountNumber": inviteeIdentifier },
-        { accountNumber: inviteeIdentifier },
       ],
     });
 
@@ -874,7 +897,7 @@ exports.inviteMember = async (req, res) => {
       return res.json({ success: false, message: "រកមិនឃើញគណនីមិត្តភក្តិទេ!" });
 
     const existingMember = fund.members.find(
-      (m) => m.username === invitee.username,
+      (m) => String(m.userId) === String(invitee._id),
     );
     if (existingMember)
       return res.json({
@@ -885,6 +908,7 @@ exports.inviteMember = async (req, res) => {
     const adminMember = fund.members.find((m) => m.role === "admin");
 
     fund.members.push({
+      userId: invitee._id,
       username: invitee.username,
       fullName: invitee.fullName || invitee.username,
       profileImage: invitee.profileImage || "",
@@ -903,7 +927,6 @@ exports.inviteMember = async (req, res) => {
 
     await Notification.create({
       userId: invitee._id,
-      username: invitee.username,
       title: "ការអញ្ជើញចូល U-Fund 🎯",
       message: `${inviterUsername} បានអញ្ជើញអ្នកចូលរួមសន្សំប្រាក់ក្នុងក្រុម "${fund.name}" (លក្ខខណ្ឌ: $${adminMember.autoDeposit.amount} / ${adminMember.autoDeposit.frequency})។`,
       date: getFormattedDate(),
@@ -912,7 +935,7 @@ exports.inviteMember = async (req, res) => {
       fundId: fund._id,
     });
 
-    await Promise.all([fund.save()]);
+    await fund.save();
     res.json({ success: true, message: "បានផ្ញើការអញ្ជើញជោគជ័យ!" });
   } catch (error) {
     console.error("Invite Error:", error);
@@ -924,11 +947,19 @@ exports.inviteMember = async (req, res) => {
 // ៨. ឆ្លើយតបការអញ្ជើញ (Accept / Decline)
 // ---------------------------------------------------------
 exports.respondToInvite = async (req, res) => {
-  const { username, fundId, response, notifId } = req.body;
+  const { username, userId, fundId, response, notifId } = req.body;
   try {
     const fund = await UFund.findById(fundId);
     if (!fund)
       return res.json({ success: false, message: "រកប្រអប់សន្សំមិនឃើញទេ!" });
+
+    const userDoc =
+      userId && mongoose.isValidObjectId(userId)
+        ? await User.findById(userId)
+        : await User.findOne({ username });
+
+    if (!userDoc)
+      return res.json({ success: false, message: "រកគណនីមិនឃើញទេ!" });
 
     if (response === "accept" && fund.currentAmount >= fund.targetAmount) {
       return res.json({
@@ -937,7 +968,9 @@ exports.respondToInvite = async (req, res) => {
       });
     }
 
-    const memberIndex = fund.members.findIndex((m) => m.username === username);
+    const memberIndex = fund.members.findIndex(
+      (m) => String(m.userId) === String(userDoc._id),
+    );
     if (memberIndex === -1) {
       return res.json({
         success: false,
@@ -951,16 +984,14 @@ exports.respondToInvite = async (req, res) => {
       if (fund.lateJoinerRule === "catchup") {
         const catchUpAmount = fund.baseContribution || 0;
         if (catchUpAmount > 0) {
-          const user = await User.findOne({ username });
           const centralBank = await User.findOne({
             "mainAccounts.USD.accountNumber": "888888888",
           });
 
-          const userUsdBalance = user.mainAccounts?.USD?.balance || 0;
+          const userUsdBalance = userDoc.mainAccounts?.USD?.balance || 0;
 
-          if (user && centralBank && userUsdBalance >= catchUpAmount) {
-            // 🌟 កាត់ប្រាក់ពី User និងបញ្ចូលទៅ Sub-Account 888000555 របស់ Central Bank
-            user.mainAccounts.USD.balance -= catchUpAmount;
+          if (centralBank && userUsdBalance >= catchUpAmount) {
+            userDoc.mainAccounts.USD.balance -= catchUpAmount;
 
             const cbUfundAcc = centralBank.subAccounts?.find(
               (acc) => acc.accountNumber === "888000555",
@@ -983,17 +1014,17 @@ exports.respondToInvite = async (req, res) => {
             const hash = generateStandardHash();
 
             await Transaction.create({
-              userId: user._id,
-              username: user.username,
+              userId: userDoc._id,
+              accountId: userDoc.mainAccounts?.USD?.accountId,
               refId: refId,
               hash: hash,
               date: dateNow,
               type: "U-Fund Deposit",
               amount: -catchUpAmount,
               currency: "USD",
-              senderName: user.fullName || user.username,
+              senderName: userDoc.fullName || userDoc.username,
               receiverName: `U-Fund: ${fund.name}`,
-              senderAcc: user.mainAccounts?.USD?.accountNumber,
+              senderAcc: userDoc.mainAccounts?.USD?.accountNumber,
               remark: "Catch-Up Payment (បង់បង្គ្រប់)",
               status: "Success",
               trxMethod: "System Auto",
@@ -1001,39 +1032,36 @@ exports.respondToInvite = async (req, res) => {
 
             await Transaction.create({
               userId: centralBank._id,
-              username: centralBank.username,
+              accountId: cbUfundAcc ? cbUfundAcc.accountId : "MAIN_USD",
               refId: refId,
               hash: hash,
               date: dateNow,
               type: "U-Fund Pool Receive",
               amount: catchUpAmount,
               currency: "USD",
-              senderName: user.fullName || user.username,
+              senderName: userDoc.fullName || userDoc.username,
               receiverName: "U-Pay Central Bank",
-              receiverAcc: "888000555", // កត់ត្រាចូលកុង U-Fund របស់ Central Bank
+              receiverAcc: "888000555",
               remark: `Catch-Up Receive for: ${fund.name}`,
               status: "Success",
               trxMethod: "System Transfer",
             });
 
-            await user.save();
+            await userDoc.save();
             await centralBank.save();
           } else {
             member.status = "overdue";
             member.debtAmount = catchUpAmount;
             member.overdueSince = new Date();
-            if (user) {
-              await Notification.create({
-                userId: user._id,
-                username: user.username,
-                title: "អ្នកជំពាក់ប្រាក់បង់បង្គ្រប់! ⚠️",
-                message: `អ្នកបានចូលក្រុម "${fund.name}" ជោគជ័យ។ ប៉ុន្តែអ្នកត្រូវបង់ប្រាក់បង្គ្រប់ចំនួន $${catchUpAmount} ឱ្យស្មើនឹងសមាជិកចាស់។`,
-                date: getFormattedDate(),
-                isRead: false,
-                type: "ufund_failed",
-                fundId: fund._id,
-              });
-            }
+            await Notification.create({
+              userId: userDoc._id,
+              title: "អ្នកជំពាក់ប្រាក់បង់បង្គ្រប់! ⚠️",
+              message: `អ្នកបានចូលក្រុម "${fund.name}" ជោគជ័យ។ ប៉ុន្តែអ្នកត្រូវបង់ប្រាក់បង្គ្រប់ចំនួន $${catchUpAmount} ឱ្យស្មើនឹងសមាជិកចាស់។`,
+              date: getFormattedDate(),
+              isRead: false,
+              type: "ufund_failed",
+              fundId: fund._id,
+            });
           }
         } else {
           member.status = "active";
@@ -1042,24 +1070,17 @@ exports.respondToInvite = async (req, res) => {
         member.status = "active";
       }
     } else if (response === "decline") {
-      // 🌟 បាញ់សារប្រាប់ Admin ពេលកូនក្រុម Reject
       const adminMember = fund.members.find((m) => m.role === "admin");
       if (adminMember) {
-        const adminUser = await User.findOne({
-          username: adminMember.username,
+        await Notification.create({
+          userId: adminMember.userId,
+          title: "សមាជិកបដិសេធការអញ្ជើញ ❌",
+          message: `${member.fullName || member.username} បានបដិសេធការអញ្ជើញចូលរួមគម្រោងសន្សំ "${fund.name}" របស់អ្នក។`,
+          date: getFormattedDate(),
+          isRead: false,
+          type: "ufund_fail",
+          fundId: fund._id,
         });
-        if (adminUser) {
-          await Notification.create({
-            userId: adminUser._id,
-            username: adminUser.username,
-            title: "សមាជិកបដិសេធការអញ្ជើញ ❌",
-            message: `${member.fullName || member.username} បានបដិសេធការអញ្ជើញចូលរួមគម្រោងសន្សំ "${fund.name}" របស់អ្នក។`,
-            date: getFormattedDate(),
-            isRead: false,
-            type: "ufund_fail",
-            fundId: fund._id,
-          });
-        }
       }
       fund.members.splice(memberIndex, 1);
     }
@@ -1067,17 +1088,11 @@ exports.respondToInvite = async (req, res) => {
     fund.markModified("members");
     await fund.save();
 
-    if (notifId) {
-      try {
-        if (mongoose.Types.ObjectId.isValid(notifId)) {
-          await Notification.findByIdAndUpdate(notifId, {
-            responseStatus: response === "accept" ? "accepted" : "rejected",
-            isRead: true,
-          });
-        }
-      } catch (err) {
-        console.error("Update Notification Error:", err);
-      }
+    if (notifId && mongoose.Types.ObjectId.isValid(notifId)) {
+      await Notification.findByIdAndUpdate(notifId, {
+        responseStatus: response === "accept" ? "accepted" : "rejected",
+        isRead: true,
+      });
     }
 
     res.json({
@@ -1094,16 +1109,26 @@ exports.respondToInvite = async (req, res) => {
 // ៩. Admin ដកហូតសំណើអញ្ជើញវិញ (Cancel Pending Invite)
 // ---------------------------------------------------------
 exports.cancelInvite = async (req, res) => {
-  const { adminUsername, targetUsername, fundId } = req.body;
+  const { adminUsername, adminUserId, targetUsername, targetUserId, fundId } =
+    req.body;
   try {
     const fund = await UFund.findById(fundId);
     if (!fund)
       return res.json({ success: false, message: "រកគម្រោងមិនឃើញទេ!" });
-    if (fund.creator !== adminUsername)
+
+    const adminDoc =
+      adminUserId && mongoose.isValidObjectId(adminUserId)
+        ? await User.findById(adminUserId)
+        : await User.findOne({ username: adminUsername });
+
+    if (!adminDoc || String(fund.creatorId) !== String(adminDoc._id))
       return res.json({ success: false, message: "អ្នកគ្មានសិទ្ធិទេ!" });
 
     const memberIndex = fund.members.findIndex(
-      (m) => m.username === targetUsername && m.status === "pending",
+      (m) =>
+        ((targetUserId && String(m.userId) === String(targetUserId)) ||
+          m.username === targetUsername) &&
+        m.status === "pending",
     );
     if (memberIndex === -1)
       return res.json({
@@ -1111,15 +1136,14 @@ exports.cancelInvite = async (req, res) => {
         message: "រកអ្នក Pending នេះមិនឃើញ ឬគាត់ចូលក្រុមរួចហើយ!",
       });
 
+    const removedMember = fund.members[memberIndex];
     fund.members.splice(memberIndex, 1);
     fund.markModified("members");
     await fund.save();
 
-    const targetUser = await User.findOne({ username: targetUsername });
-    if (targetUser) {
+    if (removedMember.userId) {
       await Notification.create({
-        userId: targetUser._id,
-        username: targetUser.username,
+        userId: removedMember.userId,
         title: "សំណើអញ្ជើញត្រូវបានលុបចោល ❌",
         message: `ម្ចាស់គម្រោង "${fund.name}" បានដកហូតសំណើអញ្ជើញរបស់អ្នកវិញហើយ។`,
         date: getFormattedDate(),
@@ -1145,16 +1169,19 @@ exports.cancelInvite = async (req, res) => {
 // ១០. Admin បាញ់សាររំលឹកអ្នកជំពាក់ (Overdue Reminder)
 // ---------------------------------------------------------
 exports.remindMember = async (req, res) => {
-  const { adminUsername, targetUsername, fundId } = req.body;
+  const { targetUserId, targetUsername, fundId } = req.body;
   try {
     const fund = await UFund.findById(fundId);
     if (!fund) return res.json({ success: false });
 
-    const targetUser = await User.findOne({ username: targetUsername });
+    const targetUser =
+      targetUserId && mongoose.isValidObjectId(targetUserId)
+        ? await User.findById(targetUserId)
+        : await User.findOne({ username: targetUsername });
+
     if (targetUser) {
       await Notification.create({
         userId: targetUser._id,
-        username: targetUser.username,
         title: "សាររំលឹកពីម្ចាស់គម្រោង 🔔",
         message: `អ្នកមានការជំពាក់មិនទាន់បង់នៅក្នុងគម្រោង "${fund.name}"។ សូមបញ្ចូលប្រាក់ក្នុងគណនីដើម្បីធ្វើការទូទាត់!`,
         date: getFormattedDate(),
@@ -1173,16 +1200,19 @@ exports.remindMember = async (req, res) => {
 // ១១. Admin ចុចកណ្តឹងហៅអ្នក Pending (Nudge Pending)
 // ---------------------------------------------------------
 exports.nudgePending = async (req, res) => {
-  const { adminUsername, targetUsername, fundId } = req.body;
+  const { targetUserId, targetUsername, fundId } = req.body;
   try {
     const fund = await UFund.findById(fundId);
     if (!fund) return res.json({ success: false, message: "Fund Not Found!" });
 
-    const targetUser = await User.findOne({ username: targetUsername });
+    const targetUser =
+      targetUserId && mongoose.isValidObjectId(targetUserId)
+        ? await User.findById(targetUserId)
+        : await User.findOne({ username: targetUsername });
+
     if (targetUser) {
       await Notification.create({
         userId: targetUser._id,
-        username: targetUser.username,
         title: "កុំភ្លេចចូលរួមគម្រោងសន្សំយើងណា! 👋",
         message: `ម្ចាស់គម្រោង "${fund.name}" កំពុងរង់ចាំអ្នកយល់ព្រមចូលរួម។ សូមប្រញាប់ឡើង មុនពេលការអញ្ជើញហួសកំណត់!`,
         date: getFormattedDate(),
@@ -1201,17 +1231,28 @@ exports.nudgePending = async (req, res) => {
 // ១២. Admin ផ្ទេរសិទ្ធិ (Transfer Admin Ownership)
 // ---------------------------------------------------------
 exports.transferAdmin = async (req, res) => {
-  const { adminUsername, targetUsername, fundId } = req.body;
+  const { adminUsername, adminUserId, targetUsername, targetUserId, fundId } =
+    req.body;
   try {
     const fund = await UFund.findById(fundId);
     if (!fund)
       return res.json({ success: false, message: "រកគម្រោងមិនឃើញទេ!" });
-    if (fund.creator !== adminUsername)
+
+    const adminDoc =
+      adminUserId && mongoose.isValidObjectId(adminUserId)
+        ? await User.findById(adminUserId)
+        : await User.findOne({ username: adminUsername });
+
+    if (!adminDoc || String(fund.creatorId) !== String(adminDoc._id))
       return res.json({ success: false, message: "អ្នកគ្មានសិទ្ធិទេ!" });
 
-    const currentAdmin = fund.members.find((m) => m.username === adminUsername);
+    const currentAdmin = fund.members.find(
+      (m) => String(m.userId) === String(adminDoc._id),
+    );
     const targetMember = fund.members.find(
-      (m) => m.username === targetUsername,
+      (m) =>
+        (targetUserId && String(m.userId) === String(targetUserId)) ||
+        m.username === targetUsername,
     );
 
     if (!targetMember || targetMember.status !== "active")
@@ -1222,18 +1263,18 @@ exports.transferAdmin = async (req, res) => {
 
     if (currentAdmin) currentAdmin.role = "member";
     targetMember.role = "admin";
-    fund.creator = targetUsername;
+    fund.creatorId = targetMember.userId;
+    fund.creator = targetMember.username;
 
     fund.markModified("members");
     await fund.save();
 
-    const tUser = await User.findOne({ username: targetUsername });
+    const tUser = await User.findById(targetMember.userId);
     if (tUser) {
       await Notification.create({
         userId: tUser._id,
-        username: tUser.username,
         title: "អ្នកក្លាយជាម្ចាស់គម្រោងថ្មី! 👑",
-        message: `អបអរសាទរ! ${currentAdmin.fullName || adminUsername} បានផ្ទេរសិទ្ធិគ្រប់គ្រងគម្រោង "${fund.name}" មកឱ្យអ្នក។`,
+        message: `អបអរសាទរ! ${currentAdmin ? currentAdmin.fullName || adminDoc.username : "Admin"} បានផ្ទេរសិទ្ធិគ្រប់គ្រងគម្រោង "${fund.name}" មកឱ្យអ្នក។`,
         date: getFormattedDate(),
         isRead: false,
         type: "ufund_update",
@@ -1258,7 +1299,7 @@ exports.transferAdmin = async (req, res) => {
 // ១៣. កូនក្រុមស្នើសុំចាកចេញ (Request Leave)
 // ---------------------------------------------------------
 exports.requestLeave = async (req, res) => {
-  const { username, fundId, reason } = req.body;
+  const { username, userId, fundId, reason } = req.body;
   try {
     const fund = await UFund.findById(fundId);
     if (!fund) return res.json({ success: false, message: "Fund Not Found!" });
@@ -1270,7 +1311,17 @@ exports.requestLeave = async (req, res) => {
           "គម្រោងនេះត្រូវបានចាក់សោរ (Locked) ដោយ Admin អ្នកមិនអាចស្នើសុំចាកចេញបានទេ!",
       });
 
-    const member = fund.members.find((m) => m.username === username);
+    const userDoc =
+      userId && mongoose.isValidObjectId(userId)
+        ? await User.findById(userId)
+        : await User.findOne({ username });
+
+    if (!userDoc)
+      return res.json({ success: false, message: "រកគណនីមិនឃើញទេ!" });
+
+    const member = fund.members.find(
+      (m) => String(m.userId) === String(userDoc._id),
+    );
     if (!member)
       return res.json({
         success: false,
@@ -1285,11 +1336,10 @@ exports.requestLeave = async (req, res) => {
     fund.markModified("members");
     await fund.save();
 
-    const adminUser = await User.findOne({ username: fund.creator });
+    const adminUser = await User.findById(fund.creatorId);
     if (adminUser) {
       await Notification.create({
         userId: adminUser._id,
-        username: adminUser.username,
         title: "សំណើចាកចេញពីកូនក្រុម 🚪",
         message: `សមាជិក ${member.fullName || member.username} បានស្នើសុំចាកចេញពីគម្រោង "${fund.name}"។ មូលហេតុ៖ "${member.leaveRequest.reason}"`,
         date: getFormattedDate(),
@@ -1312,13 +1362,23 @@ exports.requestLeave = async (req, res) => {
 // ១៤. កូនក្រុមបោះបង់ការសុំចេញ (Cancel Leave Request)
 // ---------------------------------------------------------
 exports.cancelLeaveRequest = async (req, res) => {
-  const { username, fundId } = req.body;
+  const { username, userId, fundId } = req.body;
   try {
     const fund = await UFund.findById(fundId);
     if (!fund)
       return res.json({ success: false, message: "រកគម្រោងមិនឃើញទេ!" });
 
-    const member = fund.members.find((m) => m.username === username);
+    const userDoc =
+      userId && mongoose.isValidObjectId(userId)
+        ? await User.findById(userId)
+        : await User.findOne({ username });
+
+    if (!userDoc)
+      return res.json({ success: false, message: "រកគណនីមិនឃើញទេ!" });
+
+    const member = fund.members.find(
+      (m) => String(m.userId) === String(userDoc._id),
+    );
     if (!member)
       return res.json({ success: false, message: "រកសមាជិកមិនឃើញ!" });
 
@@ -1334,11 +1394,10 @@ exports.cancelLeaveRequest = async (req, res) => {
     fund.markModified("members");
     await fund.save();
 
-    const adminUser = await User.findOne({ username: fund.creator });
+    const adminUser = await User.findById(fund.creatorId);
     if (adminUser) {
       await Notification.create({
         userId: adminUser._id,
-        username: adminUser.username,
         title: "កូនក្រុមប្តូរចិត្តមិនចេញវិញទេ 🔄",
         message: `សមាជិក ${member.fullName || member.username} បានលុបចោលសំណើសុំចាកចេញពីគម្រោង "${fund.name}" ហើយ។`,
         date: getFormattedDate(),
@@ -1362,21 +1421,31 @@ exports.cancelLeaveRequest = async (req, res) => {
 // ១៥. Admin យល់ព្រមអោយកូនក្រុមចេញ (Approve Leave)
 // ---------------------------------------------------------
 exports.approveLeave = async (req, res) => {
-  const { adminUsername, targetUsername, fundId } = req.body;
+  const { adminUsername, adminUserId, targetUsername, targetUserId, fundId } =
+    req.body;
   try {
     const fund = await UFund.findById(fundId);
     const centralBank = await User.findOne({
       "mainAccounts.USD.accountNumber": "888888888",
     });
-    const targetUser = await User.findOne({ username: targetUsername });
+
+    const adminDoc =
+      adminUserId && mongoose.isValidObjectId(adminUserId)
+        ? await User.findById(adminUserId)
+        : await User.findOne({ username: adminUsername });
+
+    const targetUser =
+      targetUserId && mongoose.isValidObjectId(targetUserId)
+        ? await User.findById(targetUserId)
+        : await User.findOne({ username: targetUsername });
 
     if (!fund || !centralBank || !targetUser)
       return res.json({ success: false, message: "ទិន្នន័យមិនត្រឹមត្រូវ!" });
-    if (fund.creator !== adminUsername)
+    if (!adminDoc || String(fund.creatorId) !== String(adminDoc._id))
       return res.json({ success: false, message: "អ្នកគ្មានសិទ្ធិទេ!" });
 
     const memberIndex = fund.members.findIndex(
-      (m) => m.username === targetUsername,
+      (m) => String(m.userId) === String(targetUser._id),
     );
     if (memberIndex === -1)
       return res.json({ success: false, message: "រកសមាជិកនេះមិនឃើញ!" });
@@ -1385,7 +1454,6 @@ exports.approveLeave = async (req, res) => {
     const refundAmount = member.contributedAmount;
 
     if (refundAmount > 0) {
-      // 🌟 ដកលុយពី Sub-Account U-Fund របស់ Central Bank បង្វិលទៅ User វិញ
       targetUser.mainAccounts.USD.balance += refundAmount;
 
       const cbUfundAcc = centralBank.subAccounts?.find(
@@ -1408,7 +1476,7 @@ exports.approveLeave = async (req, res) => {
 
       await Transaction.create({
         userId: targetUser._id,
-        username: targetUser.username,
+        accountId: targetUser.mainAccounts?.USD?.accountId,
         refId: refId,
         hash: hash,
         date: dateNow,
@@ -1424,7 +1492,7 @@ exports.approveLeave = async (req, res) => {
 
       await Transaction.create({
         userId: centralBank._id,
-        username: centralBank.username,
+        accountId: cbUfundAcc ? cbUfundAcc.accountId : "MAIN_USD",
         refId: refId,
         hash: hash,
         date: dateNow,
@@ -1433,7 +1501,7 @@ exports.approveLeave = async (req, res) => {
         currency: "USD",
         senderName: "U-Pay U-Fund Pool",
         receiverName: targetUser.fullName || targetUser.username,
-        senderAcc: "888000555", // កត់ត្រាដកពីកុង U-Fund របស់ Central Bank
+        senderAcc: "888000555",
         remark: `Refund to member leaving ${fund.name}`,
         status: "Success",
       });
@@ -1441,7 +1509,6 @@ exports.approveLeave = async (req, res) => {
 
     await Notification.create({
       userId: targetUser._id,
-      username: targetUser.username,
       title: "អ្នកបានចាកចេញពីគម្រោង 🚪",
       message: `Admin បានយល់ព្រមអោយអ្នកចាកចេញពីគម្រោង "${fund.name}" ហើយទឹកប្រាក់ $${refundAmount.toLocaleString()} ត្រូវបានបង្វិលសងចូលគណនីអ្នកវិញ។`,
       date: getFormattedDate(),
@@ -1457,7 +1524,7 @@ exports.approveLeave = async (req, res) => {
 
     res.json({
       success: true,
-      message: `បានយល់ព្រមឱ្យ ${targetUser.fullName || targetUsername} ចាកចេញ និងបង្វិលប្រាក់សងជោគជ័យ!`,
+      message: `បានយល់ព្រមឱ្យ ${targetUser.fullName || targetUser.username} ចាកចេញ និងបង្វិលប្រាក់សងជោគជ័យ!`,
     });
   } catch (error) {
     console.error("Approve Leave Error:", error);
@@ -1469,7 +1536,7 @@ exports.approveLeave = async (req, res) => {
 // ១៦. បិទគម្រោងជោគជ័យ ឬ រំសាយគម្រោងចោល (Close / Cancel Fund)
 // ---------------------------------------------------------
 exports.closeOrCancelFund = async (req, res) => {
-  const { username, fundId } = req.body;
+  const { username, userId, fundId } = req.body;
   try {
     const fund = await UFund.findById(fundId);
     const centralBank = await User.findOne({
@@ -1478,7 +1545,13 @@ exports.closeOrCancelFund = async (req, res) => {
 
     if (!fund || !centralBank)
       return res.json({ success: false, message: "ទិន្នន័យមិនត្រឹមត្រូវ!" });
-    if (fund.creator !== username)
+
+    const userDoc =
+      userId && mongoose.isValidObjectId(userId)
+        ? await User.findById(userId)
+        : await User.findOne({ username });
+
+    if (!userDoc || String(fund.creatorId) !== String(userDoc._id))
       return res.json({ success: false, message: "អ្នកគ្មានសិទ្ធិទេ!" });
 
     const isFull = fund.currentAmount >= fund.targetAmount;
@@ -1489,9 +1562,8 @@ exports.closeOrCancelFund = async (req, res) => {
 
     // 🌟 ករណីបិទជោគជ័យ (Close Success)
     if (isFull) {
-      const creatorUser = await User.findOne({ username: fund.creator });
+      const creatorUser = await User.findById(fund.creatorId);
 
-      // 🌟 ដកលុយពី Sub-Account U-Fund របស់ Central Bank ចូលកុង Admin គម្រោង
       creatorUser.mainAccounts.USD.balance += fund.currentAmount;
       if (cbUfundAcc) {
         cbUfundAcc.balance -= fund.currentAmount;
@@ -1508,7 +1580,7 @@ exports.closeOrCancelFund = async (req, res) => {
 
       await Transaction.create({
         userId: creatorUser._id,
-        username: creatorUser.username,
+        accountId: creatorUser.mainAccounts?.USD?.accountId,
         refId: refId,
         hash: hash,
         date: dateNow,
@@ -1524,7 +1596,7 @@ exports.closeOrCancelFund = async (req, res) => {
 
       await Transaction.create({
         userId: centralBank._id,
-        username: centralBank.username,
+        accountId: cbUfundAcc ? cbUfundAcc.accountId : "MAIN_USD",
         refId: refId,
         hash: hash,
         date: dateNow,
@@ -1533,28 +1605,21 @@ exports.closeOrCancelFund = async (req, res) => {
         currency: "USD",
         senderName: "U-Pay U-Fund Pool",
         receiverName: creatorName,
-        senderAcc: "888000555", // កត់ត្រាដកពីកុង U-Fund របស់ Central Bank
+        senderAcc: "888000555",
         remark: `Payout for U-Fund: ${fund.name}`,
         status: "Success",
       });
 
       const notifyPromises = fund.members.map(async (member) => {
-        let mUser =
-          member.username === creatorUser.username
-            ? creatorUser
-            : await User.findOne({ username: member.username });
-        if (mUser) {
-          return Notification.create({
-            userId: mUser._id,
-            username: mUser.username,
-            title: "គម្រោងសន្សំជោគជ័យ! 🎉",
-            message: `គម្រោង "${fund.name}" សម្រេចគោលដៅហើយ! ទឹកប្រាក់សរុប $${fund.currentAmount.toLocaleString()} ត្រូវបានដកដោយម្ចាស់គម្រោង (${creatorName}) រួចរាល់។`,
-            date: dateNow,
-            isRead: false,
-            type: "ufund_success",
-            fundId: fund._id,
-          });
-        }
+        return Notification.create({
+          userId: member.userId,
+          title: "គម្រោងសន្សំជោគជ័យ! 🎉",
+          message: `គម្រោង "${fund.name}" សម្រេចគោលដៅហើយ! ទឹកប្រាក់សរុប $${fund.currentAmount.toLocaleString()} ត្រូវបានដកដោយម្ចាស់គម្រោង (${creatorName}) រួចរាល់។`,
+          date: dateNow,
+          isRead: false,
+          type: "ufund_success",
+          fundId: fund._id,
+        });
       });
       await Promise.all(notifyPromises);
 
@@ -1572,10 +1637,9 @@ exports.closeOrCancelFund = async (req, res) => {
       // 🌟 ករណីរំសាយមុនកំណត់ (Cancel & Refund)
     } else {
       const refundPromises = fund.members.map(async (member) => {
-        if (member.contributedAmount > 0) {
-          const mUser = await User.findOne({ username: member.username });
+        if (member.contributedAmount > 0 && member.userId) {
+          const mUser = await User.findById(member.userId);
           if (mUser) {
-            // 🌟 បង្វិលប្រាក់ពី Sub-Account U-Fund ចូលសមាជិកវិញ
             mUser.mainAccounts.USD.balance += member.contributedAmount;
             if (cbUfundAcc) {
               cbUfundAcc.balance -= member.contributedAmount;
@@ -1592,7 +1656,7 @@ exports.closeOrCancelFund = async (req, res) => {
 
             await Transaction.create({
               userId: mUser._id,
-              username: mUser.username,
+              accountId: mUser.mainAccounts?.USD?.accountId,
               refId: refId,
               hash: hash,
               date: dateNow,
@@ -1608,7 +1672,7 @@ exports.closeOrCancelFund = async (req, res) => {
 
             await Transaction.create({
               userId: centralBank._id,
-              username: centralBank.username,
+              accountId: cbUfundAcc ? cbUfundAcc.accountId : "MAIN_USD",
               refId: refId,
               hash: hash,
               date: dateNow,
@@ -1617,14 +1681,13 @@ exports.closeOrCancelFund = async (req, res) => {
               currency: "USD",
               senderName: "U-Pay U-Fund Pool",
               receiverName: mUser.fullName || mUser.username,
-              senderAcc: "888000555", // កត់ត្រាដកពីកុង U-Fund របស់ Central Bank
+              senderAcc: "888000555",
               remark: `Refund to member for ${fund.name}`,
               status: "Success",
             });
 
             await Notification.create({
               userId: mUser._id,
-              username: mUser.username,
               title: "គម្រោងត្រូវបានរំសាយ ⚠️",
               message: `គម្រោង "${fund.name}" ត្រូវបានបិទមុនកំណត់។ ទឹកប្រាក់ $${member.contributedAmount.toLocaleString()} ត្រូវបានបង្វិលចូលគណនីរបស់អ្នកវិញ។`,
               date: dateNow,
@@ -1668,6 +1731,7 @@ exports.getUFundName = async (req, res) => {
       const overdueMembers = fund.members
         .filter((m) => m.status === "overdue")
         .map((m) => ({
+          userId: String(m.userId),
           username: m.username,
           fullName: m.fullName || m.username,
           debtAmount:

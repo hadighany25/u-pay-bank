@@ -1,12 +1,10 @@
-// controllers/b2bEscrowController.js
-
 /**
  * ============================================================================
  * 🤝 B2B ESCROW CONTROLLER (MERCHANT ESCROW SYSTEM)
  * ============================================================================
  * តួនាទី (Role): ឯកសារនេះគ្រប់គ្រងប្រព័ន្ធទូទាត់ប្រាក់ B2B (ដូចជា U-Mall)។
  * វាមានតួនាទីបង្កកប្រាក់ (Freeze) ពេលអតិថិជនកុម្ម៉ង់ទំនិញ និងព្រលែងប្រាក់ (Release)
- * ទៅកាន់គណនីអ្នកលក់ (Seller) ពេលប្រតិបត្តិការត្រូវបានបញ្ជាក់ថាជោគជ័យ។
+ * ទៅកាន់គណនីអ្នកលក់ (Seller) ពេលប្រតិបត្តិការត្រូវបានបញ្ជាក់ថាជោគជ័យ (Strict _id Binding)។
  * ============================================================================
  */
 
@@ -14,6 +12,7 @@ const Merchant = require("../models/Merchant");
 const EscrowTransaction = require("../models/EscrowTransaction");
 const Transaction = require("../models/Transaction");
 const User = require("../models/User");
+const mongoose = require("mongoose");
 
 const { generateOfficialReceiptPDF } = require("../services/pdfService");
 const { sendWebhookNotification } = require("../services/webhookService");
@@ -31,7 +30,6 @@ const generateStandardHash = () => {
 };
 
 const generateStandardRefId = (prefix) => {
-  // បង្កើតលេខ ៨ខ្ទង់ចៃដន្យ (ពី 10000000 ដល់ 99999999) សម្រាប់លេខយោង
   const random8Digits = Math.floor(10000000 + Math.random() * 90000000);
   return `${prefix}-${random8Digits}`;
 };
@@ -63,7 +61,7 @@ const freezeFunds = async (req, res) => {
       return res.status(400).json({
         success: false,
         message:
-          "លេខប្រតិបត្តិការ (Reference ID) នេះមានរួចរាល់ហើយ មិនអាចស្នើសុំជាន់គ្នាបានទេ!",
+          "លេខប្រតិបត្តិការ (Reference ID) នេះមានរួចរាល់ហើយ មិនអាចស្នើសុំជាន់គ្នាได้ទេ!",
       });
     }
 
@@ -106,13 +104,13 @@ const freezeFunds = async (req, res) => {
     console.error("❄️ Freeze Error:", error);
     return res.status(500).json({
       success: false,
-      message: "មានបញ្ហាក្នុងការបង្កកប្រាក់ (Internal Server Error)",
+      message: "មានបញ្ហាក្នុងการបង្កកប្រាក់ (Internal Server Error)",
     });
   }
 };
 
 // ========================================================
-// 💸 ផ្នែកទី ២៖ API ព្រលែងប្រាក់ និងបញ្ជាក់ការទូទាត់ (Release Funds)
+// 💸 ផ្នែកទី ២៖ API ព្រលែងប្រាក់ និងបញ្ជាក់การទូទាត់ (Release Funds)
 // ========================================================
 const releaseFunds = async (req, res) => {
   try {
@@ -122,7 +120,7 @@ const releaseFunds = async (req, res) => {
     if (!referenceId) {
       return res.status(400).json({
         success: false,
-        message: "សូមបញ្ជាក់លេខប្រតិបត្តិការ (referenceId)!",
+        message: "សូមបញ្ជាក់លេខប្រតិបត្តិการ (referenceId)!",
       });
     }
 
@@ -136,18 +134,19 @@ const releaseFunds = async (req, res) => {
     if (!transaction) {
       return res.status(404).json({
         success: false,
-        message: "រកមិនឃើញប្រតិបត្តិការនេះទេ ឬក៏ប្រាក់ត្រូវបានទូទាត់រួចហើយ!",
+        message:
+          "រកមិនឃើញប្រតិបត្តិការนี้ទេ หรือក៏ប្រាក់ได้รับการទូទាត់រួចហើយ!",
       });
     }
 
     const amount = transaction.amount;
     const currency = transaction.currency;
 
-    // ២. ត្រួតពិនិត្យ និងកាត់ប្រាក់ចេញពីគណនីបង្កក (escrowHold)
+    // ២. ត្រួតពិនិត្យ และកាត់ប្រាក់ออกจากគណនីបង្កក (escrowHold)
     if (merchant.escrowHold[currency] < amount) {
       return res.status(400).json({
         success: false,
-        message: "ប្រព័ន្ធមានភាពរអាក់រអួល: សមតុល្យបង្កកមិនគ្រប់គ្រាន់ទេ!",
+        message: "ប្រព័ន្ធมีភាពរអាក់រអួល: សមតុល្យបង្កកមិនគ្រប់គ្រាន់ទេ!",
       });
     }
 
@@ -157,14 +156,14 @@ const releaseFunds = async (req, res) => {
     // ៣. បង្កើត Link វិក្កយបត្រ (PDF Slip)
     const pdfUrl = `https://u-pay-bank.fly.dev/api/receipt/${transaction._id}`;
 
-    // ៤. ធ្វើបច្ចុប្បន្នភាពប្រតិបត្តិការទៅជា Completed
+    // ៤. ทำបច្ចុប្បន្នភាពប្រតិបត្តិការទៅជា Completed
     transaction.status = "completed";
     transaction.completedAt = Date.now();
     transaction.receiptPdfUrl = pdfUrl;
     await transaction.save();
 
     // ========================================================
-    // 🔥 ៥. ចាក់បញ្ចូលលុយទៅកាន់អ្នកលក់ (ផ្អែកលើ User.js ថ្មី)
+    // 🔥 ៥. ចាក់បញ្ចូលលុយទៅកាន់អ្នកលក់ (ផ្អែកលើ User.js ថ្មី និង Strict _id)
     // ========================================================
     const receiverUser = await User.findOne({
       $or: [
@@ -176,40 +175,42 @@ const releaseFunds = async (req, res) => {
       ],
     });
 
+    let receiverAccountIdToSave = "MAIN_USD";
+
     if (receiverUser) {
       let accountFound = false;
 
-      // ឆែកមើលថាតើលេខកុងដែលផ្ញើចូល ត្រូវគ្នានឹង Main Account USD ដែរទេ
       if (
         receiverUser.mainAccounts?.USD?.accountNumber ===
         transaction.receiverAccount
       ) {
         receiverUser.mainAccounts.USD.balance += amount;
+        receiverAccountIdToSave = receiverUser.mainAccounts.USD.accountId;
         accountFound = true;
-      }
-      // ឆែកមើល Main Account KHR
-      else if (
+      } else if (
         receiverUser.mainAccounts?.KHR?.accountNumber ===
         transaction.receiverAccount
       ) {
         receiverUser.mainAccounts.KHR.balance += amount;
+        receiverAccountIdToSave = receiverUser.mainAccounts.KHR.accountId;
         accountFound = true;
-      }
-      // ឆែកមើល Sub Accounts
-      else {
+      } else {
         const subAcc = receiverUser.subAccounts?.find(
           (a) => a.accountNumber === transaction.receiverAccount,
         );
         if (subAcc) {
           subAcc.balance += amount;
+          receiverAccountIdToSave = subAcc.accountId;
           accountFound = true;
         }
       }
 
-      // បើលេខកុងមិនត្រូវនឹងទម្រង់ថ្មីទេ សាកល្បងបញ្ចូលតាមទម្រង់ Legacy (ចាស់)
       if (!accountFound) {
-        if (currency === "USD") receiverUser.balance += amount;
-        else if (currency === "KHR") receiverUser.balanceKHR += amount;
+        if (currency === "USD") {
+          receiverUser.balance = (receiverUser.balance || 0) + amount;
+        } else if (currency === "KHR") {
+          receiverUser.balanceKHR = (receiverUser.balanceKHR || 0) + amount;
+        }
       }
 
       receiverUser.markModified("mainAccounts");
@@ -218,10 +219,10 @@ const releaseFunds = async (req, res) => {
     }
 
     // ========================================================
-    // 📝 ៦. កត់ត្រាប្រវត្តិប្រតិបត្តិការ (Transaction History)
+    // 📝 ៦. កត់ត្រាប្រវត្តិប្រតិបត្តិการ (Transaction History)
     // ========================================================
     if (Transaction) {
-      const owner = await User.findOne({ username: merchant.userId });
+      const owner = await User.findById(merchant.ownerId);
       const stdRefId = generateStandardRefId("ESC");
       const stdHash = generateStandardHash();
       const dateStr = new Date().toLocaleString("en-US", {
@@ -229,10 +230,11 @@ const releaseFunds = async (req, res) => {
         hour12: true,
       });
 
-      // ៦.១ កត់ត្រាសម្រាប់ម្ចាស់ហាង (Merchant - លុយចេញ)
+      // ៦.១ កត់ត្រាสำหรับម្ចាស់ហាង (Merchant - លុយចេញ)
       await Transaction.create({
         userId: owner ? owner._id : undefined,
-        username: merchant.userId,
+        accountId: owner ? owner.mainAccounts?.USD?.accountId : undefined,
+        username: owner ? owner.username : "merchant",
         refId: stdRefId,
         hash: stdHash,
         date: dateStr,
@@ -254,10 +256,11 @@ const releaseFunds = async (req, res) => {
         merchantId: merchant.merchantId,
       });
 
-      // ៦.២ កត់ត្រាសម្រាប់អ្នកលក់ (Seller - លុយចូល)
+      // ៦.២ កត់ត្រាสำหรับអ្នកលក់ (Seller - លុយចូល)
       if (receiverUser) {
         await Transaction.create({
           userId: receiverUser._id,
+          accountId: receiverAccountIdToSave,
           username: receiverUser.username,
           refId: stdRefId,
           hash: stdHash,
@@ -279,13 +282,13 @@ const releaseFunds = async (req, res) => {
       }
     }
 
-    // ៧. បាញ់ Webhook ទៅកាន់ U-Mall វិញ (រត់ Background)
+    // ៧. បាញ់ Webhook ទៅកាន់ U-Mall វិញ (রត់ Background)
     sendWebhookNotification(merchant, transaction, pdfUrl);
 
     // ៨. ឆ្លើយតបជោគជ័យទៅកាន់ U-Mall វិញ
     return res.status(200).json({
       success: true,
-      message: "ប្រាក់ត្រូវបានទូទាត់ និងព្រលែងដោយជោគជ័យ!",
+      message: "ប្រាក់ได้รับการទូទាត់ และព្រលែងដោយជោគជ័យ!",
       data: {
         transactionId: transaction._id,
         referenceId: transaction.referenceId,
@@ -299,7 +302,7 @@ const releaseFunds = async (req, res) => {
     console.error("💸 Release Error:", error);
     return res.status(500).json({
       success: false,
-      message: "មានបញ្ហាក្នុងការព្រលែងប្រាក់ (Internal Server Error)",
+      message: "មានបញ្ហាក្នុងการព្រលែងប្រាក់ (Internal Server Error)",
     });
   }
 };

@@ -1,36 +1,51 @@
 // ============================================================================
 // ឯកសារ: models/CashierTicket.js
-// អត្ថន័យ: សំបុត្រស្នើសុំប្រតិបត្តិការនៅបញ្ជរ (Maker-Checker Workflow)
+// អត្ថន័យ: សំបុត្រស្នើសុំប្រតិបត្តិការដាក់/ដកប្រាក់នៅបញ្ជរ (Maker-Checker & Strict _id)
 // ============================================================================
 
 const mongoose = require("mongoose");
 
 const cashierTicketSchema = new mongoose.Schema(
   {
-    // 🔗 ការតភ្ជាប់ទៅកាន់ User & Transaction
-    userId: { type: mongoose.Schema.Types.ObjectId, ref: "User", index: true },
+    // ==========================================
+    // 🔗 ១. ការតភ្ជាប់ទៅកាន់គណនីអតិថិជន និងវិក្កយបត្រ (User _id & Trx Link)
+    // ==========================================
+    userId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      required: true,
+      index: true,
+    }, // 🔗 សោរគោលភ្ជាប់ទៅកាន់ User._id ដាច់ខាត
+    username: { type: String }, // Snapshot សម្រាប់មើលងាយស្រួល
 
-    // 🟢 បន្ថែមថ្មី៖ លេខកូដ Ticket ផ្ទាល់ខ្លួន (ឧទាហរណ៍ TCK-12345678) សម្រាប់សំណើដែលមិនទាន់ Approve
-    ticketId: { type: String },
+    ticketId: { type: String, required: true, unique: true, index: true }, // ឧ. TCK-12345678
+    transactionId: { type: String, index: true }, // លេខ Ref ID ពេលប្រតិបត្តិការជោគជ័យ
 
-    transactionId: { type: String, default: null }, // លេខ Ref ID បើលុយចូល/កាត់ជោគជ័យ
+    // ==========================================
+    // 👨‍💼 ២. មន្ត្រីប្រតិបត្តិបញ្ជរ និងអ្នកត្រួតពិនិត្យ (Maker - Checker)
+    // ==========================================
+    makerId: { type: mongoose.Schema.Types.ObjectId, ref: "Admin" }, // 🔗 Admin._id អ្នកបង្កើតសំបុត្រ
+    maker: { type: String, required: true }, // Snapshot ឈ្មោះ Maker
 
-    // 👤 Maker - Checker
-    maker: { type: String, required: true }, // Admin អ្នកវាយបញ្ជូល
-    checker: { type: String, default: null }, // Admin អ្នកផ្ទៀងផ្ទាត់ / អនុម័ត
+    checkerId: { type: mongoose.Schema.Types.ObjectId, ref: "Admin" }, // 🔗 Admin._id អ្នកអនុម័ត
+    checker: { type: String }, // Snapshot ឈ្មោះ Checker (មានតែពេលពិនិត្យរួច)
 
-    // 💵 ព័ត៌មានប្រតិបត្តិការ
+    // ==========================================
+    // 💵 ៣. ព័ត៌មានសាច់ប្រាក់ និងគណនីគោលដៅ (Cash Transaction Details)
+    // ==========================================
     requestType: {
       type: String,
       enum: ["Deposit", "Withdrawal"],
       required: true,
     },
     amount: { type: Number, required: true },
-    currency: { type: String, required: true },
+    currency: { type: String, enum: ["USD", "KHR"], required: true },
     targetAcc: { type: String, required: true },
     depositorName: { type: String },
 
-    // 📊 ស្ថានភាព (Status)
+    // ==========================================
+    // 📊 ៤. ស្ថានភាពសំបុត្រ និងទិន្នន័យបោះពុម្ពវិក្កយបត្រ (Status & Slip Data)
+    // ==========================================
     status: {
       type: String,
       required: true,
@@ -41,15 +56,22 @@ const cashierTicketSchema = new mongoose.Schema(
         "approved",
         "rejected",
       ],
+      index: true,
     },
-
     remark: { type: String },
-    rejectReason: { type: String, default: null },
-
-    // 🧾 ទុកទិន្នន័យបន្ថែម សម្រាប់ Print Slip
-    slipData: { type: Object, default: {} },
+    rejectReason: { type: String }, // បង្កើតតែពេលត្រូវបានបដិសេធ ("rejected") ប៉ុណ្ណោះ
+    slipData: { type: Object }, // ទិន្នន័យសម្រាប់ Print Slip
   },
-  { timestamps: true },
+  { timestamps: true, minimize: true },
 );
+
+cashierTicketSchema.set("toJSON", {
+  virtuals: true,
+  transform: function (doc, ret) {
+    ret._id = doc._id.toString();
+    ret.id = doc._id.toString();
+    delete ret.__v;
+  },
+});
 
 module.exports = mongoose.model("CashierTicket", cashierTicketSchema);

@@ -55,8 +55,8 @@ const checkAccount = async (req, res) => {
       $or: [
         { "mainAccounts.USD.accountNumber": accountNumber },
         { "mainAccounts.KHR.accountNumber": accountNumber },
-        { accountNumber: accountNumber }, // Legacy Support
-        { accountNumberKHR: accountNumber }, // Legacy Support
+        { accountNumber: accountNumber },
+        { accountNumberKHR: accountNumber },
         { "subAccounts.accountNumber": accountNumber },
       ],
     });
@@ -640,7 +640,12 @@ const transfer = async (req, res) => {
 
     // 🌟 វិក្កយបត្រវេរប្រាក់គោល៖ កត់ត្រាតែចំនួនទឹកប្រាក់ដើមសុទ្ធ (-senderPrincipalDeduction) មិនបូកលាយ Fee ឡើយ!
     const senderTrx = {
-      userId: sender._id,
+      userId: sender._id, // 🔗 ដាក់ _id ម្ចាស់កុងជាគោល
+      accountId: isSenderSubAccount
+        ? sender.subAccounts[senderSubIndex].accountId
+        : isSenderKHR
+          ? sender.mainAccounts?.KHR?.accountId
+          : sender.mainAccounts?.USD?.accountId, // 🔗 ដាក់ accountId ជាប់ជាមួយ
       refId: sharedRefId,
       hash: sharedHash,
       date,
@@ -661,7 +666,13 @@ const transfer = async (req, res) => {
     };
 
     const receiverTrx = {
-      userId: isMerchant ? undefined : receiver._id,
+      userId: receiver ? receiver._id : undefined, // 🔗 ដាក់ _id អ្នកទទួលជាគោល
+      accountId:
+        targetSubAccIndex !== -1
+          ? receiver.subAccounts[targetSubAccIndex].accountId
+          : isReceiverKHR
+            ? receiver.mainAccounts?.KHR?.accountId
+            : receiver.mainAccounts?.USD?.accountId,
       refId: sharedRefId,
       hash: sharedHash,
       date,
@@ -1022,7 +1033,8 @@ const payBankBill = async (req, res) => {
 
       // ៥. កត់ត្រា History អោយអ្នកបង់លុយ (Slip ចេញឈ្មោះក្រុមហ៊ុន តែលេខកុង 777888999) 🌟🌟🌟
       await Transaction.create({
-        userId: payingUser._id,
+        userId: payingUser._id, // 🔗 ភ្ជាប់តាម _id
+        accountId: payingUser.mainAccounts?.USD?.accountId,
         username: payingUser.username,
         refId: currentRefId,
         hash: newHash,
@@ -1031,9 +1043,9 @@ const payBankBill = async (req, res) => {
         amount: -deductAmount,
         currency: isSenderKHR ? "KHR" : "USD",
         senderName: payingUser.fullName || payingUser.username,
-        receiverName: company, // 🌟 បង្ហាញឈ្មោះក្រុមហ៊ុននៅលើ Slip
+        receiverName: company,
         senderAcc: senderAccount,
-        receiverAcc: PAYHUB_ACCOUNT_NUMBER, // 🌟 លេខគណនី PayHub 777888999
+        receiverAcc: PAYHUB_ACCOUNT_NUMBER,
         trxMethod: "Bill Payment",
         remark: `ទូទាត់វិក្កយបត្រ: ${company}`,
         status: "Success",

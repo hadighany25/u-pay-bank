@@ -1,22 +1,53 @@
-// js/u-pay-core.js
-
-/**
- * ==========================================
- * 🧠 U-PAY CORE SYSTEM (ខួរក្បាលកណ្តាលរបស់ App)
- * ==========================================
- */
+// ============================================================================
+// ឯកសារ: public/js/u-pay-core.js
+// អត្ថន័យ: ខួរក្បាលកណ្តាលរបស់ U-PAY (100% Pure _id, Auto Deep-Link Redirect & Smart Notifications)
+// ============================================================================
 
 const userString = sessionStorage.getItem("user");
-const token = sessionStorage.getItem("userToken");
+const token =
+  sessionStorage.getItem("userToken") || localStorage.getItem("token");
 const currentPage = window.location.pathname.split("/").pop();
 
+// 🔗 ១. បើអ្នកប្រើប្រាស់ចុច Link (ឧ. split.html?id=SPL-xxx) ពីក្នុង Chat តែមិនទាន់ Login
+// ត្រូវចងចាំ Link នោះទុកសិន មុននឹងបញ្ជូនទៅទំព័រ Login (index.html)!
 if (!userString || !token) {
   if (
     currentPage !== "index.html" &&
     currentPage !== "" &&
     currentPage !== "register.html"
   ) {
+    sessionStorage.setItem(
+      "pendingDeepLink",
+      window.location.pathname + window.location.search,
+    );
+    localStorage.setItem(
+      "pendingSplitRedirect",
+      window.location.pathname + window.location.search,
+    );
     window.location.href = "index.html";
+  } else if (window.location.search.includes("split=")) {
+    const spId = new URLSearchParams(window.location.search).get("split");
+    if (spId) {
+      localStorage.setItem(
+        "pendingSplitRedirect",
+        `/split.html?id=${encodeURIComponent(spId)}`,
+      );
+    }
+  }
+} else {
+  // 🚀 ២. គ្រាន់តែ Login ជោគជ័យចូលមកដល់ភ្លាម បើមាន Link ដែលបានចុចមុនពេល Login ត្រូវរុញទៅទំព័រនោះភ្លាម!
+  const savedDeepLink =
+    sessionStorage.getItem("pendingDeepLink") ||
+    localStorage.getItem("pendingSplitRedirect");
+  if (
+    savedDeepLink &&
+    (currentPage === "dashboard.html" ||
+      currentPage === "index.html" ||
+      currentPage === "")
+  ) {
+    sessionStorage.removeItem("pendingDeepLink");
+    localStorage.removeItem("pendingSplitRedirect");
+    window.location.href = savedDeepLink;
   }
 }
 
@@ -27,6 +58,9 @@ window.authHeaders = {
 };
 window.currentLang = localStorage.getItem("lang") || "en";
 
+// ==========================================
+// 🌐 មុខងារបកប្រែភាសា និង Dark Mode តាម _id
+// ==========================================
 window.t = function (key) {
   const lang = localStorage.getItem("lang") || "en";
   if (
@@ -46,10 +80,14 @@ window.t = function (key) {
 
 window.applyTheme = function () {
   if (!window.currentUser) return;
-  const userThemeKey = "darkMode_" + window.currentUser.username;
+  const uid = window.currentUser._id;
+  const uName = window.currentUser.username;
   const isDark =
-    localStorage.getItem("theme") === "dark" ||
-    localStorage.getItem(userThemeKey) === "true";
+    (uid && localStorage.getItem(`theme_${uid}`) === "dark") ||
+    (uName && localStorage.getItem(`theme_${uName}`) === "dark") ||
+    (uName && localStorage.getItem(`darkMode_${uName}`) === "true") ||
+    localStorage.getItem("theme") === "dark";
+
   if (isDark) document.body.classList.add("dark-mode");
   else document.body.classList.remove("dark-mode");
 };
@@ -74,18 +112,26 @@ window.applyLanguage = function () {
   else document.body.classList.remove("kh-font");
 };
 
+// ==========================================
+// 🔌 ការភ្ជាប់ SOCKET.IO តាម _id សុទ្ធ
+// ==========================================
 document.addEventListener("DOMContentLoaded", () => {
   window.applyTheme();
   window.applyLanguage();
   setTimeout(() => document.body.classList.add("loaded"), 50);
 
   if (window.currentUser && typeof io !== "undefined") {
-    const socket = io("https://u-pay-bank.fly.dev");
-    const uName = window.currentUser.username
-      ? window.currentUser.username.trim()
-      : "";
-    socket.emit("joinRoom", uName);
-    if (uName) socket.emit("joinRoom", uName.toLowerCase());
+    const socket = io({ transports: ["websocket", "polling"] });
+
+    // 🆔 ភ្ជាប់បន្ទប់តាម _id ជាគោល
+    if (window.currentUser._id) {
+      socket.emit("joinRoom", String(window.currentUser._id));
+    }
+    if (window.currentUser.username) {
+      const uName = window.currentUser.username.trim();
+      socket.emit("joinRoom", uName);
+      socket.emit("joinRoom", uName.toLowerCase());
+    }
 
     socket.on("paymentRequest", (data) => {
       const fakeNotif = {
@@ -99,7 +145,29 @@ document.addEventListener("DOMContentLoaded", () => {
           merchantName: data.merchantName,
           amount: data.amount,
         },
-        responseStatus: "pending", // 🌟 តម្រូវតាម Backend ថ្មី
+        responseStatus: "pending",
+      };
+      if (typeof window.showSmartNotification === "function") {
+        window.showSmartNotification(fakeNotif);
+      }
+    });
+
+    // 🧾 ពេលមិត្តភក្តិបង្កើតវិក្កយបត្ររួមគ្នាហើយ Add យើងចូល លោតសារប្រាប់ភ្លាមៗ!
+    socket.on("splitBillInvited", (data) => {
+      const sym = data.currency === "KHR" ? "៛" : "$";
+      const fakeNotif = {
+        _id: "SOCKET_SPL_" + Date.now(),
+        type: "split_bill_request",
+        title: "🧾 សំណើរួមគ្នាទូទាត់ (Split Bill)",
+        message: `${data.hostName} បានស្នើសុំរួមគ្នាទូទាត់លើ «${data.title}» ចំណែករបស់អ្នកគឺ ${sym}${Number(data.amount).toLocaleString()}។`,
+        date: new Date().toLocaleString(),
+        metadata: {
+          billId: data.billId,
+          hostName: data.hostName,
+          amount: data.amount,
+          currency: data.currency,
+          title: data.title,
+        },
       };
       if (typeof window.showSmartNotification === "function") {
         window.showSmartNotification(fakeNotif);
@@ -111,44 +179,44 @@ document.addEventListener("DOMContentLoaded", () => {
     const style = document.createElement("style");
     style.id = "smart-notif-global-style";
     style.innerHTML = `
-        .notif-item { padding: 18px; background: #ffffff; border-radius: 16px; border: 1px solid #e2e8f0; text-align: left; }
-        body.dark-mode .notif-item { background: #1e293b; border-color: #334155; }
-        .notif-top-row { display: flex; gap: 15px; align-items: flex-start; }
-        .notif-icon-box { width: 48px; height: 48px; border-radius: 50%; display: flex; align-items: center; justify-content: center; flex-shrink: 0; font-size: 1.3rem; }
-        .notif-text-box { flex: 1; overflow: hidden; }
-        .notif-text-box h4 { margin: 0 0 6px 0; font-size: 1rem; color: #1e293b; font-weight: 700; line-height: 1.3; }
-        body.dark-mode .notif-text-box h4 { color: #f8fafc; }
-        .notif-text-box p { margin: 0 0 10px 0; font-size: 0.85rem; color: #475569; line-height: 1.5; }
-        body.dark-mode .notif-text-box p { color: #cbd5e1; }
-        .notif-text-box span.msg-date { font-size: 0.75rem; color: #94a3b8; font-weight: 500; display: flex; align-items: center; gap: 5px; margin-top: 10px; }
-        
-        .action-btn-group { display: flex; gap: 10px; margin-top: 15px; }
-        .action-btn-group button { flex: 1; padding: 12px 10px; border-radius: 10px; font-weight: 700; cursor: pointer; border: none; color: white; transition: 0.2s; font-size: 0.9rem; }
-        .action-btn-group button:active { transform: scale(0.95); }
-        .btn-accept { background: #10b981; box-shadow: 0 4px 10px rgba(16, 185, 129, 0.2); }
-        .btn-reject { background: #ef4444; box-shadow: 0 4px 10px rgba(239, 68, 68, 0.2); }
-        .btn-full { width: 100%; background: #dc2626; box-shadow: 0 4px 10px rgba(220, 38, 38, 0.2); }
+      .notif-item { padding: 18px; background: #ffffff; border-radius: 16px; border: 1px solid #e2e8f0; text-align: left; }
+      body.dark-mode .notif-item { background: #1e293b; border-color: #334155; }
+      .notif-top-row { display: flex; gap: 15px; align-items: flex-start; }
+      .notif-icon-box { width: 48px; height: 48px; border-radius: 50%; display: flex; align-items: center; justify-content: center; flex-shrink: 0; font-size: 1.3rem; }
+      .notif-text-box { flex: 1; overflow: hidden; }
+      .notif-text-box h4 { margin: 0 0 6px 0; font-size: 1rem; color: #1e293b; font-weight: 700; line-height: 1.3; }
+      body.dark-mode .notif-text-box h4 { color: #f8fafc; }
+      .notif-text-box p { margin: 0 0 10px 0; font-size: 0.85rem; color: #475569; line-height: 1.5; }
+      body.dark-mode .notif-text-box p { color: #cbd5e1; }
+      .notif-text-box span.msg-date { font-size: 0.75rem; color: #94a3b8; font-weight: 500; display: flex; align-items: center; gap: 5px; margin-top: 10px; }
+      
+      .action-btn-group { display: flex; gap: 10px; margin-top: 15px; }
+      .action-btn-group button { flex: 1; padding: 12px 10px; border-radius: 10px; font-weight: 700; cursor: pointer; border: none; color: white; transition: 0.2s; font-size: 0.9rem; font-family: 'Kantumruy Pro', sans-serif !important; }
+      .action-btn-group button:active { transform: scale(0.95); }
+      .btn-accept { background: #10b981; box-shadow: 0 4px 10px rgba(16, 185, 129, 0.2); }
+      .btn-reject { background: #ef4444; box-shadow: 0 4px 10px rgba(239, 68, 68, 0.2); }
+      .btn-full { width: 100%; background: #dc2626; box-shadow: 0 4px 10px rgba(220, 38, 38, 0.2); }
 
-        .premium-swal { width: 92% !important; max-width: 420px !important; border-radius: 24px !important; padding-bottom: 20px; }
-        .premium-swal .swal2-title { font-size: 1.25rem !important; margin-bottom: 5px; }
-        .premium-swal .swal2-html-container { margin: 1em; overflow: hidden; padding: 0; }
-        .premium-swal .notif-item { margin: 0; box-shadow: 0 4px 20px rgba(0,0,0,0.05); border: none; background: #f8fafc; }
-        body.dark-mode .premium-swal .notif-item { background: #0f172a; box-shadow: 0 4px 20px rgba(0,0,0,0.5); }
+      .premium-swal { width: 92% !important; max-width: 420px !important; border-radius: 24px !important; padding-bottom: 20px; }
+      .premium-swal .swal2-title { font-size: 1.25rem !important; margin-bottom: 5px; }
+      .premium-swal .swal2-html-container { margin: 1em; overflow: hidden; padding: 0; }
+      .premium-swal .notif-item { margin: 0; box-shadow: 0 4px 20px rgba(0,0,0,0.05); border: none; background: #f8fafc; }
+      body.dark-mode .premium-swal .notif-item { background: #0f172a; box-shadow: 0 4px 20px rgba(0,0,0,0.5); }
 
-        .smart-toast-notification { position: fixed; top: -100px; left: 50%; transform: translateX(-50%); width: 92%; max-width: 420px; background: rgba(255,255,255,0.95); backdrop-filter: blur(15px); border-radius: 20px; box-shadow: 0 10px 40px rgba(0,0,0,0.15); padding: 16px; z-index: 99999; transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1); overflow: hidden; max-height: 85px; cursor: pointer; border: 1px solid rgba(0,0,0,0.05); }
-        body.dark-mode .smart-toast-notification { background: rgba(30,41,59,0.95); box-shadow: 0 10px 40px rgba(0,0,0,0.5); border: 1px solid rgba(255,255,255,0.1); }
-        .smart-toast-notification.expanding { max-height: 300px; box-shadow: 0 20px 50px rgba(0,0,0,0.25); border-radius: 24px; }
-        .smart-toast-content { display: flex; align-items: flex-start; gap: 15px; }
-        .smart-toast-icon { font-size: 1.4rem; width: 45px; height: 45px; border-radius: 50%; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
-        .smart-toast-text h4 { margin: 0 0 4px 0; font-size: 1rem; font-weight: 700; color: #0f172a; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-        body.dark-mode .smart-toast-text h4 { color: #f8fafc; }
-        .smart-toast-text p { margin: 0; font-size: 0.85rem; color: #475569; line-height: 1.5; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
-        body.dark-mode .smart-toast-text p { color: #94a3b8; }
-        .smart-toast-notification.expanding .smart-toast-text h4 { white-space: normal; }
-        .smart-toast-notification.expanding .smart-toast-text p { display: block; overflow: visible; }
-        .smart-toast-pull-bar { width: 40px; height: 4px; background: #cbd5e1; border-radius: 10px; margin: 12px auto 0; opacity: 0; transition: 0.3s; }
-        .smart-toast-notification.expanding .smart-toast-pull-bar { opacity: 1; }
-      `;
+      .smart-toast-notification { position: fixed; top: -100px; left: 50%; transform: translateX(-50%); width: 92%; max-width: 420px; background: rgba(255,255,255,0.95); backdrop-filter: blur(15px); border-radius: 20px; box-shadow: 0 10px 40px rgba(0,0,0,0.15); padding: 16px; z-index: 99999; transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1); overflow: hidden; max-height: 85px; cursor: pointer; border: 1px solid rgba(0,0,0,0.05); }
+      body.dark-mode .smart-toast-notification { background: rgba(30,41,59,0.95); box-shadow: 0 10px 40px rgba(0,0,0,0.5); border: 1px solid rgba(255,255,255,0.1); }
+      .smart-toast-notification.expanding { max-height: 300px; box-shadow: 0 20px 50px rgba(0,0,0,0.25); border-radius: 24px; }
+      .smart-toast-content { display: flex; align-items: flex-start; gap: 15px; }
+      .smart-toast-icon { font-size: 1.4rem; width: 45px; height: 45px; border-radius: 50%; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+      .smart-toast-text h4 { margin: 0 0 4px 0; font-size: 1rem; font-weight: 700; color: #0f172a; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+      body.dark-mode .smart-toast-text h4 { color: #f8fafc; }
+      .smart-toast-text p { margin: 0; font-size: 0.85rem; color: #475569; line-height: 1.5; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+      body.dark-mode .smart-toast-text p { color: #94a3b8; }
+      .smart-toast-notification.expanding .smart-toast-text h4 { white-space: normal; }
+      .smart-toast-notification.expanding .smart-toast-text p { display: block; overflow: visible; }
+      .smart-toast-pull-bar { width: 40px; height: 4px; background: #cbd5e1; border-radius: 10px; margin: 12px auto 0; opacity: 0; transition: 0.3s; }
+      .smart-toast-notification.expanding .smart-toast-pull-bar { opacity: 1; }
+    `;
     document.head.appendChild(style);
   }
 });
@@ -165,14 +233,16 @@ function escapeHTML(str) {
 }
 
 // ==========================================
-// 🛡️ ANTI-SPAM & STATE MANAGEMENT
+// 🛡️ ANTI-SPAM & STATE MANAGEMENT (PURE _ID)
 // ==========================================
 
 window.getRespondedMap = function () {
   if (!window.currentUser) return {};
+  const idKey = `respondedNotifs_${window.currentUser._id}`;
+  const legacyKey = `respondedNotifs_${window.currentUser.username}`;
   return (
     JSON.parse(
-      localStorage.getItem(`respondedNotifs_${window.currentUser.username}`),
+      localStorage.getItem(idKey) || localStorage.getItem(legacyKey) || "{}",
     ) || {}
   );
 };
@@ -183,10 +253,12 @@ window.markNotifResponded = function (uniqueKey, status) {
   if (!user) return;
   let respondedMap = window.getRespondedMap();
   respondedMap[uniqueKey] = status;
-  localStorage.setItem(
-    `respondedNotifs_${user.username}`,
-    JSON.stringify(respondedMap),
-  );
+  if (user._id) {
+    localStorage.setItem(
+      `respondedNotifs_${user._id}`,
+      JSON.stringify(respondedMap),
+    );
+  }
 };
 
 // ==========================================
@@ -233,12 +305,20 @@ window.generateMessageHTML = function (
     bgClass = "background:#f3e8ff; color:#9333ea;";
   }
 
-  // 🎁 អាំងប៉ាវ E-Gift
-  if (m.type === "egift_receive") {
+  // 🧾 ០. សំណើរួមគ្នាទូទាត់ (Split Bill Request)
+  if (m.type === "split_bill_request") {
+    iconClass = "fa-receipt";
+    bgClass = "background:#ecfdf5; color:#0d9488;";
+    const bId = m.metadata?.billId || "";
+    if (bId) {
+      actionBtns = `<div class="action-btn-group"><button class="kh-text btn-accept" onclick="window.location.href='split.html?id=${encodeURIComponent(bId)}'"><i class="fa-solid fa-bolt"></i> ទូទាត់ចំណែករបស់ខ្ញុំឥឡូវនេះ</button></div>`;
+    }
+  }
+  // 🎁 ១. អាំងប៉ាវ E-Gift
+  else if (m.type === "egift_receive") {
     iconClass = "fa-gift";
     const key = notifId;
 
-    // 🌟 ការកែប្រែដ៏សំខាន់៖ ផ្តល់អាទិភាពដល់ DB Status មុន LocalStorage!
     responseStatus =
       m.responseStatus && m.responseStatus !== "pending"
         ? m.responseStatus
@@ -269,12 +349,11 @@ window.generateMessageHTML = function (
       bgClass = "background:#d1fae5; color:#10b981;";
     }
   }
-  // 🎯 U-Fund
+  // 🎯 ២. U-Fund
   else if (m.type === "ufund_invite") {
     iconClass = "fa-bullseye";
     const key = m.fundId || (m.metadata && m.metadata.fundId) || notifId;
 
-    // 🌟 ការកែប្រែដ៏សំខាន់៖ ផ្តល់អាទិភាពដល់ DB Status មុន LocalStorage!
     responseStatus =
       m.responseStatus && m.responseStatus !== "pending"
         ? m.responseStatus
@@ -294,7 +373,7 @@ window.generateMessageHTML = function (
       displayMsg += ` <br><b class="kh-text" style="color:${responseStatus === "accepted" ? "#10b981" : "#ef4444"}; font-size: 0.8rem;">(${statusIcon} ${statusText})</b>`;
     }
   }
-  // 👥 Joint Account
+  // 👥 ៣. Joint Account
   else if (
     m.type === "joint_invite" ||
     (m.metadata && m.metadata.type === "joint_invite")
@@ -303,7 +382,6 @@ window.generateMessageHTML = function (
     const metaData = m.metadata || {};
     const key = metaData.accountNumber || notifId;
 
-    // 🌟 ការកែប្រែដ៏សំខាន់៖ ផ្តល់អាទិភាពដល់ DB Status មុន LocalStorage!
     responseStatus =
       m.responseStatus && m.responseStatus !== "pending"
         ? m.responseStatus
@@ -322,14 +400,13 @@ window.generateMessageHTML = function (
       displayMsg += ` <br><b class="kh-text" style="color:${responseStatus === "accepted" ? "#10b981" : "#ef4444"}; font-size: 0.8rem;">(${statusIcon} ${statusText})</b>`;
     }
   }
-  // 💳 Card Payment Request
+  // 💳 ៤. Card Payment Request
   else if (m.type === "card_payment_request") {
     iconClass = "fa-credit-card";
     const metaData = m.metadata || {};
     const txId = metaData.transactionId;
     const key = txId || notifId;
 
-    // 🌟 ការកែប្រែដ៏សំខាន់៖ ផ្តល់អាទិភាពដល់ DB Status មុន LocalStorage!
     responseStatus =
       m.responseStatus && m.responseStatus !== "pending"
         ? m.responseStatus
@@ -375,7 +452,7 @@ window.generateMessageHTML = function (
 };
 
 // ==========================================
-// 🚀 SMART NOTIFICATION DISPATCHER (បែងចែកការលោតសារ)
+// 🚀 SMART NOTIFICATION DISPATCHER
 // ==========================================
 
 window.sessionPoppedSet = new Set();
@@ -385,9 +462,12 @@ window.showSmartNotification = function (m) {
   const respondedMap = window.getRespondedMap();
 
   const isActionable =
-    ["egift_receive", "ufund_invite", "card_payment_request"].includes(
-      m.type,
-    ) ||
+    [
+      "egift_receive",
+      "ufund_invite",
+      "card_payment_request",
+      "split_bill_request",
+    ].includes(m.type) ||
     (m.metadata && m.metadata.type === "joint_invite");
 
   let uniqueKey = notifId;
@@ -399,8 +479,9 @@ window.showSmartNotification = function (m) {
     uniqueKey = m.fundId || metaData.fundId || notifId;
   else if (m.type === "joint_invite" || metaData.type === "joint_invite")
     uniqueKey = metaData.accountNumber || notifId;
+  else if (m.type === "split_bill_request")
+    uniqueKey = metaData.billId || notifId;
 
-  // 🌟 ការពារការលោតសារដែលយើងបាន Accept/Reject រួចនៅក្នុង Database
   if (
     respondedMap[uniqueKey] ||
     (m.responseStatus && m.responseStatus !== "pending")
@@ -440,7 +521,6 @@ window.showActionableSweetAlert = function (m) {
 };
 
 window.showPeekToastNotification = function (m) {
-  // 🌟 ថែមកូដមួយជួរនេះ ដើម្បីកត់ចំណាំថា Toast នេះបានបង្ហាញរួចហើយ
   window.markNotifResponded(m._id || m.id, "shown");
 
   new Audio(
@@ -524,7 +604,7 @@ window.showPeekToastNotification = function (m) {
 };
 
 // ==========================================
-// 🚀 មុខងារទូទាត់ និងឆ្លើយតប (GLOBAL ACTIONS)
+// 🚀 មុខងារទូទាត់ និងឆ្លើយតប (GLOBAL ACTIONS - PURE _ID)
 // ==========================================
 
 window.triggerGlobalSync = function () {
@@ -549,6 +629,7 @@ window.respondUFundInvite = async function (fundId, uniqueKey, response) {
       method: "POST",
       headers: window.authHeaders,
       body: JSON.stringify({
+        userId: window.currentUser._id,
         username: window.currentUser.username,
         fundId: fundId,
         notifId: uniqueKey,
@@ -601,6 +682,7 @@ window.handleJointInvite = async function (
       method: "POST",
       headers: window.authHeaders,
       body: JSON.stringify({
+        inviteeUserId: window.currentUser._id,
         inviteeUsername: window.currentUser.username,
         ownerUsername: ownerUsername,
         accountNumber: accountNumber,
@@ -663,6 +745,7 @@ window.handleOpenGift = async function (
       method: "POST",
       headers: window.authHeaders,
       body: JSON.stringify({
+        userId: window.currentUser._id,
         receiverName:
           window.currentUser.fullName || window.currentUser.username,
         senderUsername: senderUsername,
@@ -692,6 +775,7 @@ window.handleCardPaymentConfirm = async function (transactionId, uniqueKey) {
             method: "POST",
             headers: window.authHeaders,
             body: JSON.stringify({
+              userId: window.currentUser._id,
               transactionId: transactionId,
               pin: pinCode,
             }),
@@ -699,8 +783,6 @@ window.handleCardPaymentConfirm = async function (transactionId, uniqueKey) {
           const data = await res.json();
           if (data.success) {
             window.markNotifResponded(uniqueKey, "accepted");
-            // 🌟 លែងត្រូវការបាញ់ API /api/user/notifications/read/... ទៀតហើយ
-            // ព្រោះការ Update Status វាត្រូវបានគ្រប់គ្រងស្រាប់ដោយ backend Gateway ពេល confirm
             Swal.fire({
               icon: "success",
               title: `<span class="kh-text">${window.t("swal_pay_success_title")}</span>`,
@@ -736,7 +818,10 @@ window.handleCardPaymentReject = async function (transactionId, uniqueKey) {
     await fetch("/api/gateway/payment-request/reject", {
       method: "POST",
       headers: window.authHeaders,
-      body: JSON.stringify({ transactionId: transactionId }),
+      body: JSON.stringify({
+        userId: window.currentUser._id,
+        transactionId: transactionId,
+      }),
     });
     window.markNotifResponded(uniqueKey, "rejected");
     Swal.fire({
@@ -763,65 +848,49 @@ window.deleteMessage = function (title, date) {
     customClass: { popup: "premium-swal kh-text" },
   }).then((result) => {
     if (result.isConfirmed) {
-      let deletedMsgs =
-        JSON.parse(
-          localStorage.getItem(`deletedMsgs_${window.currentUser.username}`),
-        ) || [];
+      const delKey = `deletedMsgs_${window.currentUser._id}`;
+      let deletedMsgs = JSON.parse(localStorage.getItem(delKey) || "[]");
       deletedMsgs.push(date + title);
-      localStorage.setItem(
-        `deletedMsgs_${window.currentUser.username}`,
-        JSON.stringify(deletedMsgs),
-      );
+      localStorage.setItem(delKey, JSON.stringify(deletedMsgs));
       window.triggerGlobalSync();
     }
   });
 };
 
 // =========================================================
-// 🟢 កូដ Smart Heartbeat: ដឹងភ្លាមៗពេល User ចូលមកកាន់ App វិញ
+// 🟢 កូដ Smart Heartbeat (Pure _id)
 // =========================================================
 function startSmartHeartbeat() {
   async function sendHeartbeat() {
-    const token = sessionStorage.getItem("userToken"); // 🌟 ប្រើ sessionStorage តាមកូដដើមរបស់អ្នក
+    const tok =
+      sessionStorage.getItem("userToken") || localStorage.getItem("token");
     const userObj = JSON.parse(sessionStorage.getItem("user") || "{}");
 
-    if (userObj.username && token) {
+    if (userObj._id && tok) {
       try {
         await fetch("/api/user/heartbeat", {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
+            Authorization: `Bearer ${tok}`,
           },
-          body: JSON.stringify({ username: userObj.username }),
+          body: JSON.stringify({ userId: userObj._id }),
         });
-      } catch (error) {
-        console.log("Heartbeat Sync Failed");
-      }
+      } catch (error) {}
     }
   }
 
-  // ១. បាញ់ប្រាប់ Server ភ្លាមៗពេលគាត់បើកទំព័រណាមួយ
   sendHeartbeat();
-
-  // ២. បាញ់រៀងរាល់ ២ នាទីម្តង (ជាប្រចាំកុំឱ្យដាច់)
   setInterval(sendHeartbeat, 120000);
 
-  // ៣. 🟢 [សំខាន់បំផុត] បាញ់ភ្លាមៗពេលគាត់ប្តូរ Tab ហើយត្រលប់មកវិញ (Visibility Change)
   document.addEventListener("visibilitychange", () => {
-    if (document.visibilityState === "visible") {
-      sendHeartbeat();
-    }
+    if (document.visibilityState === "visible") sendHeartbeat();
   });
-
-  // ៤. 🟢 [សំខាន់បំផុត] បាញ់ភ្លាមៗពេលគាត់ចុច ឬ Touch លើអេក្រង់បន្ទាប់ពីទុកចោលយូរ (Focus)
   window.addEventListener("focus", sendHeartbeat);
 }
 
-// ហៅឱ្យកូដចាប់ផ្តើមធ្វើការ តែក្នុងករណីដែលគាត់មាន Token (Login រួច)
 document.addEventListener("DOMContentLoaded", () => {
-  if (sessionStorage.getItem("userToken")) {
-    // 🌟 ប្រើ sessionStorage
+  if (sessionStorage.getItem("userToken") || localStorage.getItem("token")) {
     startSmartHeartbeat();
   }
 });
